@@ -29,7 +29,7 @@ function getStamp(label) {
   var d = new Date();
   var date = padTwo(d.getDate()) + "/" + padTwo(d.getMonth() + 1) + "/" + d.getFullYear();
   var time = padTwo(d.getHours()) + "h" + padTwo(d.getMinutes());
-  return (label ? label + "  -  " : "") + date + "  " + time;
+  return date + "  " + time;
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -51,7 +51,7 @@ function processPhoto(file, label) {
     var img = new Image();
     var url = URL.createObjectURL(file);
     img.onload = function() {
-      var maxW = 1600;
+      var maxW = 2400;
       var scale = img.width > maxW ? maxW / img.width : 1;
       var w = Math.round(img.width * scale);
       var h = Math.round(img.height * scale);
@@ -79,7 +79,7 @@ function processPhoto(file, label) {
       canvas.toBlob(function(blob) {
         URL.revokeObjectURL(url);
         resolve(new File([blob], file.name, { type: "image/jpeg" }));
-      }, "image/jpeg", 0.82);
+      }, "image/jpeg", 0.90);
     };
     img.src = url;
   });
