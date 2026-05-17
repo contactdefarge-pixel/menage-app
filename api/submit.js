@@ -42,68 +42,14 @@ export default async function handler(req, res) {
     const duree = calcDuree(arrivee.heureDebut, consommables.heureFin);
     const formule = calcFormule(etatLieux.observations, consommables.consommablesAPrevoir, consommables.remarques);
 
-    // ── Upload photos vers Notion ─────────────────────────────────────────────
-    async function uploadPhoto(base64, filename) {
-      try {
-        // Étape 1 : créer l'objet file upload
-        const createRes = await fetch("https://api.notion.com/v1/file_uploads", {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + NOTION_TOKEN,
-            "Notion-Version": "2022-06-28",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ filename: filename, content_type: "image/jpeg" }),
-        });
-        if (!createRes.ok) {
-          const err = await createRes.json();
-          console.error("Création upload erreur:", err);
-          return null;
-        }
-        const createData = await createRes.json();
-        const uploadId = createData.id;
-        const uploadUrl = createData.upload_url;
-
-        // Étape 2 : envoyer le fichier en multipart/form-data
-        const buffer = Buffer.from(base64.split(",")[1] || base64, "base64");
-        const boundary = "----FormBoundary" + Math.random().toString(36).slice(2);
-        const header = Buffer.from(
-          "--" + boundary + "\r\n" +
-          "Content-Disposition: form-data; name=\"file\"; filename=\"" + filename + "\"\r\n" +
-          "Content-Type: image/jpeg\r\n\r\n"
-        );
-        const footer = Buffer.from("\r\n--" + boundary + "--\r\n");
-        const body = Buffer.concat([header, buffer, footer]);
-
-        const sendRes = await fetch(uploadUrl, {
-          method: "POST",
-          headers: {
-            "Authorization": "Bearer " + NOTION_TOKEN,
-            "Notion-Version": "2022-06-28",
-            "Content-Type": "multipart/form-data; boundary=" + boundary,
-            "Content-Length": body.length,
-          },
-          body: body,
-        });
-        if (!sendRes.ok) {
-          const err = await sendRes.json();
-          console.error("Envoi upload erreur:", err);
-          return null;
-        }
-
-        return { type: "file_upload", file_upload: { id: uploadId } };
-      } catch (e) {
-        console.error("Upload photo erreur:", e);
-        return null;
-      }
-    }
-
-    // Upload toutes les photos de fin de ménage
+    // Les photos sont déjà uploadées directement vers Notion depuis le navigateur
+    // On reçoit juste les uploadIds
     const photosUploaded = [];
     if (photos && photos.length > 0) {
       for (const photo of photos) {
-        const result = await uploadPhoto(photo.base64, photo.name);
-        if (result) photosUploaded.push(result);
+        if (photo.uploadId) {
+          photosUploaded.push({ type: "file_upload", file_upload: { id: photo.uploadId } });
+        }
       }
     }
 
