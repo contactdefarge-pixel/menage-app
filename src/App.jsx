@@ -25,11 +25,11 @@ function padTwo(n) {
   return String(n).padStart(2, "0");
 }
 
-function getStamp(label) {
+function getStamp() {
   var d = new Date();
   var date = padTwo(d.getDate()) + "/" + padTwo(d.getMonth() + 1) + "/" + d.getFullYear();
   var time = padTwo(d.getHours()) + "h" + padTwo(d.getMinutes());
-  return (label ? label + "  -  " : "") + date + "  " + time;
+  return date + "  " + time;
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -46,12 +46,12 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function processPhoto(file, label) {
+function processPhoto(file) {
   return new Promise(function(resolve) {
     var img = new Image();
     var url = URL.createObjectURL(file);
     img.onload = function() {
-      var maxW = 1600;
+      var maxW = 2400;
       var scale = img.width > maxW ? maxW / img.width : 1;
       var w = Math.round(img.width * scale);
       var h = Math.round(img.height * scale);
@@ -61,7 +61,7 @@ function processPhoto(file, label) {
       var ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, w, h);
 
-      var stamp = getStamp(label);
+      var stamp = getStamp();
       var fontSize = Math.max(18, Math.round(w * 0.025));
       ctx.font = "bold " + fontSize + "px monospace";
       var tw = ctx.measureText(stamp).width;
@@ -79,7 +79,7 @@ function processPhoto(file, label) {
       canvas.toBlob(function(blob) {
         URL.revokeObjectURL(url);
         resolve(new File([blob], file.name, { type: "image/jpeg" }));
-      }, "image/jpeg", 0.82);
+      }, "image/jpeg", 0.92);
     };
     img.src = url;
   });
@@ -472,7 +472,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
         setProcessing(false);
         return;
       }
-      processPhoto(arr[index], "Fin de menage").then(function(stamped) {
+      processPhoto(arr[index]).then(function(stamped) {
         results.push({
           id: Math.random().toString(36).slice(2),
           file: stamped,
@@ -490,10 +490,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
     setPhotos(function(prev) { return prev.filter(function(p) { return p.id !== id; }); });
   }
 
-  var btnLabel = photos.length === 0
-    ? "Sélectionner les photos"
-    : "Ajouter d'autres photos";
-
+  var btnLabel = photos.length === 0 ? "Sélectionner les photos" : "Ajouter d'autres photos";
   var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
 
   return (
@@ -503,10 +500,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
         Sélectionnez toutes vos photos en une seule fois. L'horodatage est gravé automatiquement sur chaque photo.
       </Subtitle>
 
-      <div style={{
-        background: "#f0f9ff", border: "1px solid #bae6fd",
-        borderRadius: 12, padding: "12px 15px", marginBottom: 20,
-      }}>
+      <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "12px 15px", marginBottom: 20 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           Photos attendues
         </div>
@@ -532,16 +526,13 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
                     width: "100%", aspectRatio: "1", objectFit: "cover",
                     borderRadius: 10, border: "2px solid #0ea5e9", display: "block",
                   }} />
-                  <button
-                    onClick={function() { remove(p.id); }}
-                    style={{
-                      position: "absolute", top: 4, right: 4,
-                      background: "rgba(0,0,0,0.6)", color: "#fff",
-                      border: "none", borderRadius: "50%",
-                      width: 22, height: 22, cursor: "pointer",
-                      fontSize: 12, lineHeight: "22px", textAlign: "center", padding: 0,
-                    }}
-                  >x</button>
+                  <button onClick={function() { remove(p.id); }} style={{
+                    position: "absolute", top: 4, right: 4,
+                    background: "rgba(0,0,0,0.6)", color: "#fff",
+                    border: "none", borderRadius: "50%",
+                    width: 22, height: 22, cursor: "pointer",
+                    fontSize: 12, lineHeight: "22px", textAlign: "center", padding: 0,
+                  }}>x</button>
                 </div>
               );
             })}
@@ -578,11 +569,8 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
         )}
       </div>
 
-      <input
-        ref={inputRef} type="file" accept="image/*" multiple
-        style={{ display: "none" }}
-        onChange={function(e) { handleFiles(e.target.files); }}
-      />
+      <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
+        onChange={function(e) { handleFiles(e.target.files); }} />
 
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev}>Retour</Btn>
@@ -698,7 +686,6 @@ export default function App() {
     setSending(true);
     setSendError("");
 
-    // Uploader chaque photo directement vers Notion depuis le navigateur
     var uploadPromises = photos.map(function(p) {
       return fetch("/api/get-upload-url", {
         method: "POST",
@@ -716,22 +703,14 @@ export default function App() {
             var binary = atob(base64);
             var bytes = new Uint8Array(binary.length);
             for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-            var headerStr = "--" + boundary + "
-Content-Disposition: form-data; name="file"; filename="" + p.name + ""
-Content-Type: image/jpeg
-
-";
-            var footerStr = "
---" + boundary + "--
-";
+            var headerStr = "--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + p.name + "\"\r\nContent-Type: image/jpeg\r\n\r\n";
+            var footerStr = "\r\n--" + boundary + "--\r\n";
             var headerBytes = new TextEncoder().encode(headerStr);
             var footerBytes = new TextEncoder().encode(footerStr);
             var body = new Uint8Array(headerBytes.length + bytes.length + footerBytes.length);
             body.set(headerBytes, 0);
             body.set(bytes, headerBytes.length);
             body.set(footerBytes, headerBytes.length + bytes.length);
-
             fetch(data.uploadUrl, {
               method: "POST",
               headers: { "Content-Type": "multipart/form-data; boundary=" + boundary },
