@@ -29,7 +29,7 @@ function getStamp(label) {
   var d = new Date();
   var date = padTwo(d.getDate()) + "/" + padTwo(d.getMonth() + 1) + "/" + d.getFullYear();
   var time = padTwo(d.getHours()) + "h" + padTwo(d.getMinutes());
-  return date + "  " + time;
+  return (label ? label + "  -  " : "") + date + "  " + time;
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -51,7 +51,7 @@ function processPhoto(file, label) {
     var img = new Image();
     var url = URL.createObjectURL(file);
     img.onload = function() {
-      var maxW = 2400;
+      var maxW = 1600;
       var scale = img.width > maxW ? maxW / img.width : 1;
       var w = Math.round(img.width * scale);
       var h = Math.round(img.height * scale);
@@ -79,7 +79,7 @@ function processPhoto(file, label) {
       canvas.toBlob(function(blob) {
         URL.revokeObjectURL(url);
         resolve(new File([blob], file.name, { type: "image/jpeg" }));
-      }, "image/jpeg", 0.90);
+      }, "image/jpeg", 0.82);
     };
     img.src = url;
   });
@@ -698,18 +698,57 @@ export default function App() {
     setSending(true);
     setSendError("");
 
-    // Convertir les photos en base64 pour l'envoi
-    var photoPromises = photos.map(function(p) {
-      return new Promise(function(resolve) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          resolve({ name: p.name, base64: e.target.result });
-        };
-        reader.readAsDataURL(p.file);
-      });
+    // Uploader chaque photo directement vers Notion depuis le navigateur
+    var uploadPromises = photos.map(function(p) {
+      return fetch("/api/get-upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: p.name }),
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.uploadUrl) return null;
+        var boundary = "----FormBoundary" + Math.random().toString(36).slice(2);
+        return new Promise(function(resolve) {
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            var base64 = e.target.result.split(",")[1];
+            var binary = atob(base64);
+            var bytes = new Uint8Array(binary.length);
+            for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+            var headerStr = "--" + boundary + "
+Content-Disposition: form-data; name="file"; filename="" + p.name + ""
+Content-Type: image/jpeg
+
+";
+            var footerStr = "
+--" + boundary + "--
+";
+            var headerBytes = new TextEncoder().encode(headerStr);
+            var footerBytes = new TextEncoder().encode(footerStr);
+            var body = new Uint8Array(headerBytes.length + bytes.length + footerBytes.length);
+            body.set(headerBytes, 0);
+            body.set(bytes, headerBytes.length);
+            body.set(footerBytes, headerBytes.length + bytes.length);
+
+            fetch(data.uploadUrl, {
+              method: "POST",
+              headers: { "Content-Type": "multipart/form-data; boundary=" + boundary },
+              body: body,
+            }).then(function(r) {
+              if (r.ok) resolve({ uploadId: data.uploadId, name: p.name });
+              else resolve(null);
+            }).catch(function() { resolve(null); });
+          };
+          reader.readAsDataURL(p.file);
+        });
+      })
+      .catch(function() { return null; });
     });
 
-    Promise.all(photoPromises).then(function(photosBase64) {
+    Promise.all(uploadPromises).then(function(uploadedPhotos) {
+      var validPhotos = uploadedPhotos.filter(function(p) { return p !== null; });
       return fetch("/api/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -717,7 +756,7 @@ export default function App() {
           arrivee: arrivee,
           etatLieux: etatLieux,
           consommables: consommables,
-          photos: photosBase64,
+          photos: validPhotos,
         }),
       });
     }).then(function(res) {
