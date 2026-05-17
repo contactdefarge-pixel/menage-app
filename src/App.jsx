@@ -592,7 +592,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
   );
 }
 
-function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit }) {
+function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit, sending, sendError }) {
   var etoiles = "";
   for (var i = 0; i < etatLieux.note; i++) etoiles += "\u2605";
   for (var j = etatLieux.note; j < 5; j++) etoiles += "\u2606";
@@ -641,9 +641,17 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
         </div>
       </div>
 
+      {sendError ? (
+        <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 12, padding: "12px 16px", marginBottom: 16, fontSize: 14, color: "#dc2626" }}>
+          {sendError}
+        </div>
+      ) : null}
+
       <div style={{ display: "flex", gap: 12 }}>
-        <Btn secondary onClick={onPrev}>Retour</Btn>
-        <Btn onClick={onSubmit}>Envoyer le rapport</Btn>
+        <Btn secondary onClick={onPrev} disabled={sending}>Retour</Btn>
+        <Btn onClick={onSubmit} disabled={sending}>
+          {sending ? "Envoi en cours..." : "Envoyer le rapport"}
+        </Btn>
       </div>
     </div>
   );
@@ -680,9 +688,53 @@ export default function App() {
   var [consommables, setConsommables] = useState({ consommablesAPrevoir: "", remarques: "", heureFin: "" });
   var [photos, setPhotos] = useState([]);
   var [done, setDone] = useState(false);
+  var [sending, setSending] = useState(false);
+  var [sendError, setSendError] = useState("");
 
   function next() { setStep(function(s) { return Math.min(s + 1, TOTAL - 1); }); }
   function prev() { setStep(function(s) { return Math.max(s - 1, 0); }); }
+
+  function handleSubmit() {
+    setSending(true);
+    setSendError("");
+
+    // Convertir les photos en base64 pour l'envoi
+    var photoPromises = photos.map(function(p) {
+      return new Promise(function(resolve) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          resolve({ name: p.name, base64: e.target.result });
+        };
+        reader.readAsDataURL(p.file);
+      });
+    });
+
+    Promise.all(photoPromises).then(function(photosBase64) {
+      return fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          arrivee: arrivee,
+          etatLieux: etatLieux,
+          consommables: consommables,
+          photos: photosBase64,
+        }),
+      });
+    }).then(function(res) {
+      return res.json();
+    }).then(function(data) {
+      if (data.success) {
+        setSending(false);
+        setDone(true);
+      } else {
+        setSending(false);
+        setSendError("Erreur lors de l envoi. Réessayez.");
+      }
+    }).catch(function() {
+      setSending(false);
+      setSendError("Erreur réseau. Vérifiez votre connexion.");
+    });
+  }
 
   if (done) {
     return (
@@ -722,7 +774,9 @@ export default function App() {
           consommables={consommables}
           photos={photos}
           onPrev={prev}
-          onSubmit={function() { setDone(true); }}
+          onSubmit={handleSubmit}
+          sending={sending}
+          sendError={sendError}
         />
       )}
     </div>
