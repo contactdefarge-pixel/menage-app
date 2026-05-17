@@ -88,7 +88,7 @@ export default async function handler(req, res) {
 
     // ── Création page Notion ──────────────────────────────────────────────────
     const properties = {
-      "Name": {
+      "Adresse": {
         title: [{ text: { content: arrivee.bien || "Sans nom" } }],
       },
       "Date": {
@@ -121,9 +121,7 @@ export default async function handler(req, res) {
       "Note": {
         number: etatLieux.note || 0,
       },
-      "Statut": {
-        status: { name: "À vérifier" },
-      },
+
     };
 
     // Ajouter les photos si uploadées
