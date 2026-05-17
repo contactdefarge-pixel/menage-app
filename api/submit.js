@@ -43,32 +43,53 @@ export default async function handler(req, res) {
     const formule = calcFormule(etatLieux.observations, consommables.consommablesAPrevoir, consommables.remarques);
 
     // ── Upload photos vers Notion ─────────────────────────────────────────────
-    // Les photos arrivent en base64. On les uploade via l'API Notion file upload.
     async function uploadPhoto(base64, filename) {
       try {
-        // Étape 1 : créer le upload
-        const createRes = await fetch("https://api.notion.com/v1/file-uploads", {
+        // Étape 1 : créer l'objet file upload
+        const createRes = await fetch("https://api.notion.com/v1/file_uploads", {
           method: "POST",
           headers: {
             "Authorization": "Bearer " + NOTION_TOKEN,
             "Notion-Version": "2022-06-28",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ name: filename }),
+          body: JSON.stringify({ filename: filename, content_type: "image/jpeg" }),
         });
-        if (!createRes.ok) return null;
+        if (!createRes.ok) {
+          const err = await createRes.json();
+          console.error("Création upload erreur:", err);
+          return null;
+        }
         const createData = await createRes.json();
         const uploadId = createData.id;
         const uploadUrl = createData.upload_url;
 
-        // Étape 2 : envoyer le fichier
+        // Étape 2 : envoyer le fichier en multipart/form-data
         const buffer = Buffer.from(base64.split(",")[1] || base64, "base64");
+        const boundary = "----FormBoundary" + Math.random().toString(36).slice(2);
+        const header = Buffer.from(
+          "--" + boundary + "\r\n" +
+          "Content-Disposition: form-data; name=\"file\"; filename=\"" + filename + "\"\r\n" +
+          "Content-Type: image/jpeg\r\n\r\n"
+        );
+        const footer = Buffer.from("\r\n--" + boundary + "--\r\n");
+        const body = Buffer.concat([header, buffer, footer]);
+
         const sendRes = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": "image/jpeg" },
-          body: buffer,
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + NOTION_TOKEN,
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "multipart/form-data; boundary=" + boundary,
+            "Content-Length": body.length,
+          },
+          body: body,
         });
-        if (!sendRes.ok) return null;
+        if (!sendRes.ok) {
+          const err = await sendRes.json();
+          console.error("Envoi upload erreur:", err);
+          return null;
+        }
 
         return { type: "file_upload", file_upload: { id: uploadId } };
       } catch (e) {
