@@ -209,14 +209,55 @@ function StarRating({ value, onChange }) {
   );
 }
 
+function CopyRow({ label, value }) {
+  var [copied, setCopied] = useState(false);
+  function copy() {
+    navigator.clipboard.writeText(value).then(function() {
+      setCopied(true);
+      setTimeout(function() { setCopied(false); }, 2000);
+    });
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+      <span><strong>{label} :</strong> {value}</span>
+      <button onClick={copy} style={{
+        background: copied ? "#dcfce7" : "#e0f2fe", border: "none", borderRadius: 8,
+        cursor: "pointer", padding: "4px 10px", fontSize: 13, marginLeft: 10,
+        color: copied ? "#16a34a" : "#0369a1", fontWeight: 600, flexShrink: 0,
+      }}>{copied ? "Copie !" : "Copier"}</button>
+    </div>
+  );
+}
+
+function CopyAdresse({ adresse }) {
+  var [copied, setCopied] = useState(false);
+  function copy() {
+    navigator.clipboard.writeText(adresse).then(function() {
+      setCopied(true);
+      setTimeout(function() { setCopied(false); }, 2000);
+    });
+  }
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+      <span style={{ color: "#64748b", fontSize: 14 }}>{adresse}</span>
+      <button onClick={copy} style={{
+        background: copied ? "#dcfce7" : "#e0f2fe", border: "none", borderRadius: 8,
+        cursor: "pointer", padding: "4px 10px", fontSize: 13, marginLeft: 10,
+        color: copied ? "#16a34a" : "#0369a1", fontWeight: 600, flexShrink: 0,
+      }}>{copied ? "Copie !" : "Copier"}</button>
+    </div>
+  );
+}
+
 function Step1Infos({ onNext }) {
   return (
     <div>
       <SectionTitle>Le Nossa</SectionTitle>
-      <Subtitle>33 Bis rue des Pyrénées, 65100 Lourdes</Subtitle>
+      <CopyAdresse adresse="33 Bis rue des Pyrénées, 65100 Lourdes" />
       <InfoCard>
-        <strong>WiFi</strong><br />
-        Réseau : SFR_FE68 — Mot de passe : 7grh55pvtr7brf27fury
+        <strong>WiFi</strong>
+        <CopyRow label="Réseau" value="SFR_FE68" />
+        <CopyRow label="Mot de passe" value="7grh55pvtr7brf27fury" />
       </InfoCard>
       <InfoCard>
         <strong>Voyageurs</strong><br />
