@@ -21,7 +21,7 @@ const CONSOMMABLES_VERIFIER = [
   "Liquide vaisselle", "Gel WC", "Savon main", "Gel douche", "Huile", "Sel", "Poivre",
 ];
 
-const STORAGE_KEY = "menage_draft_izinest_v3";
+const STORAGE_KEY = "menage_draft_izinest_v4";
 
 function padTwo(n) { return String(n).padStart(2, "0"); }
 
@@ -68,7 +68,7 @@ function processPhoto(file) {
       var bh = fontSize + pad * 2;
       var bw = tw + pad * 2;
       var margin = fontSize * 0.8;
-      ctx.fillStyle = "rgba(9, 17, 30, 0.8)"; 
+      ctx.fillStyle = "rgba(8, 81, 87, 0.85)"; 
       roundRect(ctx, margin, h - bh - margin, bw, bh, 6);
       ctx.fill();
       ctx.fillStyle = "#ffffff";
@@ -100,39 +100,39 @@ function base64ToFile(base64String, filename) {
   return new File([u8arr], filename, {type:mime});
 }
 
-// ── Icônes SVG Inline aux couleurs Izinest ────────────────────────────────────
+// ── Icônes SVG Inline aux couleurs officielles Izinest ──────────────────────
 
 function IconWifi() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#0066ff"/>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00bab3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#00bab3"/>
     </svg>
   );
 }
 function IconUsers() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00bab3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   );
 }
 function IconTrash() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00bab3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
     </svg>
   );
 }
 function IconBox() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00bab3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
     </svg>
   );
 }
 function IconKey() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00bab3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
     </svg>
   );
@@ -140,9 +140,9 @@ function IconKey() {
 function IconCheckIzinest() {
   return (
     <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-      <circle cx="32" cy="32" r="30" fill="#0066ff" fillOpacity="0.1"/>
-      <circle cx="32" cy="32" r="24" fill="#09111e"/>
-      <path d="M23 32.5L29 38.5L41 25.5" stroke="#0066ff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="32" cy="32" r="30" fill="#00bab3" fillOpacity="0.1"/>
+      <circle cx="32" cy="32" r="24" fill="#085157"/>
+      <path d="M23 32.5L29 38.5L41 25.5" stroke="#00bab3" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -156,7 +156,7 @@ function ProgressBar({ current, total }) {
         return (
           <div key={i} style={{
             flex: 1, height: 5, borderRadius: 3,
-            background: i <= current ? "#0066ff" : "#e5e7eb",
+            background: i <= current ? "#00bab3" : "#e5e7eb",
             transition: "background 0.3s",
           }} />
         );
@@ -167,7 +167,7 @@ function ProgressBar({ current, total }) {
 
 function SectionTitle({ children }) {
   return (
-    <h2 style={{ fontSize: 22, fontWeight: 800, color: "#09111e", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
+    <h2 style={{ fontSize: 22, fontWeight: 800, color: "#085157", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
       {children}
     </h2>
   );
@@ -184,9 +184,9 @@ function Subtitle({ children }) {
 function InfoCard({ icon, children }) {
   return (
     <div style={{
-      background: "#f9fafb", border: "1px solid #e5e7eb", borderLeft: "4px solid #0066ff",
+      background: "#f9fafb", border: "1px solid #e5e7eb", borderLeft: "4px solid #085157",
       borderRadius: "0 12px 12px 0", padding: "14px 16px", marginBottom: 12,
-      fontSize: 14, color: "#09111e", lineHeight: 1.6,
+      fontSize: 14, color: "#085157", lineHeight: 1.6,
       display: "flex", gap: 12, alignItems: "flex-start",
     }}>
       {icon ? <div style={{ flexShrink: 0, marginTop: 2 }}>{icon}</div> : null}
@@ -198,14 +198,14 @@ function InfoCard({ icon, children }) {
 function AlertCard({ title, children }) {
   return (
     <div style={{
-      background: "#f0f7ff", border: "1px solid #b3d4ff", borderRadius: 14,
-      padding: "16px 18px", marginBottom: 20, boxShadow: "0 4px 12px rgba(0,102,255,0.03)"
+      background: "#fff5f5", border: "2px solid #feb2b2", borderRadius: 14,
+      padding: "16px 18px", marginBottom: 20, boxShadow: "0 4px 12px rgba(229,62,62,0.05)"
     }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
-        <span style={{ fontSize: 18 }}>🛡️</span>
-        <span style={{ fontWeight: 700, color: "#0052cc", fontSize: 14, textTransform: "uppercase", letterSpacing: "0.3px" }}>{title}</span>
+        <span style={{ fontSize: 18 }}>⚠️</span>
+        <span style={{ fontWeight: 800, color: "#c53030", fontSize: 14, textTransform: "uppercase", letterSpacing: "0.3px" }}>{title}</span>
       </div>
-      <div style={{ fontSize: 13, color: "#0040a1", lineHeight: 1.5 }}>{children}</div>
+      <div style={{ fontSize: 13, color: "#9b2c2c", lineHeight: 1.5, fontWeight: "500" }}>{children}</div>
     </div>
   );
 }
@@ -213,7 +213,7 @@ function AlertCard({ title, children }) {
 function Field({ label, required, children }) {
   return (
     <div style={{ marginBottom: 18 }}>
-      <label style={{ display: "block", fontWeight: 600, fontSize: 14, color: "#09111e", marginBottom: 6 }}>
+      <label style={{ display: "block", fontWeight: 600, fontSize: 14, color: "#085157", marginBottom: 6 }}>
         {label}{required ? <span style={{ color: "#dc2626" }}> *</span> : null}
       </label>
       {children}
@@ -233,7 +233,7 @@ function Input({ value, onChange, placeholder, type }) {
     <input type={type} value={value} placeholder={placeholder || ""}
       onChange={function(e) { onChange(e.target.value); }}
       style={baseInput}
-      onFocus={function(e) { e.target.style.borderColor = "#0066ff"; }}
+      onFocus={function(e) { e.target.style.borderColor = "#00bab3"; }}
       onBlur={function(e) { e.target.style.borderColor = "#e5e7eb"; }}
     />
   );
@@ -245,7 +245,7 @@ function Textarea({ value, onChange, placeholder, rows }) {
     <textarea value={value} placeholder={placeholder || ""} rows={rows}
       onChange={function(e) { onChange(e.target.value); }}
       style={Object.assign({}, baseInput, { resize: "vertical" })}
-      onFocus={function(e) { e.target.style.borderColor = "#0066ff"; }}
+      onFocus={function(e) { e.target.style.borderColor = "#00bab3"; }}
       onBlur={function(e) { e.target.style.borderColor = "#e5e7eb"; }}
     />
   );
@@ -257,11 +257,11 @@ function Btn({ onClick, disabled, children, secondary }) {
       style={{
         padding: "13px 24px", borderRadius: 12, border: "none",
         cursor: disabled ? "not-allowed" : "pointer",
-        background: disabled ? "#f3f4f6" : secondary ? "#f3f4f6" : "#0066ff",
-        color: disabled ? "#9ca3af" : secondary ? "#09111e" : "#ffffff",
+        background: disabled ? "#f3f4f6" : secondary ? "#f3f4f6" : "#00bab3",
+        color: disabled ? "#9ca3af" : secondary ? "#085157" : "#ffffff",
         fontWeight: 700, fontSize: 15, transition: "all 0.2s",
         border: secondary ? "1px solid #e5e7eb" : "none",
-        boxShadow: (!secondary && !disabled) ? "0 4px 12px rgba(0,102,255,0.15)" : "none",
+        boxShadow: (!secondary && !disabled) ? "0 4px 12px rgba(0,186,179,0.15)" : "none",
       }}
     >{children}</button>
   );
@@ -280,7 +280,7 @@ function StarRating({ value, onChange }) {
             onMouseLeave={function() { setHov(0); }}
             style={{
               background: "none", border: "none", padding: 0, cursor: "pointer",
-              fontSize: 34, lineHeight: 1, color: active ? "#0066ff" : "#e5e7eb",
+              fontSize: 34, lineHeight: 1, color: active ? "#00bab3" : "#e5e7eb",
               transition: "color 0.1s"
             }}
           >&#9733;</button>
@@ -302,9 +302,9 @@ function CopyRow({ label, value }) {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
       <span><strong>{label} :</strong> {value}</span>
       <button onClick={copy} style={{
-        background: copied ? "#e6f0ff" : "#f3f4f6", border: "none", borderRadius: 8,
+        background: copied ? "#e6fdfc" : "#f3f4f6", border: "none", borderRadius: 8,
         cursor: "pointer", padding: "4px 10px", fontSize: 12, marginLeft: 10,
-        color: copied ? "#0066ff" : "#09111e", fontWeight: 600, flexShrink: 0,
+        color: copied ? "#00bab3" : "#085157", fontWeight: 600, flexShrink: 0,
       }}>{copied ? "Copié !" : "Copier"}</button>
     </div>
   );
@@ -322,15 +322,15 @@ function CopyAdresse({ adresse }) {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
       <span style={{ color: "#4b5563", fontSize: 14 }}>{adresse}</span>
       <button onClick={copy} style={{
-        background: copied ? "#e6f0ff" : "#f3f4f6", border: "none", borderRadius: 8,
+        background: copied ? "#e6fdfc" : "#f3f4f6", border: "none", borderRadius: 8,
         cursor: "pointer", padding: "4px 10px", fontSize: 12, marginLeft: 10,
-        color: copied ? "#0066ff" : "#09111e", fontWeight: 600, flexShrink: 0,
+        color: copied ? "#00bab3" : "#085157", fontWeight: 600, flexShrink: 0,
       }}>{copied ? "Copié !" : "Copier"}</button>
     </div>
   );
 }
 
-// ── Module Photo avec Horodatage Actif Éléments d'Arrivée & Fin ─────────────
+// ── Module Photo Unique avec Horodatage & Avertissements mis en avant ────────
 
 function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
   const inputRef = useRef();
@@ -366,16 +366,24 @@ function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
 
   return (
     <div style={{ marginBottom: 20 }}>
-      {title && <div style={{ fontWeight: 600, fontSize: 14, color: "#09111e", marginBottom: 4 }}>{title}</div>}
+      {title && <div style={{ fontWeight: 600, fontSize: 14, color: "#085157", marginBottom: 4 }}>{title}</div>}
       {subtitle && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>{subtitle}</div>}
+
+      {/* Alerte Rouge d'origine mise en valeur au chargement */}
+      {localProcessing && (
+        <AlertCard title="Traitement des photos en cours">
+          Ajout de l'horodatage officiel Izinest et compression de l'image... <br />
+          <strong>Ne fermez pas l'application et ne verrouillez pas votre écran.</strong>
+        </AlertCard>
+      )}
 
       {photos.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
           {photos.map((p) => (
             <div key={p.id} style={{ position: "relative" }}>
-              <img src={p.preview} alt={p.name} style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 10, border: "2px solid #0066ff" }} />
+              <img src={p.preview} alt={p.name} style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 10, border: "2px solid #00bab3" }} />
               <button type="button" onClick={() => onRemovePhoto(p.id)} style={{
-                position: "absolute", top: 4, right: 4, background: "rgba(9,17,30,0.8)", color: "#fff",
+                position: "absolute", top: 4, right: 4, background: "rgba(8, 81, 87, 0.9)", color: "#fff",
                 border: "none", borderRadius: "50%", width: 20, height: 20, cursor: "pointer", fontSize: 11, padding: 0
               }}>✕</button>
             </div>
@@ -384,12 +392,12 @@ function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
       )}
 
       <div onClick={() => !localProcessing && inputRef.current.click()} style={{
-        border: "2px dashed #0066ff", borderRadius: 12, padding: "20px 14px", textAlign: "center",
+        border: "2px dashed #00bab3", borderRadius: 12, padding: "20px 14px", textAlign: "center",
         cursor: localProcessing ? "not-allowed" : "pointer", background: "#f9fafb", opacity: localProcessing ? 0.6 : 1
       }}>
         <div style={{ fontSize: 24, marginBottom: 4 }}>📷</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#09111e" }}>
-          {localProcessing ? "Horodatage & Optimisation..." : "Prendre / Ajouter des photos"}
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#085157" }}>
+          {localProcessing ? "Horodatage actif..." : "Prendre / Ajouter des photos"}
         </div>
       </div>
       <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => handleFiles(e.target.files)} />
@@ -402,12 +410,12 @@ function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
 function ResumeModal({ saved, onResume, onRestart }) {
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(9,17,30,0.6)",
+      position: "fixed", inset: 0, background: "rgba(8, 81, 87, 0.6)",
       backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24,
     }}>
       <div style={{ background: "#fff", borderRadius: 20, padding: 28, maxWidth: 360, width: "100%", boxShadow: "0 20px 50px rgba(0,0,0,0.15)" }}>
         <div style={{ fontSize: 36, marginBottom: 12, textAlign: "center" }}>⚡</div>
-        <h3 style={{ fontWeight: 800, fontSize: 18, color: "#09111e", textAlign: "center", margin: "0 0 8px 0" }}>Reprise d'activité</h3>
+        <h3 style={{ fontWeight: 800, fontSize: 18, color: "#085157", textAlign: "center", margin: "0 0 8px 0" }}>Reprise d'activité</h3>
         <p style={{ fontSize: 14, color: "#4b5563", textAlign: "center", margin: "0 0 24px 0", lineHeight: 1.5 }}>
           Un rapport pour <strong>{saved.arrivee?.bien || "Le Nossa"}</strong> a été détecté. Souhaitez-vous reprendre là où vous vous étiez arrêté ?
         </p>
@@ -507,18 +515,18 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
         onClick={function() { setData(Object.assign({}, data, { lu: !data.lu })); }}
         style={{
           display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", borderRadius: 12, cursor: "pointer",
-          background: data.lu ? "#f0f7ff" : "#fafafa", border: "2px solid " + (data.lu ? "#0066ff" : "#e5e7eb"),
+          background: data.lu ? "#e6fdfc" : "#fafafa", border: "2px solid " + (data.lu ? "#00bab3" : "#e5e7eb"),
           marginBottom: 24, transition: "all 0.2s"
         }}
       >
         <div style={{
           width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-          border: "2px solid " + (data.lu ? "#0066ff" : "#d1d5db"),
-          background: data.lu ? "#0066ff" : "#fff", display: "flex", alignItems: "center", justifyContent: "center"
+          border: "2px solid " + (data.lu ? "#00bab3" : "#d1d5db"),
+          background: data.lu ? "#00bab3" : "#fff", display: "flex", alignItems: "center", justifyContent: "center"
         }}>
           {data.lu ? <span style={{ color: "#fff", fontSize: 12, fontWeight: 700 }}>✓</span> : null}
         </div>
-        <span style={{ fontSize: 14, color: "#09111e", fontWeight: 700 }}>J'ai pris connaissance de ces consignes</span>
+        <span style={{ fontSize: 14, color: "#085157", fontWeight: 700 }}>J'ai pris connaissance de ces consignes</span>
       </div>
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev}>Retour</Btn>
@@ -533,7 +541,7 @@ function Step4EtatLieux({ data, setData, onNext, onPrev }) {
   return (
     <div>
       <SectionTitle>État des lieux</SectionTitle>
-      <Subtitle>Vérifiez l'état de propreté initial. Si le logement est sale ou dégradé, utilisez le module photo horodaté ci-dessous.</Subtitle>
+      <Subtitle>Vérifiez l'état de propreté initial. Si le logement est sale ou dégradé, insérez vos photos ci-dessous.</Subtitle>
       
       <Field label="Notez l'état laissé par les voyageurs" required>
         <StarRating value={data.note} onChange={function(v) { setData(Object.assign({}, data, { note: v })); }} />
@@ -546,7 +554,7 @@ function Step4EtatLieux({ data, setData, onNext, onPrev }) {
       <PhotoModule 
         photos={data.photosArrivee || []}
         title="Photos à l'arrivée (Optionnel)"
-        subtitle="Ces clichés seront automatiquement horodatés avant l'envoi vers Notion."
+        subtitle="Ces clichés d'anomalies seront gravés avec la date et l'heure."
         onAddPhotos={(newPhotos) => {
           const current = data.photosArrivee || [];
           setData(Object.assign({}, data, { photosArrivee: current.concat(newPhotos) }));
@@ -585,15 +593,15 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
         {CONSOMMABLES_LAISSER.map(function(c) {
           return (
             <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f9fafb", borderRadius: 8, fontSize: 14, marginBottom: 6, border: "1px solid #f3f4f6" }}>
-              <span style={{ fontWeight: 500, color: "#09111e" }}>{c.label}</span>
-              <span style={{ background: "#09111e", color: "#fff", fontWeight: 700, borderRadius: 6, padding: "2px 8px", fontSize: 12 }}>{c.qt}</span>
+              <span style={{ fontWeight: 500, color: "#085157" }}>{c.label}</span>
+              <span style={{ background: "#085157", color: "#fff", fontWeight: 700, borderRadius: 6, padding: "2px 8px", fontSize: 12 }}>{c.qt}</span>
             </div>
           );
         })}
       </div>
 
       <div style={{ marginBottom: 20, background: "#fbfbfd", border: "1px solid #e5e7eb", padding: 14, borderRadius: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 11, color: "#0066ff", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>À vérifier & commander</div>
+        <div style={{ fontWeight: 700, fontSize: 11, color: "#00bab3", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>À vérifier & commander</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>Sélectionnez les articles bientôt épuisés :</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {CONSOMMABLES_VERIFIER.map(function(c) {
@@ -601,8 +609,8 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
             return (
               <button key={c} type="button" onClick={function() { toggleConso(c); }} style={{
                 padding: "8px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.1s",
-                border: isSelected ? "2px solid #0066ff" : "2px solid #e5e7eb",
-                background: isSelected ? "#0066ff" : "#fff", color: isSelected ? "#fff" : "#4b5563"
+                border: isSelected ? "2px solid #00bab3" : "2px solid #e5e7eb",
+                background: isSelected ? "#00bab3" : "#fff", color: isSelected ? "#fff" : "#4b5563"
               }}>{isSelected ? "✓ " : "+ "}{c}</button>
             );
           })}
@@ -628,7 +636,6 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
 }
 
 function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
-  var isProcessing = false;
   var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
 
   return (
@@ -637,7 +644,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
       <Subtitle>Téléversez les clichés requis de fin de prestation (gravage automatique).</Subtitle>
 
       <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: "12px 14px", marginBottom: 18 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#09111e", marginBottom: 6, textTransform: "uppercase" }}>Photos obligatoires</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#085157", marginBottom: 6, textTransform: "uppercase" }}>Photos obligatoires</div>
         {PIECES.map(p => <div key={p.id} style={{ fontSize: 13, color: "#4b5563", marginBottom: 3 }}><strong>{p.label}</strong> — {p.exemples}</div>)}
       </div>
 
@@ -648,8 +655,8 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
       />
 
       <div style={{ display: "flex", gap: 12 }}>
-        <Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn>
-        <Btn onClick={onNext} disabled={photos.length === 0 || isProcessing}>{suivantLabel}</Btn>
+        <Btn secondary onClick={onPrev}>Retour</Btn>
+        <Btn onClick={onNext} disabled={photos.length === 0}>{suivantLabel}</Btn>
       </div>
     </div>
   );
@@ -667,7 +674,7 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
       <Subtitle>Vérification finale des données avant transmission.</Subtitle>
 
       <div style={{ background: "#f9fafb", borderRadius: 12, padding: 14, marginBottom: 10, border: "1px solid #e5e7eb" }}>
-        <div style={{ fontSize: 14, color: "#09111e", lineHeight: 1.7 }}>
+        <div style={{ fontSize: 14, color: "#085157", lineHeight: 1.7 }}>
           <strong>{arrivee.bien}</strong> — Par {arrivee.nom}<br/>
           Prestation du {arrivee.date} ({arrivee.heureDebut} - {consommables.heureFin})
         </div>
@@ -675,38 +682,41 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
 
       <div style={{ background: "#f9fafb", borderRadius: 12, padding: 14, marginBottom: 10, border: "1px solid #e5e7eb" }}>
         <div style={{ fontWeight: 700, fontSize: 11, color: "#6b7280", textTransform: "uppercase", marginBottom: 4 }}>État des lieux</div>
-        <div style={{ color: "#0066ff", fontSize: 16, marginBottom: 4 }}>{etoiles}</div>
-        <div style={{ fontSize: 13, color: "#09111e" }}>{interieurTexte(etatLieux.observations)}</div>
-        {etatLieux.photosArrivee?.length > 0 && <div style={{ fontSize: 12, color: "#0066ff", marginTop: 4, fontWeight: 600 }}>📸 {etatLieux.photosArrivee.length} photo(s) d'arrivée (anomalies) préparée(s)</div>}
+        <div style={{ color: "#00bab3", fontSize: 16, marginBottom: 4 }}>{etoiles}</div>
+        <div style={{ fontSize: 13, color: "#085157" }}>{interieurTexte(etatLieux.observations)}</div>
+        {etatLieux.photosArrivee?.length > 0 && <div style={{ fontSize: 13, color: "#00bab3", marginTop: 4, fontWeight: 700 }}>📸 {etatLieux.photosArrivee.length} photo(s) d'arrivée prête(s)</div>}
       </div>
 
       <div style={{ background: "#f9fafb", borderRadius: 12, padding: 14, marginBottom: 16, border: "1px solid #e5e7eb" }}>
         <div style={{ fontWeight: 700, fontSize: 11, color: "#6b7280", textTransform: "uppercase", marginBottom: 6 }}>Logistique & Matériel</div>
-        <div style={{ fontSize: 13, color: "#09111e", lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, color: "#085157", lineHeight: 1.5 }}>
           <div><strong>Stocks manquants :</strong> {selected.length > 0 ? selected.join(", ") : "Aucun"}</div>
           <div style={{ marginTop: 4 }}><strong>Remarques :</strong> {interieurTexte(consommables.remarques)}</div>
         </div>
       </div>
 
-      <div style={{ background: "#f0f7ff", border: "1px solid #b3d4ff", borderRadius: 12, padding: 14, marginBottom: 20, fontSize: 13, color: "#0052cc", fontWeight: 600 }}>
+      <div style={{ background: "#e6fdfc", border: "1px solid #a5f3f0", borderRadius: 12, padding: 14, marginBottom: 20, fontSize: 13, color: "#085157", fontWeight: 700 }}>
         📸 {photos.length} photo(s) de fin validée(s).
       </div>
 
       {sending && (
-        <AlertCard title="Synchronisation Izinest en cours">
-          Sauvegarde continue active. Ne fermez pas votre écran.
-          <br/><strong>Progression globale : {sendProgress}%</strong>
+        <div style={{ background: "#fff5f5", border: "2px solid #feb2b2", borderRadius: 14, padding: "16px 18px", marginBottom: 20 }}>
+          <div style={{ fontWeight: 800, color: "#c53030", fontSize: 14, marginBottom: 6 }}>⚙️ TRANSMISSION NOTION EN COURS</div>
+          <p style={{ fontSize: 13, color: "#9b2c2c", margin: 0 }}>
+            Sauvegarde continue active. Ne fermez pas votre écran et attendez le succès.<br/>
+            <strong>Progression des transferts : {sendProgress}%</strong>
+          </p>
           <div style={{ background: "#e5e7eb", borderRadius: 6, height: 6, overflow: "hidden", marginTop: 8 }}>
-            <div style={{ background: "#0066ff", height: "100%", width: sendProgress + "%", transition: "width 0.3s" }} />
+            <div style={{ background: "#00bab3", height: "100%", width: sendProgress + "%", transition: "width 0.3s" }} />
           </div>
-        </AlertCard>
+        </div>
       )}
 
       {sendError && <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 10, padding: 12, marginBottom: 14, fontSize: 13, color: "#dc2626", fontWeight: 600 }}>{sendError}</div>}
 
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev} disabled={sending}>Retour</Btn>
-        <Btn onClick={onSubmit} disabled={sending}>{sending ? "Envoi en cours..." : "Transmettre le rapport"}</Btn>
+        <Btn onClick={onSubmit} disabled={sending}>{sending ? "Envoi..." : "Transmettre le rapport"}</Btn>
       </div>
     </div>
   );
@@ -718,11 +728,11 @@ function StepSuccess({ nom, bien }) {
   return (
     <div style={{ textAlign: "center", padding: "30px 0" }}>
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}><IconCheckIzinest /></div>
-      <h2 style={{ fontSize: 23, fontWeight: 800, color: "#09111e", marginBottom: 10, letterSpacing: "-0.5px" }}>Rapport synchronisé</h2>
+      <h2 style={{ fontSize: 23, fontWeight: 800, color: "#085157", marginBottom: 10, letterSpacing: "-0.5px" }}>Rapport synchronisé</h2>
       <p style={{ color: "#4b5563", fontSize: 15, lineHeight: 1.6, margin: "0 0 28px 0" }}>
         Merci <strong>{nom}</strong>, votre bilan pour le logement <strong>{bien}</strong> a été synchronisé avec succès.
       </p>
-      <div style={{ padding: "14px 16px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, fontSize: 13, color: "#0066ff", fontWeight: 700 }}>
+      <div style={{ padding: "14px 16px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, fontSize: 13, color: "#00bab3", fontWeight: 700 }}>
         ✨ Mission accomplie ! Vous pouvez fermer cette application.
       </div>
     </div>
@@ -910,6 +920,7 @@ export default function App() {
     photos.forEach((o, i) => tasks.push({ type: "fin", pos: i, obj: o }));
 
     executeUploads(tasks, function() {
+      // Filtrer pour extraire uniquement les identifiants d'upload Notion valides
       var finalPhotosArrivee = uploadResultsArrivee.filter(r => r !== null);
       var finalPhotosFin = uploadResultsFin.filter(r => r !== null);
 
@@ -918,6 +929,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           arrivee: arrivee,
+          // Correction majeure : Injection explicite des ID d'upload pour les photos d'arrivée
           etatLieux: Object.assign({}, etatLieux, { photosIds: finalPhotosArrivee }),
           consommables: consommables,
           photos: finalPhotosFin
@@ -954,7 +966,7 @@ export default function App() {
 
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", flexDirection: "column", marginBottom: 12 }}>
-          <div style={{ fontWeight: 900, fontSize: 17, color: "#09111e", textTransform: "uppercase", letterSpacing: "0.5px" }}>Izinest</div>
+          <div style={{ fontWeight: 900, fontSize: 17, color: "#085157", textTransform: "uppercase", letterSpacing: "0.5px" }}>Izinest</div>
           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 1 }}>Bilan terrain · Étape {step + 1} / {TOTAL}</div>
         </div>
         <ProgressBar current={step} total={TOTAL} />
