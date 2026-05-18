@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body;
-    const { arrivee, etatLieux, consommables, photos } = body;
+    const { arrivee, etatLieux, consommables, photosArrivee, photos } = body;
 
     // ── Calcul durée ──────────────────────────────────────────────────────────
     function calcDuree(debut, fin) {
@@ -44,6 +44,15 @@ export default async function handler(req, res) {
 
     // Les photos sont déjà uploadées directement vers Notion depuis le navigateur
     // On reçoit juste les uploadIds
+    const photosArriveeUploaded = [];
+    if (photosArrivee && photosArrivee.length > 0) {
+      for (const photo of photosArrivee) {
+        if (photo.uploadId) {
+          photosArriveeUploaded.push({ type: "file_upload", file_upload: { id: photo.uploadId } });
+        }
+      }
+    }
+
     const photosUploaded = [];
     if (photos && photos.length > 0) {
       for (const photo of photos) {
@@ -92,6 +101,10 @@ export default async function handler(req, res) {
     };
 
     // Ajouter les photos si uploadées
+    if (photosArriveeUploaded.length > 0) {
+      properties["Photos à l'arrivée"] = { files: photosArriveeUploaded };
+    }
+
     if (photosUploaded.length > 0) {
       properties["Photos de fin de ménage"] = { files: photosUploaded };
     }

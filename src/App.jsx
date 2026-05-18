@@ -446,7 +446,7 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
   );
 }
 
-function Step4EtatLieux({ data, setData, onNext, onPrev }) {
+function Step4EtatLieux({ data, setData, photosArrivee, setPhotosArrivee, onNext, onPrev }) {
   var ok = data.note > 0 && data.observations;
   return (
     <div>
@@ -464,6 +464,20 @@ function Step4EtatLieux({ data, setData, onNext, onPrev }) {
           placeholder="Problèmes constatés. Sinon écrire RAS."
         />
       </Field>
+      <PhotoModule
+        photos={photosArrivee}
+        setPhotos={setPhotosArrivee}
+        title="Photos à l'arrivée"
+        subtitle="Ajoutez des photos si le logement a été laissé sale ou dégradé. L'horodatage est gravé automatiquement."
+        infoTitle="Photos utiles"
+        infoItems={[
+          { id: "salete", label: "Saleté", exemples: "Sol, évier, sanitaires, linge ou déchets laissés" },
+          { id: "degradation", label: "Dégradations", exemples: "Objets cassés, murs, mobilier, traces ou dommages visibles" },
+        ]}
+        emptyLabel="Ajouter des photos d'arrivée"
+        addLabel="Ajouter d'autres photos d'arrivée"
+        required={false}
+      />
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev}>Retour</Btn>
         <Btn onClick={onNext} disabled={!ok}>Suivant</Btn>
@@ -564,9 +578,14 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
   );
 }
 
-function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
+function PhotoModule({ photos, setPhotos, title, subtitle, infoTitle, infoItems, emptyLabel, addLabel, required, onProcessingChange }) {
   var inputRef = useRef();
   var [progress, setProgress] = useState({ current: 0, total: 0 });
+  var isProcessing = progress.total > 0;
+
+  useEffect(function() {
+    if (onProcessingChange) onProcessingChange(isProcessing);
+  }, [isProcessing, onProcessingChange]);
 
   var handleFiles = useCallback(function(files) {
     var arr = Array.from(files).filter(function(f) { return f.type.startsWith("image/"); });
@@ -602,19 +621,17 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
     setPhotos(function(prev) { return prev.filter(function(p) { return p.id !== id; }); });
   }
 
-  var isProcessing = progress.total > 0;
   var pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
-  var btnLabel = photos.length === 0 ? "Sélectionner les photos" : "Ajouter d'autres photos";
-  var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
+  var btnLabel = photos.length === 0 ? emptyLabel : addLabel;
 
   return (
     <div>
-      <SectionTitle>Photos de fin de ménage</SectionTitle>
-      <Subtitle>Sélectionnez toutes vos photos en une seule fois. L'horodatage est gravé automatiquement.</Subtitle>
+      <SectionTitle>{title}</SectionTitle>
+      <Subtitle>{subtitle}</Subtitle>
 
       <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "12px 15px", marginBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Photos attendues</div>
-        {PIECES.map(function(p) {
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>{infoTitle}</div>
+        {infoItems.map(function(p) {
           return (
             <div key={p.id} style={{ fontSize: 13, color: "#0369a1", marginBottom: 3 }}>
               <strong>{p.label}</strong> — {p.exemples}
@@ -677,10 +694,34 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
         <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
           Sélection multiple · Horodatage automatique · Compression incluse
         </div>
+        {!required && photos.length === 0 ? (
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Optionnel</div>
+        ) : null}
       </div>
 
       <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
         onChange={function(e) { handleFiles(e.target.files); }} />
+    </div>
+  );
+}
+
+function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
+  var [isProcessing, setIsProcessing] = useState(false);
+  var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
+  return (
+    <div>
+      <PhotoModule
+        photos={photos}
+        setPhotos={setPhotos}
+        title="Photos de fin de ménage"
+        subtitle="Sélectionnez toutes vos photos en une seule fois. L'horodatage est gravé automatiquement."
+        infoTitle="Photos attendues"
+        infoItems={PIECES}
+        emptyLabel="Sélectionner les photos"
+        addLabel="Ajouter d'autres photos"
+        required={true}
+        onProcessingChange={setIsProcessing}
+      />
 
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn>
@@ -690,7 +731,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
   );
 }
 
-function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit, sending, sendError, sendProgress }) {
+function Step7Recap({ arrivee, etatLieux, consommables, photosArrivee, photos, onPrev, onSubmit, sending, sendError, sendProgress }) {
   var etoiles = "";
   for (var i = 0; i < etatLieux.note; i++) etoiles += "★";
   for (var j = etatLieux.note; j < 5; j++) etoiles += "☆";
@@ -746,6 +787,7 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
 
       <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 14, padding: 16, marginBottom: 24 }}>
         <div style={{ fontWeight: 700, fontSize: 12, color: "#15803d", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>Photos</div>
+        <div style={{ fontSize: 14, color: "#166534", marginBottom: 4 }}>{photosArrivee.length} photo(s) d'arrivée prête(s) à l'envoi</div>
         <div style={{ fontSize: 14, color: "#166534" }}>{photos.length} photo(s) horodatée(s) prêtes à l'envoi</div>
       </div>
 
@@ -805,6 +847,7 @@ export default function App() {
   var [attention, setAttention] = useState(INIT_ATTENTION);
   var [etatLieux, setEtatLieux] = useState(INIT_ETAT);
   var [consommables, setConsommables] = useState(INIT_CONSO);
+  var [photosArrivee, setPhotosArrivee] = useState([]);
   var [photos, setPhotos] = useState([]);
   var [done, setDone] = useState(false);
   var [sending, setSending] = useState(false);
@@ -873,17 +916,26 @@ export default function App() {
         .catch(function() { return null; });
     }
 
-    var results = new Array(photos.length).fill(null);
+    var allPhotos = photosArrivee.concat(photos);
+    var resultsArrivee = new Array(photosArrivee.length).fill(null);
+    var resultsFin = new Array(photos.length).fill(null);
     var completed = 0;
     var BATCH = 5;
 
     function runBatch(startIndex) {
-      if (startIndex >= photos.length) {
-        var validPhotos = results.filter(function(r) { return r !== null; });
+      if (startIndex >= allPhotos.length) {
+        var validPhotosArrivee = resultsArrivee.filter(function(r) { return r !== null; });
+        var validPhotosFin = resultsFin.filter(function(r) { return r !== null; });
         fetch("/api/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ arrivee: arrivee, etatLieux: etatLieux, consommables: consommables, photos: validPhotos }),
+          body: JSON.stringify({
+            arrivee: arrivee,
+            etatLieux: etatLieux,
+            consommables: consommables,
+            photosArrivee: validPhotosArrivee,
+            photos: validPhotosFin,
+          }),
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
@@ -898,17 +950,22 @@ export default function App() {
         .catch(function() { setSending(false); setSendError("Erreur réseau. Vérifiez votre connexion."); });
         return;
       }
-      var batch = photos.slice(startIndex, startIndex + BATCH);
+      var batch = allPhotos.slice(startIndex, startIndex + BATCH);
       Promise.all(batch.map(function(p, i) {
         return uploadOne(p).then(function(result) {
-          results[startIndex + i] = result;
+          var globalIndex = startIndex + i;
+          if (globalIndex < photosArrivee.length) {
+            resultsArrivee[globalIndex] = result;
+          } else {
+            resultsFin[globalIndex - photosArrivee.length] = result;
+          }
           completed++;
-          setSendProgress(Math.round((completed / photos.length) * 100));
+          setSendProgress(allPhotos.length > 0 ? Math.round((completed / allPhotos.length) * 100) : 0);
         });
       })).then(function() { runBatch(startIndex + BATCH); });
     }
 
-    if (photos.length === 0) {
+    if (allPhotos.length === 0) {
       runBatch(0);
     } else {
       runBatch(0);
@@ -929,11 +986,6 @@ export default function App() {
 
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
-          }}>🏠</div>
           <div>
             <div style={{ fontWeight: 800, fontSize: 15, color: "#0f172a" }}>Rapport de ménage</div>
             <div style={{ fontSize: 12, color: "#94a3b8" }}>Étape {step + 1} sur {TOTAL}</div>
@@ -945,7 +997,7 @@ export default function App() {
       {step === 0 && <Step1Infos onNext={next} />}
       {step === 1 && <Step2Arrivee data={arrivee} setData={setArrivee} onNext={next} onPrev={prev} />}
       {step === 2 && <Step3Attention data={attention} setData={setAttention} onNext={next} onPrev={prev} />}
-      {step === 3 && <Step4EtatLieux data={etatLieux} setData={setEtatLieux} onNext={next} onPrev={prev} />}
+      {step === 3 && <Step4EtatLieux data={etatLieux} setData={setEtatLieux} photosArrivee={photosArrivee} setPhotosArrivee={setPhotosArrivee} onNext={next} onPrev={prev} />}
       {step === 4 && <Step5Consommables data={consommables} setData={setConsommables} onNext={next} onPrev={prev} />}
       {step === 5 && <Step6Photos photos={photos} setPhotos={setPhotos} onNext={next} onPrev={prev} />}
       {step === 6 && (
@@ -953,6 +1005,7 @@ export default function App() {
           arrivee={arrivee}
           etatLieux={etatLieux}
           consommables={consommables}
+          photosArrivee={photosArrivee}
           photos={photos}
           onPrev={prev}
           onSubmit={handleSubmit}

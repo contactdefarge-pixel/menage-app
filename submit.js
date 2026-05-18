@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body;
-    const { arrivee, etatLieux, consommables, photos } = body;
+    const { arrivee, etatLieux, consommables, photosArrivee, photos } = body;
 
     // ── Calcul durée ──────────────────────────────────────────────────────────
     function calcDuree(debut, fin) {
@@ -77,6 +77,15 @@ export default async function handler(req, res) {
       }
     }
 
+    // Upload toutes les photos d'arrivée
+    const photosArriveeUploaded = [];
+    if (photosArrivee && photosArrivee.length > 0) {
+      for (const photo of photosArrivee) {
+        const result = await uploadPhoto(photo.base64, photo.name);
+        if (result) photosArriveeUploaded.push(result);
+      }
+    }
+
     // Upload toutes les photos de fin de ménage
     const photosUploaded = [];
     if (photos && photos.length > 0) {
@@ -125,6 +134,10 @@ export default async function handler(req, res) {
     };
 
     // Ajouter les photos si uploadées
+    if (photosArriveeUploaded.length > 0) {
+      properties["Photos à l'arrivée"] = { files: photosArriveeUploaded };
+    }
+
     if (photosUploaded.length > 0) {
       properties["Photos de fin de ménage"] = { files: photosUploaded };
     }
