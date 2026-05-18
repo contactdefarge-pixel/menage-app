@@ -121,10 +121,13 @@ function IconKey() {
 }
 function IconCheck() {
   return (
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-      <polyline points="22 4 12 14.01 9 11.01"/>
-    </svg>
+    <div style={{
+      width: 64, height: 64, borderRadius: "50%", background: "#22c55e",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      boxShadow: "0 4px 12px rgba(34,197,94,0.3)"
+    }}>
+      <span style={{ color: "#fff", fontSize: 32, fontWeight: "bold" }}>✓</span>
+    </div>
   );
 }
 
@@ -448,6 +451,49 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
 
 function Step4EtatLieux({ data, setData, onNext, onPrev }) {
   var ok = data.note > 0 && data.observations;
+  var inputRef = useRef();
+  var [progress, setProgress] = useState({ current: 0, total: 0 });
+
+  var handleFiles = useCallback(function(files) {
+    var arr = Array.from(files).filter(function(f) { return f.type.startsWith("image/"); });
+    if (arr.length === 0) return;
+    setProgress({ current: 0, total: arr.length });
+    var results = [];
+    var index = 0;
+    function processNext() {
+      if (index >= arr.length) {
+        var currentPhotos = data.photosArrivee || [];
+        setData(Object.assign({}, data, { photosArrivee: currentPhotos.concat(results) }));
+        setProgress({ current: 0, total: 0 });
+        return;
+      }
+      var current = index;
+      setTimeout(function() {
+        processPhoto(arr[current]).then(function(stamped) {
+          results.push({
+            id: Math.random().toString(36).slice(2),
+            file: stamped,
+            preview: URL.createObjectURL(stamped),
+            name: arr[current].name,
+          });
+          index++;
+          setProgress({ current: index, total: arr.length });
+          processNext();
+        });
+      }, 50);
+    }
+    processNext();
+  }, [data, setData]);
+
+  function remove(id) {
+    var currentPhotos = data.photosArrivee || [];
+    setData(Object.assign({}, data, { photosArrivee: currentPhotos.filter(function(p) { return p.id !== id; }) }));
+  }
+
+  var isProcessing = progress.total > 0;
+  var pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+  var photosArrivee = data.photosArrivee || [];
+
   return (
     <div>
       <SectionTitle>État des lieux</SectionTitle>
@@ -464,6 +510,55 @@ function Step4EtatLieux({ data, setData, onNext, onPrev }) {
           placeholder="Problèmes constatés. Sinon écrire RAS."
         />
       </Field>
+
+      {isProcessing ? (
+        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
+            Traitement {progress.current} / {progress.total} ({pct}%)
+          </div>
+          <div style={{ background: "#e0f2fe", borderRadius: 8, height: 10, overflow: "hidden", marginBottom: 8 }}>
+            <div style={{ background: "#0ea5e9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
+          </div>
+        </div>
+      ) : null}
+
+      {photosArrivee.length > 0 ? (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            {photosArrivee.map(function(p) {
+              return (
+                <div key={p.id} style={{ position: "relative" }}>
+                  <img src={p.preview} alt={p.name} style={{
+                    width: "100%", aspectRatio: "1", objectFit: "cover",
+                    borderRadius: 10, border: "2px solid #0ea5e9", display: "block",
+                  }} />
+                  <button onClick={function() { remove(p.id); }} style={{
+                    position: "absolute", top: 4, right: 4,
+                    background: "rgba(0,0,0,0.6)", color: "#fff",
+                    border: "none", borderRadius: "50%",
+                    width: 22, height: 22, cursor: "pointer",
+                    fontSize: 12, lineHeight: "22px", textAlign: "center", padding: 0,
+                  }}>x</button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      <div
+        onClick={function() { if (!isProcessing && inputRef.current) inputRef.current.click(); }}
+        style={{
+          border: "2px dashed #bae6fd", borderRadius: 14, padding: "20px", textAlign: "center",
+          cursor: isProcessing ? "not-allowed" : "pointer", background: "#f8fafc", marginBottom: 24,
+        }}
+      >
+        <div style={{ fontSize: 24, marginBottom: 4 }}>📷 Photos d'anomalies (optionnel)</div>
+        <div style={{ fontSize: 13, color: "#64748b" }}>Appuyez pour ajouter des photos de l'état d'arrivée</div>
+      </div>
+      <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
+        onChange={function(e) { handleFiles(e.target.files); }} />
+
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev}>Retour</Btn>
         <Btn onClick={onNext} disabled={!ok}>Suivant</Btn>
@@ -477,10 +572,16 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
   var selected = data.consommablesSelectionnes || [];
 
   function toggleConso(c) {
-    var next = selected.includes(c)
+    var nextSelected = selected.includes(c)
       ? selected.filter(function(x) { return x !== c; })
       : selected.concat([c]);
-    setData(Object.assign({}, data, { consommablesSelectionnes: next }));
+    
+    var textValue = nextSelected.join(", ");
+
+    setData(Object.assign({}, data, { 
+      consommablesSelectionnes: nextSelected,
+      consommablesAPrevoir: textValue
+    }));
   }
 
   return (
@@ -752,7 +853,7 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
       {sending ? (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 13, color: "#0369a1", fontWeight: 600, marginBottom: 8 }}>
-            Upload des photos : {sendProgress}% (Ne fermez pas l'écran)
+            Upload des photos : {sendProgress}%
           </div>
           <div style={{ background: "#e0f2fe", borderRadius: 8, height: 8, overflow: "hidden" }}>
             <div style={{ background: "#0ea5e9", height: "100%", width: sendProgress + "%", transition: "width 0.3s", borderRadius: 8 }} />
@@ -796,7 +897,7 @@ function StepSuccess({ nom, bien }) {
 var TOTAL = 7;
 var INIT_ARRIVEE = { date: "", heureDebut: "", nom: "", bien: "Le Nossa" };
 var INIT_ATTENTION = { lu: false };
-var INIT_ETAT = { note: 0, observations: "" };
+var INIT_ETAT = { note: 0, observations: "", photosArrivee: [] };
 var INIT_CONSO = { consommablesAPrevoir: "", remarques: "", heureFin: "", consommablesSelectionnes: [] };
 
 export default function App() {
@@ -812,20 +913,6 @@ export default function App() {
   var [sendProgress, setSendProgress] = useState(0);
   var [showResume, setShowResume] = useState(false);
   var [savedDraft, setSavedDraft] = useState(null);
-  
-  var wakeLockRef = useRef(null);
-
-  // Gestion du WakeLock (anti-verrouillage de l'écran pendant l'envoi)
-  useEffect(function() {
-    if (sending && "wakeLock" in navigator) {
-      navigator.wakeLock.request("screen")
-        .then(function(lock) { wakeLockRef.current = lock; })
-        .catch(function(){});
-    } else if (!sending && wakeLockRef.current) {
-      wakeLockRef.current.release().then(function() { wakeLockRef.current = null; });
-    }
-    return function() { if (wakeLockRef.current) wakeLockRef.current.release(); };
-  }, [sending]);
 
   // Vérifier s'il y a un brouillon au chargement
   useEffect(function() {
@@ -887,12 +974,13 @@ export default function App() {
         .catch(function() { return null; });
     }
 
-    var results = new Array(photos.length).fill(null);
+    var allPhotosToUpload = photos.concat(etatLieux.photosArrivee || []);
+    var results = new Array(allPhotosToUpload.length).fill(null);
     var completed = 0;
-    var BATCH = 2; // Réduit de 5 à 2 pour fluidifier les téléversements sur connexion instable
+    var BATCH = 5;
 
     function runBatch(startIndex) {
-      if (startIndex >= photos.length) {
+      if (startIndex >= allPhotosToUpload.length) {
         var validPhotos = results.filter(function(r) { return r !== null; });
         fetch("/api/submit", {
           method: "POST",
@@ -906,23 +994,27 @@ export default function App() {
             localStorage.removeItem(STORAGE_KEY);
             setDone(true);
           } else {
-            setSendError("Erreur lors de l'envoi. Réessayez.");
+            setSendError("Erreur lors de l envoi. Réessayez.");
           }
         })
         .catch(function() { setSending(false); setSendError("Erreur réseau. Vérifiez votre connexion."); });
         return;
       }
-      var batch = photos.slice(startIndex, startIndex + BATCH);
+      var batch = allPhotosToUpload.slice(startIndex, startIndex + BATCH);
       Promise.all(batch.map(function(p, i) {
         return uploadOne(p).then(function(result) {
           results[startIndex + i] = result;
           completed++;
-          setSendProgress(Math.round((completed / photos.length) * 100));
+          setSendProgress(Math.round((completed / allPhotosToUpload.length) * 100));
         });
       })).then(function() { runBatch(startIndex + BATCH); });
     }
 
-    runBatch(0);
+    if (allPhotosToUpload.length === 0) {
+      runBatch(0);
+    } else {
+      runBatch(0);
+    }
   }
 
   if (done) {
