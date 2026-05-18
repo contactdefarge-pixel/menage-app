@@ -459,54 +459,55 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
 
 function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
   var inputRef = useRef();
-  var [processing, setProcessing] = useState(false);
+  var [progress, setProgress] = useState({ current: 0, total: 0 });
 
   var handleFiles = useCallback(function(files) {
-    setProcessing(true);
     var arr = Array.from(files).filter(function(f) { return f.type.startsWith("image/"); });
+    if (arr.length === 0) return;
+    setProgress({ current: 0, total: arr.length });
     var results = [];
     var index = 0;
-    function next() {
+    function processNext() {
       if (index >= arr.length) {
         setPhotos(function(prev) { return prev.concat(results); });
-        setProcessing(false);
+        setProgress({ current: 0, total: 0 });
         return;
       }
-      processPhoto(arr[index], "Fin de menage").then(function(stamped) {
-        results.push({
-          id: Math.random().toString(36).slice(2),
-          file: stamped,
-          preview: URL.createObjectURL(stamped),
-          name: arr[index].name,
+      var current = index;
+      setTimeout(function() {
+        processPhoto(arr[current]).then(function(stamped) {
+          results.push({
+            id: Math.random().toString(36).slice(2),
+            file: stamped,
+            preview: URL.createObjectURL(stamped),
+            name: arr[current].name,
+          });
+          index++;
+          setProgress({ current: index, total: arr.length });
+          processNext();
         });
-        index++;
-        next();
-      });
+      }, 50);
     }
-    next();
+    processNext();
   }, [setPhotos]);
 
   function remove(id) {
     setPhotos(function(prev) { return prev.filter(function(p) { return p.id !== id; }); });
   }
 
-  var btnLabel = photos.length === 0
-    ? "Sélectionner les photos"
-    : "Ajouter d'autres photos";
-
+  var isProcessing = progress.total > 0;
+  var pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+  var btnLabel = photos.length === 0 ? "Sélectionner les photos" : "Ajouter d'autres photos";
   var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
 
   return (
     <div>
       <SectionTitle>Photos de fin de ménage</SectionTitle>
       <Subtitle>
-        Sélectionnez toutes vos photos en une seule fois. L'horodatage est gravé automatiquement sur chaque photo.
+        Sélectionnez toutes vos photos en une seule fois. L'horodatage est gravé automatiquement.
       </Subtitle>
 
-      <div style={{
-        background: "#f0f9ff", border: "1px solid #bae6fd",
-        borderRadius: 12, padding: "12px 15px", marginBottom: 20,
-      }}>
+      <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "12px 15px", marginBottom: 20 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           Photos attendues
         </div>
@@ -519,10 +520,24 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
         })}
       </div>
 
+      {isProcessing ? (
+        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
+            Traitement {progress.current} / {progress.total} ({pct}%)
+          </div>
+          <div style={{ background: "#e0f2fe", borderRadius: 8, height: 10, overflow: "hidden", marginBottom: 8 }}>
+            <div style={{ background: "#0ea5e9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
+          </div>
+          <div style={{ fontSize: 12, color: "#64748b" }}>
+            Ne quittez pas cette page...
+          </div>
+        </div>
+      ) : null}
+
       {photos.length > 0 ? (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            {photos.length} photo(s) ajoutée(s)
+            {photos.length} photo(s) prête(s)
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
             {photos.map(function(p) {
@@ -532,16 +547,13 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
                     width: "100%", aspectRatio: "1", objectFit: "cover",
                     borderRadius: 10, border: "2px solid #0ea5e9", display: "block",
                   }} />
-                  <button
-                    onClick={function() { remove(p.id); }}
-                    style={{
-                      position: "absolute", top: 4, right: 4,
-                      background: "rgba(0,0,0,0.6)", color: "#fff",
-                      border: "none", borderRadius: "50%",
-                      width: 22, height: 22, cursor: "pointer",
-                      fontSize: 12, lineHeight: "22px", textAlign: "center", padding: 0,
-                    }}
-                  >x</button>
+                  <button onClick={function() { remove(p.id); }} style={{
+                    position: "absolute", top: 4, right: 4,
+                    background: "rgba(0,0,0,0.6)", color: "#fff",
+                    border: "none", borderRadius: "50%",
+                    width: 22, height: 22, cursor: "pointer",
+                    fontSize: 12, lineHeight: "22px", textAlign: "center", padding: 0,
+                  }}>x</button>
                 </div>
               );
             })}
@@ -550,43 +562,29 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
       ) : null}
 
       <div
-        onClick={function() { if (!processing && inputRef.current) inputRef.current.click(); }}
-        onDragOver={function(e) { e.preventDefault(); }}
-        onDrop={function(e) { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
+        onClick={function() { if (!isProcessing && inputRef.current) inputRef.current.click(); }}
         style={{
-          border: "2px dashed #bae6fd", borderRadius: 14,
-          padding: "32px 20px", textAlign: "center",
-          cursor: processing ? "wait" : "pointer",
-          background: processing ? "#f0f9ff" : "#f8fafc",
-          marginBottom: 24,
+          border: "2px dashed " + (isProcessing ? "#e2e8f0" : "#bae6fd"),
+          borderRadius: 14, padding: "28px 20px", textAlign: "center",
+          cursor: isProcessing ? "not-allowed" : "pointer",
+          background: "#f8fafc", marginBottom: 24,
+          opacity: isProcessing ? 0.5 : 1,
         }}
       >
-        {processing ? (
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#0ea5e9" }}>Traitement en cours...</div>
-            <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>Compression et horodatage des photos</div>
-          </div>
-        ) : (
-          <div>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>&#128247;</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{btnLabel}</div>
-            <div style={{ fontSize: 13, color: "#64748b" }}>Appuyez pour choisir depuis votre galerie</div>
-            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
-              Sélection multiple · Horodatage automatique · Compression incluse
-            </div>
-          </div>
-        )}
+        <div style={{ fontSize: 36, marginBottom: 8 }}>&#128247;</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{btnLabel}</div>
+        <div style={{ fontSize: 13, color: "#64748b" }}>Appuyez pour choisir depuis votre galerie</div>
+        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
+          Sélection multiple · Horodatage automatique · Compression incluse
+        </div>
       </div>
 
-      <input
-        ref={inputRef} type="file" accept="image/*" multiple
-        style={{ display: "none" }}
-        onChange={function(e) { handleFiles(e.target.files); }}
-      />
+      <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
+        onChange={function(e) { handleFiles(e.target.files); }} />
 
       <div style={{ display: "flex", gap: 12 }}>
-        <Btn secondary onClick={onPrev}>Retour</Btn>
-        <Btn onClick={onNext} disabled={photos.length === 0}>{suivantLabel}</Btn>
+        <Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn>
+        <Btn onClick={onNext} disabled={photos.length === 0 || isProcessing}>{suivantLabel}</Btn>
       </div>
     </div>
   );
