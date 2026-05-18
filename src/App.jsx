@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Wifi, Users, Trash2, Package, CheckCircle2, Camera, House } from "lucide-react";
 
 const PIECES = [
   { id: "cuisine", label: "Cuisine", exemples: "Vue générale, évier, plaques/micro-ondes" },
@@ -20,6 +21,8 @@ const CONSOMMABLES_LAISSER = [
 const CONSOMMABLES_VERIFIER = [
   "Liquide vaisselle", "Gel WC", "Savon main", "Gel douche", "Huile", "Sel", "Poivre",
 ];
+
+const STORAGE_KEY = "menage-form-state";
 
 function padTwo(n) {
   return String(n).padStart(2, "0");
@@ -255,24 +258,24 @@ function Step1Infos({ onNext }) {
       <SectionTitle>Le Nossa</SectionTitle>
       <CopyAdresse adresse="33 Bis rue des Pyrénées, 65100 Lourdes" />
       <InfoCard>
-        <strong>WiFi</strong>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Wifi size={18} /><strong>WiFi</strong></div>
         <CopyRow label="Réseau" value="SFR_FE68" />
         <CopyRow label="Mot de passe" value="7grh55pvtr7brf27fury" />
       </InfoCard>
       <InfoCard>
-        <strong>Voyageurs</strong><br />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Users size={18} /><strong>Voyageurs</strong></div>
         3 max — 1 lit double 160x190 (parure marron ou grise) + 1 canapé lit
       </InfoCard>
       <InfoCard>
-        <strong>Poubelles</strong><br />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Trash2 size={18} /><strong>Poubelles</strong></div>
         Local poubelle : Place Pyrénées. Badge sur les clés.
       </InfoCard>
       <InfoCard>
-        <strong>Consommables</strong><br />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><Package size={18} /><strong>Consommables</strong></div>
         Placard à droite du lit. Clé cachée dans le meuble TV, porte gauche.
       </InfoCard>
       <InfoCard>
-        <strong>Accès logement</strong><br />
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><House size={18} /><strong>Accès logement</strong></div>
         Boîte à clé au rez-de-chaussée, après les boîtes aux lettres.<br />
         Code : <strong>0359</strong> — Appartement au 1er étage.
       </InfoCard>
@@ -323,7 +326,8 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
             display: "flex", gap: 12, padding: "12px 14px",
             background: "#f8fafc", borderRadius: 10, marginBottom: 10,
             fontSize: 14, color: "#334155", lineHeight: 1.5,
-            borderLeft: "3px solid #0ea5e9",
+            border: "1px solid #dbeafe",
+            boxShadow: "0 2px 8px rgba(15,23,42,0.04)",
           }}>
             <span style={{ fontWeight: 700, color: "#0ea5e9", minWidth: 20 }}>{i + 1}.</span>
             <span>{pt}</span>
@@ -347,7 +351,7 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
           display: "flex", alignItems: "center", justifyContent: "center",
           transition: "all 0.2s",
         }}>
-          {data.lu ? <span style={{ color: "#fff", fontSize: 13 }}>&#10003;</span> : null}
+          {data.lu ? <CheckCircle2 size={16} color="#fff" /> : null}
         </div>
         <span style={{ fontSize: 14, color: "#334155", fontWeight: 500 }}>
           J'ai pris connaissance des points d'attention
@@ -388,7 +392,7 @@ function Step4EtatLieux({ data, setData, onNext, onPrev }) {
 }
 
 function Step5Consommables({ data, setData, onNext, onPrev }) {
-  var ok = data.consommablesAPrevoir !== undefined && data.remarques !== undefined && data.heureFin;
+  var ok = data.remarques !== undefined && data.heureFin;
   return (
     <div>
       <SectionTitle>Consommables</SectionTitle>
@@ -419,13 +423,24 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
         <div style={{ fontWeight: 700, fontSize: 12, color: "#0369a1", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           À vérifier
         </div>
+        <div style={{ fontSize: 13, color: "#64748b", marginBottom: 12 }}>
+          Cliquez uniquement sur les consommables à remettre avant la prochaine arrivée.
+        </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {CONSOMMABLES_VERIFIER.map(function(c) {
+            var active = (data.aReapprovisionner || []).includes(c);
             return (
-              <span key={c} style={{
-                padding: "5px 13px", background: "#f1f5f9", borderRadius: 20,
-                fontSize: 13, color: "#475569", border: "1px solid #e2e8f0",
-              }}>{c}</span>
+              <button key={c} onClick={function() {
+                var current = data.aReapprovisionner || [];
+                var next = current.includes(c)
+                  ? current.filter(function(i) { return i !== c; })
+                  : current.concat(c);
+                setData(Object.assign({}, data, { aReapprovisionner: next, consommablesAPrevoir: next.join(", ") }));
+              }} style={{
+                padding: "8px 14px", background: active ? "#e0f2fe" : "#f8fafc", borderRadius: 999,
+                fontSize: 13, color: active ? "#0369a1" : "#475569", border: active ? "2px solid #0ea5e9" : "1px solid #e2e8f0",
+                fontWeight: 600, cursor: "pointer",
+              }}>{c}</button>
             );
           })}
         </div>
@@ -529,7 +544,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
             <div style={{ background: "#0ea5e9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
           </div>
           <div style={{ fontSize: 12, color: "#64748b" }}>
-            Ne quittez pas cette page...
+            Le traitement continue même si vous changez d’application quelques instants.
           </div>
         </div>
       ) : null}
@@ -571,7 +586,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
           opacity: isProcessing ? 0.5 : 1,
         }}
       >
-        <div style={{ fontSize: 36, marginBottom: 8 }}>&#128247;</div>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><Camera size={42} color="#0ea5e9" /></div>
         <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{btnLabel}</div>
         <div style={{ fontSize: 13, color: "#64748b" }}>Appuyez pour choisir depuis votre galerie</div>
         <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
@@ -691,15 +706,48 @@ var TOTAL = 7;
 
 export default function App() {
   var [step, setStep] = useState(0);
+  var [hydrated, setHydrated] = useState(false);
   var [arrivee, setArrivee] = useState({ date: "", heureDebut: "", nom: "", bien: "Le Nossa" });
   var [attention, setAttention] = useState({ lu: false });
   var [etatLieux, setEtatLieux] = useState({ note: 0, observations: "" });
-  var [consommables, setConsommables] = useState({ consommablesAPrevoir: "", remarques: "", heureFin: "" });
+  var [consommables, setConsommables] = useState({ consommablesAPrevoir: "", remarques: "", heureFin: "", aReapprovisionner: [] });
   var [photos, setPhotos] = useState([]);
   var [done, setDone] = useState(false);
   var [sending, setSending] = useState(false);
   var [sendError, setSendError] = useState("");
   var [sendProgress, setSendProgress] = useState(0);
+
+  
+  useEffect(function() {
+    var saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        var parsed = JSON.parse(saved);
+        var resume = window.confirm("Reprendre le formulaire en cours ? Cliquez sur Annuler pour repartir de zéro.");
+        if (resume) {
+          setStep(parsed.step || 0);
+          setArrivee(parsed.arrivee || { date: "", heureDebut: "", nom: "", bien: "Le Nossa" });
+          setAttention(parsed.attention || { lu: false });
+          setEtatLieux(parsed.etatLieux || { note: 0, observations: "" });
+          setConsommables(parsed.consommables || { consommablesAPrevoir: "", remarques: "", heureFin: "" });
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      } catch (e) {}
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(function() {
+    if (!hydrated || done) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      step: step,
+      arrivee: arrivee,
+      attention: attention,
+      etatLieux: etatLieux,
+      consommables: consommables,
+    }));
+  }, [hydrated, step, arrivee, attention, etatLieux, consommables, photos, done]);
 
   function next() { setStep(function(s) { return Math.min(s + 1, TOTAL - 1); }); }
   function prev() { setStep(function(s) { return Math.max(s - 1, 0); }); }
@@ -733,7 +781,7 @@ export default function App() {
         .then(function(res) { return res.json(); })
         .then(function(data) {
           setSending(false);
-          if (data.success) setDone(true);
+          if (data.success) { localStorage.removeItem(STORAGE_KEY); setDone(true); }
           else setSendError("Erreur lors de l envoi. Réessayez.");
         })
         .catch(function() { setSending(false); setSendError("Erreur réseau. Vérifiez votre connexion."); });
