@@ -25,11 +25,11 @@ function padTwo(n) {
   return String(n).padStart(2, "0");
 }
 
-function getStamp(label) {
+function getStamp() {
   var d = new Date();
   var date = padTwo(d.getDate()) + "/" + padTwo(d.getMonth() + 1) + "/" + d.getFullYear();
   var time = padTwo(d.getHours()) + "h" + padTwo(d.getMinutes());
-  return (label ? label + "  -  " : "") + date + "  " + time;
+  return date + "  " + time;
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -46,7 +46,7 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function processPhoto(file, label) {
+function processPhoto(file) {
   return new Promise(function(resolve) {
     var img = new Image();
     var url = URL.createObjectURL(file);
@@ -61,7 +61,7 @@ function processPhoto(file, label) {
       var ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, w, h);
 
-      var stamp = getStamp(label);
+      var stamp = getStamp();
       var fontSize = Math.max(18, Math.round(w * 0.025));
       ctx.font = "bold " + fontSize + "px monospace";
       var tw = ctx.measureText(stamp).width;
