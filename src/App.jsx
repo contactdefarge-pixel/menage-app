@@ -21,7 +21,7 @@ const CONSOMMABLES_VERIFIER = [
   "Liquide vaisselle", "Gel WC", "Savon main", "Gel douche", "Huile", "Sel", "Poivre",
 ];
 
-const STORAGE_KEY = "menage_draft_izinest_v2";
+const STORAGE_KEY = "menage_draft_izinest_v3";
 
 function padTwo(n) { return String(n).padStart(2, "0"); }
 
@@ -51,7 +51,7 @@ function processPhoto(file) {
     var img = new Image();
     var url = URL.createObjectURL(file);
     img.onload = function() {
-      var maxW = 1600; // Optimisé pour un upload 2x plus rapide
+      var maxW = 1600; 
       var scale = img.width > maxW ? maxW / img.width : 1;
       var w = Math.round(img.width * scale);
       var h = Math.round(img.height * scale);
@@ -68,7 +68,7 @@ function processPhoto(file) {
       var bh = fontSize + pad * 2;
       var bw = tw + pad * 2;
       var margin = fontSize * 0.8;
-      ctx.fillStyle = "rgba(17,24,39,0.75)"; // Thème Izinest sombre
+      ctx.fillStyle = "rgba(9, 17, 30, 0.8)"; 
       roundRect(ctx, margin, h - bh - margin, bw, bh, 6);
       ctx.fill();
       ctx.fillStyle = "#ffffff";
@@ -82,7 +82,6 @@ function processPhoto(file) {
   });
 }
 
-// Convertit un objet de type File en chaîne Base64 pour persister dans le localStorage
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -92,7 +91,6 @@ function fileToBase64(file) {
   });
 }
 
-// Recrée un objet File à partir d'une chaîne Base64 stockée
 function base64ToFile(base64String, filename) {
   var arr = base64String.split(','), mime = arr[0].match(/:(.*?);/)[1],
       bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
@@ -102,54 +100,54 @@ function base64ToFile(base64String, filename) {
   return new File([u8arr], filename, {type:mime});
 }
 
-// ── Icônes SVG Inline ────────────────────────────────────────────────────────
+// ── Icônes SVG Inline aux couleurs Izinest ────────────────────────────────────
 
 function IconWifi() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b5942b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#b5942b"/>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#0066ff"/>
     </svg>
   );
 }
 function IconUsers() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b5942b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   );
 }
 function IconTrash() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b5942b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
     </svg>
   );
 }
 function IconBox() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b5942b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
     </svg>
   );
 }
 function IconKey() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b5942b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0066ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
     </svg>
   );
 }
 function IconCheckIzinest() {
   return (
-    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="32" cy="32" r="30" fill="#d4af37" fillOpacity="0.15"/>
-      <circle cx="32" cy="32" r="24" fill="#111827"/>
-      <path d="M23 32.5L29 38.5L41 25.5" stroke="#d4af37" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+      <circle cx="32" cy="32" r="30" fill="#0066ff" fillOpacity="0.1"/>
+      <circle cx="32" cy="32" r="24" fill="#09111e"/>
+      <path d="M23 32.5L29 38.5L41 25.5" stroke="#0066ff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
 
-// ── Composants UI Izinest ─────────────────────────────────────────────────────
+// ── Composants Structurels ───────────────────────────────────────────────────
 
 function ProgressBar({ current, total }) {
   return (
@@ -158,7 +156,7 @@ function ProgressBar({ current, total }) {
         return (
           <div key={i} style={{
             flex: 1, height: 5, borderRadius: 3,
-            background: i <= current ? "#111827" : "#e5e7eb",
+            background: i <= current ? "#0066ff" : "#e5e7eb",
             transition: "background 0.3s",
           }} />
         );
@@ -169,7 +167,7 @@ function ProgressBar({ current, total }) {
 
 function SectionTitle({ children }) {
   return (
-    <h2 style={{ fontSize: 22, fontWeight: 800, color: "#111827", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
+    <h2 style={{ fontSize: 22, fontWeight: 800, color: "#09111e", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
       {children}
     </h2>
   );
@@ -186,9 +184,9 @@ function Subtitle({ children }) {
 function InfoCard({ icon, children }) {
   return (
     <div style={{
-      background: "#fbfbfd", border: "1px solid #e5e7eb", borderLeft: "4px solid #d4af37",
+      background: "#f9fafb", border: "1px solid #e5e7eb", borderLeft: "4px solid #0066ff",
       borderRadius: "0 12px 12px 0", padding: "14px 16px", marginBottom: 12,
-      fontSize: 14, color: "#111827", lineHeight: 1.6,
+      fontSize: 14, color: "#09111e", lineHeight: 1.6,
       display: "flex", gap: 12, alignItems: "flex-start",
     }}>
       {icon ? <div style={{ flexShrink: 0, marginTop: 2 }}>{icon}</div> : null}
@@ -200,14 +198,14 @@ function InfoCard({ icon, children }) {
 function AlertCard({ title, children }) {
   return (
     <div style={{
-      background: "#fffbeb", border: "2px solid #fef3c7", borderRadius: 14,
-      padding: "16px 18px", marginBottom: 20, boxShadow: "0 4px 12px rgba(217,119,6,0.05)"
+      background: "#f0f7ff", border: "1px solid #b3d4ff", borderRadius: 14,
+      padding: "16px 18px", marginBottom: 20, boxShadow: "0 4px 12px rgba(0,102,255,0.03)"
     }}>
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 6 }}>
-        <span style={{ fontSize: 18 }}>⚠️</span>
-        <span style={{ fontWeight: 700, color: "#b45309", fontSize: 14, textTransform: "uppercase", letterSpacing: "0.3px" }}>{title}</span>
+        <span style={{ fontSize: 18 }}>🛡️</span>
+        <span style={{ fontWeight: 700, color: "#0052cc", fontSize: 14, textTransform: "uppercase", letterSpacing: "0.3px" }}>{title}</span>
       </div>
-      <div style={{ fontSize: 13, color: "#92400e", lineHeight: 1.5 }}>{children}</div>
+      <div style={{ fontSize: 13, color: "#0040a1", lineHeight: 1.5 }}>{children}</div>
     </div>
   );
 }
@@ -215,7 +213,7 @@ function AlertCard({ title, children }) {
 function Field({ label, required, children }) {
   return (
     <div style={{ marginBottom: 18 }}>
-      <label style={{ display: "block", fontWeight: 600, fontSize: 14, color: "#111827", marginBottom: 6 }}>
+      <label style={{ display: "block", fontWeight: 600, fontSize: 14, color: "#09111e", marginBottom: 6 }}>
         {label}{required ? <span style={{ color: "#dc2626" }}> *</span> : null}
       </label>
       {children}
@@ -235,7 +233,7 @@ function Input({ value, onChange, placeholder, type }) {
     <input type={type} value={value} placeholder={placeholder || ""}
       onChange={function(e) { onChange(e.target.value); }}
       style={baseInput}
-      onFocus={function(e) { e.target.style.borderColor = "#111827"; }}
+      onFocus={function(e) { e.target.style.borderColor = "#0066ff"; }}
       onBlur={function(e) { e.target.style.borderColor = "#e5e7eb"; }}
     />
   );
@@ -247,7 +245,7 @@ function Textarea({ value, onChange, placeholder, rows }) {
     <textarea value={value} placeholder={placeholder || ""} rows={rows}
       onChange={function(e) { onChange(e.target.value); }}
       style={Object.assign({}, baseInput, { resize: "vertical" })}
-      onFocus={function(e) { e.target.style.borderColor = "#111827"; }}
+      onFocus={function(e) { e.target.style.borderColor = "#0066ff"; }}
       onBlur={function(e) { e.target.style.borderColor = "#e5e7eb"; }}
     />
   );
@@ -259,11 +257,11 @@ function Btn({ onClick, disabled, children, secondary }) {
       style={{
         padding: "13px 24px", borderRadius: 12, border: "none",
         cursor: disabled ? "not-allowed" : "pointer",
-        background: disabled ? "#f3f4f6" : secondary ? "#f3f4f6" : "#111827",
-        color: disabled ? "#9ca3af" : secondary ? "#111827" : "#ffffff",
+        background: disabled ? "#f3f4f6" : secondary ? "#f3f4f6" : "#0066ff",
+        color: disabled ? "#9ca3af" : secondary ? "#09111e" : "#ffffff",
         fontWeight: 700, fontSize: 15, transition: "all 0.2s",
         border: secondary ? "1px solid #e5e7eb" : "none",
-        boxShadow: (!secondary && !disabled) ? "0 4px 12px rgba(17,24,39,0.15)" : "none",
+        boxShadow: (!secondary && !disabled) ? "0 4px 12px rgba(0,102,255,0.15)" : "none",
       }}
     >{children}</button>
   );
@@ -282,7 +280,7 @@ function StarRating({ value, onChange }) {
             onMouseLeave={function() { setHov(0); }}
             style={{
               background: "none", border: "none", padding: 0, cursor: "pointer",
-              fontSize: 34, lineHeight: 1, color: active ? "#d4af37" : "#e5e7eb",
+              fontSize: 34, lineHeight: 1, color: active ? "#0066ff" : "#e5e7eb",
               transition: "color 0.1s"
             }}
           >&#9733;</button>
@@ -304,9 +302,9 @@ function CopyRow({ label, value }) {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
       <span><strong>{label} :</strong> {value}</span>
       <button onClick={copy} style={{
-        background: copied ? "#ecfdf5" : "#f3f4f6", border: "none", borderRadius: 8,
+        background: copied ? "#e6f0ff" : "#f3f4f6", border: "none", borderRadius: 8,
         cursor: "pointer", padding: "4px 10px", fontSize: 12, marginLeft: 10,
-        color: copied ? "#059669" : "#111827", fontWeight: 600, flexShrink: 0,
+        color: copied ? "#0066ff" : "#09111e", fontWeight: 600, flexShrink: 0,
       }}>{copied ? "Copié !" : "Copier"}</button>
     </div>
   );
@@ -324,15 +322,15 @@ function CopyAdresse({ adresse }) {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
       <span style={{ color: "#4b5563", fontSize: 14 }}>{adresse}</span>
       <button onClick={copy} style={{
-        background: copied ? "#ecfdf5" : "#f3f4f6", border: "none", borderRadius: 8,
+        background: copied ? "#e6f0ff" : "#f3f4f6", border: "none", borderRadius: 8,
         cursor: "pointer", padding: "4px 10px", fontSize: 12, marginLeft: 10,
-        color: copied ? "#059669" : "#111827", fontWeight: 600, flexShrink: 0,
+        color: copied ? "#0066ff" : "#09111e", fontWeight: 600, flexShrink: 0,
       }}>{copied ? "Copié !" : "Copier"}</button>
     </div>
   );
 }
 
-// ── Composant Photo uploader réutilisable ─────────────────────────────────────
+// ── Module Photo avec Horodatage Actif Éléments d'Arrivée & Fin ─────────────
 
 function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
   const inputRef = useRef();
@@ -368,16 +366,16 @@ function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
 
   return (
     <div style={{ marginBottom: 20 }}>
-      {title && <div style={{ fontWeight: 600, fontSize: 14, color: "#111827", marginBottom: 4 }}>{title}</div>}
+      {title && <div style={{ fontWeight: 600, fontSize: 14, color: "#09111e", marginBottom: 4 }}>{title}</div>}
       {subtitle && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>{subtitle}</div>}
 
       {photos.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
           {photos.map((p) => (
             <div key={p.id} style={{ position: "relative" }}>
-              <img src={p.preview} alt={p.name} style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 10, border: "1px solid #e5e7eb" }} />
+              <img src={p.preview} alt={p.name} style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 10, border: "2px solid #0066ff" }} />
               <button type="button" onClick={() => onRemovePhoto(p.id)} style={{
-                position: "absolute", top: 4, right: 4, background: "rgba(17,24,39,0.8)", color: "#fff",
+                position: "absolute", top: 4, right: 4, background: "rgba(9,17,30,0.8)", color: "#fff",
                 border: "none", borderRadius: "50%", width: 20, height: 20, cursor: "pointer", fontSize: 11, padding: 0
               }}>✕</button>
             </div>
@@ -386,12 +384,12 @@ function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
       )}
 
       <div onClick={() => !localProcessing && inputRef.current.click()} style={{
-        border: "2px dashed #d1d5db", borderRadius: 12, padding: "20px 14px", textAlign: "center",
+        border: "2px dashed #0066ff", borderRadius: 12, padding: "20px 14px", textAlign: "center",
         cursor: localProcessing ? "not-allowed" : "pointer", background: "#f9fafb", opacity: localProcessing ? 0.6 : 1
       }}>
         <div style={{ fontSize: 24, marginBottom: 4 }}>📷</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>
-          {localProcessing ? "Optimisation en cours..." : photos.length === 0 ? "Ajouter des photos" : "Ajouter d'autres photos"}
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#09111e" }}>
+          {localProcessing ? "Horodatage & Optimisation..." : "Prendre / Ajouter des photos"}
         </div>
       </div>
       <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => handleFiles(e.target.files)} />
@@ -399,30 +397,30 @@ function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
   );
 }
 
-// ── Modale Reprise ────────────────────────────────────────────────────────────
+// ── Modale de Continuité ──────────────────────────────────────────────────────
 
 function ResumeModal({ saved, onResume, onRestart }) {
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(11,17,27,0.6)",
+      position: "fixed", inset: 0, background: "rgba(9,17,30,0.6)",
       backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24,
     }}>
       <div style={{ background: "#fff", borderRadius: 20, padding: 28, maxWidth: 360, width: "100%", boxShadow: "0 20px 50px rgba(0,0,0,0.15)" }}>
-        <div style={{ fontSize: 36, marginBottom: 12, textAlign: "center" }}>📝</div>
-        <h3 style={{ fontWeight: 800, fontSize: 18, color: "#111827", textAlign: "center", margin: "0 0 8px 0" }}>Formulaire en cours</h3>
+        <div style={{ fontSize: 36, marginBottom: 12, textAlign: "center" }}>⚡</div>
+        <h3 style={{ fontWeight: 800, fontSize: 18, color: "#09111e", textAlign: "center", margin: "0 0 8px 0" }}>Reprise d'activité</h3>
         <p style={{ fontSize: 14, color: "#4b5563", textAlign: "center", margin: "0 0 24px 0", lineHeight: 1.5 }}>
-          Un rapport commencé pour <strong>{saved.arrivee?.bien || "Le Nossa"}</strong> a été interrompu. Voulez-vous reprendre ou recommencer ?
+          Un rapport pour <strong>{saved.arrivee?.bien || "Le Nossa"}</strong> a été détecté. Souhaitez-vous reprendre là où vous vous étiez arrêté ?
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <Btn onClick={onResume}>Reprendre le travail</Btn>
-          <Btn secondary onClick={onRestart}>Recommencer à zéro</Btn>
+          <Btn secondary onClick={onRestart}>Recommencer</Btn>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Étapes ────────────────────────────────────────────────────────────────────
+// ── Étapes de l'application ───────────────────────────────────────────────────
 
 function Step1Infos({ onNext }) {
   return (
@@ -509,18 +507,18 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
         onClick={function() { setData(Object.assign({}, data, { lu: !data.lu })); }}
         style={{
           display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", borderRadius: 12, cursor: "pointer",
-          background: data.lu ? "#fdfbf7" : "#fafafa", border: "2px solid " + (data.lu ? "#d4af37" : "#e5e7eb"),
+          background: data.lu ? "#f0f7ff" : "#fafafa", border: "2px solid " + (data.lu ? "#0066ff" : "#e5e7eb"),
           marginBottom: 24, transition: "all 0.2s"
         }}
       >
         <div style={{
           width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-          border: "2px solid " + (data.lu ? "#d4af37" : "#d1d5db"),
-          background: data.lu ? "#d4af37" : "#fff", display: "flex", alignItems: "center", justifyContent: "center"
+          border: "2px solid " + (data.lu ? "#0066ff" : "#d1d5db"),
+          background: data.lu ? "#0066ff" : "#fff", display: "flex", alignItems: "center", justifyContent: "center"
         }}>
           {data.lu ? <span style={{ color: "#fff", fontSize: 12, fontWeight: 700 }}>✓</span> : null}
         </div>
-        <span style={{ fontSize: 14, color: "#111827", fontWeight: 700 }}>J'ai pris connaissance de ces consignes</span>
+        <span style={{ fontSize: 14, color: "#09111e", fontWeight: 700 }}>J'ai pris connaissance de ces consignes</span>
       </div>
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev}>Retour</Btn>
@@ -535,20 +533,20 @@ function Step4EtatLieux({ data, setData, onNext, onPrev }) {
   return (
     <div>
       <SectionTitle>État des lieux</SectionTitle>
-      <Subtitle>Vérifiez le logement. En cas d'anomalie ou de saleté excessive, ajoutez des photos justificatives ci-dessous.</Subtitle>
+      <Subtitle>Vérifiez l'état de propreté initial. Si le logement est sale ou dégradé, utilisez le module photo horodaté ci-dessous.</Subtitle>
       
       <Field label="Notez l'état laissé par les voyageurs" required>
         <StarRating value={data.note} onChange={function(v) { setData(Object.assign({}, data, { note: v })); }} />
       </Field>
       
       <Field label="Observations à l'arrivée" required>
-        <Textarea value={data.observations} onChange={function(v) { setData(Object.assign({}, data, { observations: v })); }} placeholder="Problèmes constatés ou écrire RAS." />
+        <Textarea value={data.observations} onChange={function(v) { setData(Object.assign({}, data, { observations: v })); }} placeholder="Détaillez les anomalies constatées ou écrivez RAS." />
       </Field>
 
       <PhotoModule 
         photos={data.photosArrivee || []}
-        title="Photos des anomalies / saleté (Optionnel)"
-        subtitle="Prenez des photos uniquement s'il y a des dégradations ou si c'est très sale à votre arrivée."
+        title="Photos à l'arrivée (Optionnel)"
+        subtitle="Ces clichés seront automatiquement horodatés avant l'envoi vers Notion."
         onAddPhotos={(newPhotos) => {
           const current = data.photosArrivee || [];
           setData(Object.assign({}, data, { photosArrivee: current.concat(newPhotos) }));
@@ -587,15 +585,15 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
         {CONSOMMABLES_LAISSER.map(function(c) {
           return (
             <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f9fafb", borderRadius: 8, fontSize: 14, marginBottom: 6, border: "1px solid #f3f4f6" }}>
-              <span style={{ fontWeight: 500, color: "#111827" }}>{c.label}</span>
-              <span style={{ background: "#111827", color: "#fff", fontWeight: 700, borderRadius: 6, padding: "2px 8px", fontSize: 12 }}>{c.qt}</span>
+              <span style={{ fontWeight: 500, color: "#09111e" }}>{c.label}</span>
+              <span style={{ background: "#09111e", color: "#fff", fontWeight: 700, borderRadius: 6, padding: "2px 8px", fontSize: 12 }}>{c.qt}</span>
             </div>
           );
         })}
       </div>
 
       <div style={{ marginBottom: 20, background: "#fbfbfd", border: "1px solid #e5e7eb", padding: 14, borderRadius: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 11, color: "#b5942b", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>À vérifier & commander</div>
+        <div style={{ fontWeight: 700, fontSize: 11, color: "#0066ff", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>À vérifier & commander</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>Sélectionnez les articles bientôt épuisés :</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {CONSOMMABLES_VERIFIER.map(function(c) {
@@ -603,8 +601,8 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
             return (
               <button key={c} type="button" onClick={function() { toggleConso(c); }} style={{
                 padding: "8px 12px", borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.1s",
-                border: isSelected ? "2px solid #111827" : "2px solid #e5e7eb",
-                background: isSelected ? "#111827" : "#fff", color: isSelected ? "#fff" : "#4b5563"
+                border: isSelected ? "2px solid #0066ff" : "2px solid #e5e7eb",
+                background: isSelected ? "#0066ff" : "#fff", color: isSelected ? "#fff" : "#4b5563"
               }}>{isSelected ? "✓ " : "+ "}{c}</button>
             );
           })}
@@ -630,45 +628,7 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
 }
 
 function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
-  var inputRef = useRef();
-  var [progress, setProgress] = useState({ current: 0, total: 0 });
-
-  var handleFiles = useCallback(function(files) {
-    var arr = Array.from(files).filter(function(f) { return f.type.startsWith("image/"); });
-    if (arr.length === 0) return;
-    setProgress({ current: 0, total: arr.length });
-    var results = [];
-    var index = 0;
-    function processNext() {
-      if (index >= arr.length) {
-        setPhotos(function(prev) { return prev.concat(results); });
-        setProgress({ current: 0, total: 0 });
-        return;
-      }
-      var current = index;
-      setTimeout(function() {
-        processPhoto(arr[current]).then(function(stamped) {
-          results.push({
-            id: Math.random().toString(36).slice(2),
-            file: stamped,
-            preview: URL.createObjectURL(stamped),
-            name: arr[current].name,
-          });
-          index++;
-          setProgress({ current: index, total: arr.length });
-          processNext();
-        });
-      }, 40);
-    }
-    processNext();
-  }, [setPhotos]);
-
-  function remove(id) {
-    setPhotos(function(prev) { return prev.filter(function(p) { return p.id !== id; }); });
-  }
-
-  var isProcessing = progress.total > 0;
-  var pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+  var isProcessing = false;
   var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
 
   return (
@@ -677,42 +637,15 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
       <Subtitle>Téléversez les clichés requis de fin de prestation (gravage automatique).</Subtitle>
 
       <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, padding: "12px 14px", marginBottom: 18 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#111827", marginBottom: 6, textTransform: "uppercase" }}>Photos obligatoires</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#09111e", marginBottom: 6, textTransform: "uppercase" }}>Photos obligatoires</div>
         {PIECES.map(p => <div key={p.id} style={{ fontSize: 13, color: "#4b5563", marginBottom: 3 }}><strong>{p.label}</strong> — {p.exemples}</div>)}
       </div>
 
-      {isProcessing && (
-        <AlertCard title="Traitement de vos images">
-          Indexation et compression : <strong>{progress.current} / {progress.total} ({pct}%)</strong>.
-          <div style={{ background: "#e5e7eb", borderRadius: 6, height: 6, overflow: "hidden", marginTop: 8 }}>
-            <div style={{ background: "#d4af37", height: "100%", width: pct + "%" }} />
-          </div>
-        </AlertCard>
-      )}
-
-      {photos.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 8 }}>{photos.length} photo(s) prête(s)</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-            {photos.map(p => (
-              <div key={p.id} style={{ position: "relative" }}>
-                <img src={p.preview} alt={p.name} style={{ width: "100%", aspectRatio: "1", objectFit: "cover", borderRadius: 10, border: "2px solid #111827" }} />
-                <button type="button" onClick={() => remove(p.id)} style={{ position: "absolute", top: 4, right: 4, background: "rgba(17,24,39,0.8)", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, fontSize: 11, cursor: "pointer", padding:0 }}>✕</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div onClick={function() { if (!isProcessing && inputRef.current) inputRef.current.click(); }} style={{
-        border: "2px dashed #111827", borderRadius: 14, padding: "24px 16px", textAlign: "center", cursor: isProcessing ? "not-allowed" : "pointer", background: "#fbfbfd", marginBottom: 24
-      }}>
-        <div style={{ fontSize: 32, marginBottom: 6 }}>📷</div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#111827" }}>Sélectionner les photos de fin</div>
-        <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Sélection multiple autorisée</div>
-      </div>
-
-      <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={function(e) { handleFiles(e.target.files); }} />
+      <PhotoModule 
+        photos={photos}
+        onAddPhotos={(newPhotos) => setPhotos(prev => prev.concat(newPhotos))}
+        onRemovePhoto={(id) => setPhotos(prev => prev.filter(p => p.id !== id))}
+      />
 
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn>
@@ -734,7 +667,7 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
       <Subtitle>Vérification finale des données avant transmission.</Subtitle>
 
       <div style={{ background: "#f9fafb", borderRadius: 12, padding: 14, marginBottom: 10, border: "1px solid #e5e7eb" }}>
-        <div style={{ fontSize: 14, color: "#111827", lineHeight: 1.7 }}>
+        <div style={{ fontSize: 14, color: "#09111e", lineHeight: 1.7 }}>
           <strong>{arrivee.bien}</strong> — Par {arrivee.nom}<br/>
           Prestation du {arrivee.date} ({arrivee.heureDebut} - {consommables.heureFin})
         </div>
@@ -742,29 +675,29 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
 
       <div style={{ background: "#f9fafb", borderRadius: 12, padding: 14, marginBottom: 10, border: "1px solid #e5e7eb" }}>
         <div style={{ fontWeight: 700, fontSize: 11, color: "#6b7280", textTransform: "uppercase", marginBottom: 4 }}>État des lieux</div>
-        <div style={{ color: "#d4af37", fontSize: 16, marginBottom: 4 }}>{etoiles}</div>
-        <div style={{ fontSize: 13, color: "#111827" }}>{interieurTexte(etatLieux.observations)}</div>
-        {etatLieux.photosArrivee?.length > 0 && <div style={{ fontSize: 12, color: "#b5942b", marginTop: 4, fontWeight: 600 }}>📸 {etatLieux.photosArrivee.length} photo(s) d'anomalie ajoutée(s)</div>}
+        <div style={{ color: "#0066ff", fontSize: 16, marginBottom: 4 }}>{etoiles}</div>
+        <div style={{ fontSize: 13, color: "#09111e" }}>{interieurTexte(etatLieux.observations)}</div>
+        {etatLieux.photosArrivee?.length > 0 && <div style={{ fontSize: 12, color: "#0066ff", marginTop: 4, fontWeight: 600 }}>📸 {etatLieux.photosArrivee.length} photo(s) d'arrivée (anomalies) préparée(s)</div>}
       </div>
 
       <div style={{ background: "#f9fafb", borderRadius: 12, padding: 14, marginBottom: 16, border: "1px solid #e5e7eb" }}>
         <div style={{ fontWeight: 700, fontSize: 11, color: "#6b7280", textTransform: "uppercase", marginBottom: 6 }}>Logistique & Matériel</div>
-        <div style={{ fontSize: 13, color: "#111827", lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, color: "#09111e", lineHeight: 1.5 }}>
           <div><strong>Stocks manquants :</strong> {selected.length > 0 ? selected.join(", ") : "Aucun"}</div>
           <div style={{ marginTop: 4 }}><strong>Remarques :</strong> {interieurTexte(consommables.remarques)}</div>
         </div>
       </div>
 
-      <div style={{ background: "#fdfbf7", border: "1px solid #f5edd2", borderRadius: 12, padding: 14, marginBottom: 20, fontSize: 13, color: "#b5942b", fontWeight: 600 }}>
-        📸 {photos.length} photo(s) obligatoires prêtes à l'envoi.
+      <div style={{ background: "#f0f7ff", border: "1px solid #b3d4ff", borderRadius: 12, padding: 14, marginBottom: 20, fontSize: 13, color: "#0052cc", fontWeight: 600 }}>
+        📸 {photos.length} photo(s) de fin validée(s).
       </div>
 
       {sending && (
-        <AlertCard title="Envoi hautement sécurisé activé">
-          L'application a bloqué la mise en veille et sauvegardé votre progression. 
-          <br/><strong>Envoi global : {sendProgress}%</strong>
+        <AlertCard title="Synchronisation Izinest en cours">
+          Sauvegarde continue active. Ne fermez pas votre écran.
+          <br/><strong>Progression globale : {sendProgress}%</strong>
           <div style={{ background: "#e5e7eb", borderRadius: 6, height: 6, overflow: "hidden", marginTop: 8 }}>
-            <div style={{ background: "#111827", height: "100%", width: sendProgress + "%", transition: "width 0.3s" }} />
+            <div style={{ background: "#0066ff", height: "100%", width: sendProgress + "%", transition: "width 0.3s" }} />
           </div>
         </AlertCard>
       )}
@@ -785,18 +718,18 @@ function StepSuccess({ nom, bien }) {
   return (
     <div style={{ textAlign: "center", padding: "30px 0" }}>
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}><IconCheckIzinest /></div>
-      <h2 style={{ fontSize: 23, fontWeight: 800, color: "#111827", marginBottom: 10, letterSpacing: "-0.5px" }}>Rapport enregistré</h2>
+      <h2 style={{ fontSize: 23, fontWeight: 800, color: "#09111e", marginBottom: 10, letterSpacing: "-0.5px" }}>Rapport synchronisé</h2>
       <p style={{ color: "#4b5563", fontSize: 15, lineHeight: 1.6, margin: "0 0 28px 0" }}>
-        Merci <strong>{nom}</strong>, votre bilan pour le logement <strong>{bien}</strong> a été synchronisé avec la base Izinest.
+        Merci <strong>{nom}</strong>, votre bilan pour le logement <strong>{bien}</strong> a été synchronisé avec succès.
       </p>
-      <div style={{ padding: "14px 16px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, fontSize: 13, color: "#111827", fontWeight: 700 }}>
-        ✨ Prestation clôturée. Vous pouvez fermer l'onglet.
+      <div style={{ padding: "14px 16px", background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 12, fontSize: 13, color: "#0066ff", fontWeight: 700 }}>
+        ✨ Mission accomplie ! Vous pouvez fermer cette application.
       </div>
     </div>
   );
 }
 
-// ── App principale Izinest ───────────────────────────────────────────────────
+// ── App Principale ───────────────────────────────────────────────────────────
 
 var TOTAL = 7;
 var INIT_ARRIVEE = { date: "", heureDebut: "", nom: "", bien: "Le Nossa" };
@@ -821,7 +754,6 @@ export default function App() {
   
   var wakeLockRef = useRef(null);
 
-  // 1. Chargement initial du brouillon robuste
   useEffect(function() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
@@ -835,14 +767,12 @@ export default function App() {
     } catch(e) {}
   }, []);
 
-  // 2. Sauvegarde automatique complète (incluant les structures Base64 des photos)
   useEffect(function() {
     if (done) { localStorage.removeItem(STORAGE_KEY); return; }
     if (step === 0 && arrivee.nom === "") return;
 
     async function saveCurrentDraft() {
       try {
-        // Encodage en base64 pour sauvegarder les images d'arrivée s'il y en a
         let base64PhotosArrivee = [];
         if (etatLieux.photosArrivee && etatLieux.photosArrivee.length > 0) {
           for (let p of etatLieux.photosArrivee) {
@@ -853,7 +783,6 @@ export default function App() {
           }
         }
 
-        // Encodage en base64 pour sauvegarder les images obligatoires de fin
         let base64PhotosFin = [];
         if (photos && photos.length > 0) {
           for (let p of photos) {
@@ -868,7 +797,7 @@ export default function App() {
           step: step,
           arrivee: arrivee,
           attention: attention,
-          etatLieux: Object.assign({}, etatLieux, { photosArrivee: [] }), // vider pour ne pas surcharger
+          etatLieux: Object.assign({}, etatLieux, { photosArrivee: [] }),
           base64PhotosArrivee: base64PhotosArrivee,
           consommables: consommables,
           base64PhotosFin: base64PhotosFin
@@ -878,7 +807,6 @@ export default function App() {
     saveCurrentDraft();
   }, [step, arrivee, attention, etatLieux, consommables, photos, done]);
 
-  // 3. Empêcher la mise en veille automatique pendant l'upload
   useEffect(function() {
     if (sending && "wakeLock" in navigator) {
       navigator.wakeLock.request("screen")
@@ -890,7 +818,6 @@ export default function App() {
     return function() { if (wakeLockRef.current) wakeLockRef.current.release(); };
   }, [sending]);
 
-  // 4. Restauration asynchrone des fichiers images du brouillon
   function handleResume() {
     setStep(savedDraft.step || 0);
     setArrivee(savedDraft.arrivee || INIT_ARRIVEE);
@@ -935,7 +862,7 @@ export default function App() {
   function handleSubmit() {
     setSending(true);
     setSendError("");
-    setSendProgress(1);
+    setSendProgress(2);
 
     function uploadFileRequest(fileObj) {
       var formData = new FormData();
@@ -946,16 +873,20 @@ export default function App() {
         .catch(() => null);
     }
 
-    // Rassembler toutes les images à envoyer
     var arrArrivee = etatLieux.photosArrivee || [];
     var totalFiles = arrArrivee.length + photos.length;
+    
     var uploadResultsArrivee = new Array(arrArrivee.length).fill(null);
     var uploadResultsFin = new Array(photos.length).fill(null);
     
     var completedCount = 0;
-    var BATCH_SIZE = 3;
+    var BATCH_SIZE = 2;
 
     function executeUploads(allTasks, globalCallback) {
+      if (allTasks.length === 0) {
+        globalCallback();
+        return;
+      }
       function runIndex(idx) {
         if (idx >= allTasks.length) {
           globalCallback();
@@ -967,7 +898,7 @@ export default function App() {
             if (task.type === "arrivee") uploadResultsArrivee[task.pos] = res;
             if (task.type === "fin") uploadResultsFin[task.pos] = res;
             completedCount++;
-            setSendProgress(Math.min(98, Math.round((completedCount / totalFiles) * 100)));
+            setSendProgress(Math.min(97, Math.round((completedCount / totalFiles) * 100)));
           });
         })).then(function() { runIndex(idx + BATCH_SIZE); });
       }
@@ -999,12 +930,12 @@ export default function App() {
           localStorage.removeItem(STORAGE_KEY);
           setDone(true);
         } else {
-          setSendError("Une erreur est survenue lors de la validation finale.");
+          setSendError("Une erreur est survenue durant l'enregistrement Notion.");
         }
       })
       .catch(() => {
         setSending(false);
-        setSendError("Réseau instable. L'envoi reprendra dès reconnexion.");
+        setSendError("Erreur réseau. Vos données restent en sécurité localement.");
       });
     });
   }
@@ -1023,8 +954,8 @@ export default function App() {
 
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", flexDirection: "column", marginBottom: 12 }}>
-          <div style={{ fontWeight: 900, fontSize: 16, color: "#111827", textTransform: "uppercase", letterSpacing: "0.5px" }}>Izinest</div>
-          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 1 }}>Bilan d'intervention · Étape {step + 1} / {TOTAL}</div>
+          <div style={{ fontWeight: 900, fontSize: 17, color: "#09111e", textTransform: "uppercase", letterSpacing: "0.5px" }}>Izinest</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 1 }}>Bilan terrain · Étape {step + 1} / {TOTAL}</div>
         </div>
         <ProgressBar current={step} total={TOTAL} />
       </div>
