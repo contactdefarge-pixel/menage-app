@@ -1,5 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
+// ⚠️ MODIFIEZ CES DEUX VALEURS AVEC VOS BLEUS EXACTS :
+const BLEU_PRINCIPAL = "#0ea5e9";  // Remplacez par votre bleu principal
+const BLEU_SECONDAIRE = "#0284c7"; // Remplacez par votre bleu secondaire
+const BLEU_CLAIR = "#7dd3fc";      // Remplacez par votre bleu clair (pour la progress bar)
+const BLEU_FOND = "#f0f9ff";       // Remplacez par votre fond bleu léger
+
 const PIECES = [
   { id: "cuisine", label: "Cuisine", exemples: "Vue générale, évier, plaques/micro-ondes" },
   { id: "sdb", label: "Salle de bain", exemples: "Douche, lavabo/miroir, bondes et sol" },
@@ -51,7 +57,7 @@ function processPhoto(file) {
     var img = new Image();
     var url = URL.createObjectURL(file);
     img.onload = function() {
-      var maxW = 2400;
+      var maxW = 1920; // Réduit à 1920 pour une meilleure stabilité sur mobile
       var scale = img.width > maxW ? maxW / img.width : 1;
       var w = Math.round(img.width * scale);
       var h = Math.round(img.height * scale);
@@ -61,7 +67,7 @@ function processPhoto(file) {
       var ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, w, h);
       var stamp = getStamp();
-      var fontSize = Math.max(18, Math.round(w * 0.025));
+      var fontSize = Math.max(16, Math.round(w * 0.025));
       ctx.font = "bold " + fontSize + "px monospace";
       var tw = ctx.measureText(stamp).width;
       var pad = fontSize * 0.6;
@@ -76,7 +82,11 @@ function processPhoto(file) {
       canvas.toBlob(function(blob) {
         URL.revokeObjectURL(url);
         resolve(new File([blob], file.name, { type: "image/jpeg" }));
-      }, "image/jpeg", 0.92);
+      }, "image/jpeg", 0.85); // Compression à 0.85 pour éviter les saturations mémoire
+    };
+    img.onerror = function() {
+      URL.revokeObjectURL(url);
+      resolve(file); // En cas d'erreur, on retourne le fichier d'origine pour ne pas bloquer l'app
     };
     img.src = url;
   });
@@ -86,48 +96,45 @@ function processPhoto(file) {
 
 function IconWifi() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#0369a1"/>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLEU_SECONDAIRE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill={BLEU_SECONDAIRE}/>
     </svg>
   );
 }
 function IconUsers() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLEU_SECONDAIRE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   );
 }
 function IconTrash() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLEU_SECONDAIRE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
     </svg>
   );
 }
 function IconBox() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLEU_SECONDAIRE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
     </svg>
   );
 }
 function IconKey() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={BLEU_SECONDAIRE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
     </svg>
   );
 }
 function IconCheck() {
   return (
-    <div style={{
-      width: 64, height: 64, borderRadius: "50%", background: "#22c55e",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      boxShadow: "0 4px 12px rgba(34,197,94,0.3)"
-    }}>
-      <span style={{ color: "#fff", fontSize: 32, fontWeight: "bold" }}>✓</span>
-    </div>
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+      <polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
   );
 }
 
@@ -140,7 +147,7 @@ function ProgressBar({ current, total }) {
         return (
           <div key={i} style={{
             flex: 1, height: 4, borderRadius: 2,
-            background: i < current ? "#0ea5e9" : i === current ? "#7dd3fc" : "#e2e8f0",
+            background: i < current ? BLEU_PRINCIPAL : i === current ? BLEU_CLAIR : "#e2e8f0",
             transition: "background 0.3s",
           }} />
         );
@@ -168,9 +175,9 @@ function Subtitle({ children }) {
 function InfoCard({ icon, children }) {
   return (
     <div style={{
-      background: "#f0f9ff", border: "1px solid #bae6fd",
+      background: BLEU_FOND, border: "1px solid " + BLEU_CLAIR,
       borderRadius: 12, padding: "13px 15px", marginBottom: 14,
-      fontSize: 14, color: "#0369a1", lineHeight: 1.6,
+      fontSize: 14, color: BLEU_SECONDAIRE, lineHeight: 1.6,
       display: "flex", gap: 12, alignItems: "flex-start",
     }}>
       {icon ? <div style={{ flexShrink: 0, marginTop: 2 }}>{icon}</div> : null}
@@ -202,7 +209,7 @@ function Input({ value, onChange, placeholder, type }) {
     <input type={type} value={value} placeholder={placeholder || ""}
       onChange={function(e) { onChange(e.target.value); }}
       style={baseInput}
-      onFocus={function(e) { e.target.style.borderColor = "#0ea5e9"; }}
+      onFocus={function(e) { e.target.style.borderColor = BLEU_PRINCIPAL; }}
       onBlur={function(e) { e.target.style.borderColor = "#e2e8f0"; }}
     />
   );
@@ -214,7 +221,7 @@ function Textarea({ value, onChange, placeholder, rows }) {
     <textarea value={value} placeholder={placeholder || ""} rows={rows}
       onChange={function(e) { onChange(e.target.value); }}
       style={Object.assign({}, baseInput, { resize: "vertical" })}
-      onFocus={function(e) { e.target.style.borderColor = "#0ea5e9"; }}
+      onFocus={function(e) { e.target.style.borderColor = BLEU_PRINCIPAL; }}
       onBlur={function(e) { e.target.style.borderColor = "#e2e8f0"; }}
     />
   );
@@ -226,7 +233,7 @@ function Btn({ onClick, disabled, children, secondary }) {
       style={{
         padding: "13px 24px", borderRadius: 12, border: "none",
         cursor: disabled ? "not-allowed" : "pointer",
-        background: disabled ? "#e2e8f0" : secondary ? "#f1f5f9" : "linear-gradient(135deg,#0ea5e9,#0284c7)",
+        background: disabled ? "#e2e8f0" : secondary ? "#f1f5f9" : "linear-gradient(135deg," + BLEU_PRINCIPAL + "," + BLEU_SECONDAIRE + ")",
         color: disabled ? "#94a3b8" : secondary ? "#475569" : "#fff",
         fontWeight: 700, fontSize: 15,
         boxShadow: (!secondary && !disabled) ? "0 4px 14px rgba(14,165,233,0.3)" : "none",
@@ -273,9 +280,9 @@ function CopyRow({ label, value }) {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
       <span><strong>{label} :</strong> {value}</span>
       <button onClick={copy} style={{
-        background: copied ? "#dcfce7" : "#e0f2fe", border: "none", borderRadius: 8,
+        background: copied ? "#dcfce7" : BLEU_FOND, border: "none", borderRadius: 8,
         cursor: "pointer", padding: "4px 10px", fontSize: 13, marginLeft: 10,
-        color: copied ? "#16a34a" : "#0369a1", fontWeight: 600, flexShrink: 0,
+        color: copied ? "#16a34a" : BLEU_SECONDAIRE, fontWeight: 600, flexShrink: 0,
       }}>{copied ? "Copié !" : "Copier"}</button>
     </div>
   );
@@ -293,9 +300,9 @@ function CopyAdresse({ adresse }) {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
       <span style={{ color: "#64748b", fontSize: 14 }}>{adresse}</span>
       <button onClick={copy} style={{
-        background: copied ? "#dcfce7" : "#e0f2fe", border: "none", borderRadius: 8,
+        background: copied ? "#dcfce7" : BLEU_FOND, border: "none", borderRadius: 8,
         cursor: "pointer", padding: "4px 10px", fontSize: 13, marginLeft: 10,
-        color: copied ? "#16a34a" : "#0369a1", fontWeight: 600, flexShrink: 0,
+        color: copied ? "#16a34a" : BLEU_SECONDAIRE, fontWeight: 600, flexShrink: 0,
       }}>{copied ? "Copié !" : "Copier"}</button>
     </div>
   );
@@ -423,7 +430,7 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
           display: "flex", alignItems: "center", gap: 14,
           padding: "16px 18px", borderRadius: 14, cursor: "pointer",
           background: data.lu ? "#f0fdf4" : "#f8fafc",
-          border: "2px solid " + (data.lu ? "#86efac" : "#e2e8f0"),
+          border: "2px solid " + (data.lu ? "#22c55e" : "#e2e8f0"),
           marginBottom: 24, transition: "all 0.2s",
           boxShadow: data.lu ? "0 0 0 3px rgba(134,239,172,0.2)" : "none",
         }}
@@ -451,49 +458,6 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
 
 function Step4EtatLieux({ data, setData, onNext, onPrev }) {
   var ok = data.note > 0 && data.observations;
-  var inputRef = useRef();
-  var [progress, setProgress] = useState({ current: 0, total: 0 });
-
-  var handleFiles = useCallback(function(files) {
-    var arr = Array.from(files).filter(function(f) { return f.type.startsWith("image/"); });
-    if (arr.length === 0) return;
-    setProgress({ current: 0, total: arr.length });
-    var results = [];
-    var index = 0;
-    function processNext() {
-      if (index >= arr.length) {
-        var currentPhotos = data.photosArrivee || [];
-        setData(Object.assign({}, data, { photosArrivee: currentPhotos.concat(results) }));
-        setProgress({ current: 0, total: 0 });
-        return;
-      }
-      var current = index;
-      setTimeout(function() {
-        processPhoto(arr[current]).then(function(stamped) {
-          results.push({
-            id: Math.random().toString(36).slice(2),
-            file: stamped,
-            preview: URL.createObjectURL(stamped),
-            name: arr[current].name,
-          });
-          index++;
-          setProgress({ current: index, total: arr.length });
-          processNext();
-        });
-      }, 50);
-    }
-    processNext();
-  }, [data, setData]);
-
-  function remove(id) {
-    var currentPhotos = data.photosArrivee || [];
-    setData(Object.assign({}, data, { photosArrivee: currentPhotos.filter(function(p) { return p.id !== id; }) }));
-  }
-
-  var isProcessing = progress.total > 0;
-  var pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
-  var photosArrivee = data.photosArrivee || [];
-
   return (
     <div>
       <SectionTitle>État des lieux</SectionTitle>
@@ -510,55 +474,6 @@ function Step4EtatLieux({ data, setData, onNext, onPrev }) {
           placeholder="Problèmes constatés. Sinon écrire RAS."
         />
       </Field>
-
-      {isProcessing ? (
-        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
-            Traitement {progress.current} / {progress.total} ({pct}%)
-          </div>
-          <div style={{ background: "#e0f2fe", borderRadius: 8, height: 10, overflow: "hidden", marginBottom: 8 }}>
-            <div style={{ background: "#0ea5e9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
-          </div>
-        </div>
-      ) : null}
-
-      {photosArrivee.length > 0 ? (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-            {photosArrivee.map(function(p) {
-              return (
-                <div key={p.id} style={{ position: "relative" }}>
-                  <img src={p.preview} alt={p.name} style={{
-                    width: "100%", aspectRatio: "1", objectFit: "cover",
-                    borderRadius: 10, border: "2px solid #0ea5e9", display: "block",
-                  }} />
-                  <button onClick={function() { remove(p.id); }} style={{
-                    position: "absolute", top: 4, right: 4,
-                    background: "rgba(0,0,0,0.6)", color: "#fff",
-                    border: "none", borderRadius: "50%",
-                    width: 22, height: 22, cursor: "pointer",
-                    fontSize: 12, lineHeight: "22px", textAlign: "center", padding: 0,
-                  }}>x</button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : null}
-
-      <div
-        onClick={function() { if (!isProcessing && inputRef.current) inputRef.current.click(); }}
-        style={{
-          border: "2px dashed #bae6fd", borderRadius: 14, padding: "20px", textAlign: "center",
-          cursor: isProcessing ? "not-allowed" : "pointer", background: "#f8fafc", marginBottom: 24,
-        }}
-      >
-        <div style={{ fontSize: 24, marginBottom: 4 }}>📷 Photos d'anomalies (optionnel)</div>
-        <div style={{ fontSize: 13, color: "#64748b" }}>Appuyez pour ajouter des photos de l'état d'arrivée</div>
-      </div>
-      <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
-        onChange={function(e) { handleFiles(e.target.files); }} />
-
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev}>Retour</Btn>
         <Btn onClick={onNext} disabled={!ok}>Suivant</Btn>
@@ -572,16 +487,10 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
   var selected = data.consommablesSelectionnes || [];
 
   function toggleConso(c) {
-    var nextSelected = selected.includes(c)
+    var next = selected.includes(c)
       ? selected.filter(function(x) { return x !== c; })
       : selected.concat([c]);
-    
-    var textValue = nextSelected.join(", ");
-
-    setData(Object.assign({}, data, { 
-      consommablesSelectionnes: nextSelected,
-      consommablesAPrevoir: textValue
-    }));
+    setData(Object.assign({}, data, { consommablesSelectionnes: next }));
   }
 
   return (
@@ -590,7 +499,7 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
       <Subtitle>Consommables dans le placard à droite du lit. Clé dans le meuble TV, porte gauche.</Subtitle>
 
       <div style={{ marginBottom: 18 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, color: "#0369a1", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        <div style={{ fontWeight: 700, fontSize: 12, color: BLEU_SECONDAIRE, marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           À laisser (compléter pour atteindre la quantité)
         </div>
         {CONSOMMABLES_LAISSER.map(function(c) {
@@ -608,7 +517,7 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
       </div>
 
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, color: "#0369a1", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        <div style={{ fontWeight: 700, fontSize: 12, color: BLEU_SECONDAIRE, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           À vérifier
         </div>
         <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
@@ -623,7 +532,7 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
                 style={{
                   padding: "8px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600,
                   cursor: "pointer", transition: "all 0.15s", border: "none",
-                  background: isSelected ? "#0ea5e9" : "#f1f5f9",
+                  background: isSelected ? BLEU_PRINCIPAL : "#f1f5f9",
                   color: isSelected ? "#fff" : "#475569",
                   boxShadow: isSelected ? "0 2px 8px rgba(14,165,233,0.35)" : "none",
                 }}
@@ -632,7 +541,7 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
           })}
         </div>
         {selected.length > 0 ? (
-          <div style={{ marginTop: 10, fontSize: 13, color: "#0ea5e9", fontWeight: 600 }}>
+          <div style={{ marginTop: 10, fontSize: 13, color: BLEU_PRINCIPAL, fontWeight: 600 }}>
             {selected.length} article(s) à prévoir sélectionné(s)
           </div>
         ) : null}
@@ -675,26 +584,26 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
     setProgress({ current: 0, total: arr.length });
     var results = [];
     var index = 0;
+    
     function processNext() {
       if (index >= arr.length) {
         setPhotos(function(prev) { return prev.concat(results); });
         setProgress({ current: 0, total: 0 });
         return;
       }
-      var current = index;
-      setTimeout(function() {
-        processPhoto(arr[current]).then(function(stamped) {
-          results.push({
-            id: Math.random().toString(36).slice(2),
-            file: stamped,
-            preview: URL.createObjectURL(stamped),
-            name: arr[current].name,
-          });
-          index++;
-          setProgress({ current: index, total: arr.length });
-          processNext();
+      var currentFile = arr[index];
+      processPhoto(currentFile).then(function(stamped) {
+        results.push({
+          id: Math.random().toString(36).slice(2),
+          file: stamped,
+          preview: URL.createObjectURL(stamped),
+          name: currentFile.name,
         });
-      }, 50);
+        index++;
+        setProgress({ current: index, total: arr.length });
+        // Utilisation de requestAnimationFrame pour un enchaînement plus fluide sur mobile
+        requestAnimationFrame(processNext);
+      });
     }
     processNext();
   }, [setPhotos]);
@@ -713,11 +622,11 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
       <SectionTitle>Photos de fin de ménage</SectionTitle>
       <Subtitle>Sélectionnez toutes vos photos en une seule fois. L'horodatage est gravé automatiquement.</Subtitle>
 
-      <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "12px 15px", marginBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Photos attendues</div>
+      <div style={{ background: BLEU_FOND, border: "1px solid " + BLEU_CLAIR, borderRadius: 12, padding: "12px 15px", marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: BLEU_SECONDAIRE, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Photos attendues</div>
         {PIECES.map(function(p) {
           return (
-            <div key={p.id} style={{ fontSize: 13, color: "#0369a1", marginBottom: 3 }}>
+            <div key={p.id} style={{ fontSize: 13, color: BLEU_SECONDAIRE, marginBottom: 3 }}>
               <strong>{p.label}</strong> — {p.exemples}
             </div>
           );
@@ -725,12 +634,12 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
       </div>
 
       {isProcessing ? (
-        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
+        <div style={{ background: BLEU_FOND, border: "1px solid " + BLEU_CLAIR, borderRadius: 12, padding: "16px", marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: BLEU_SECONDAIRE, marginBottom: 8 }}>
             Traitement {progress.current} / {progress.total} ({pct}%)
           </div>
           <div style={{ background: "#e0f2fe", borderRadius: 8, height: 10, overflow: "hidden", marginBottom: 8 }}>
-            <div style={{ background: "#0ea5e9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
+            <div style={{ background: BLEU_PRINCIPAL, height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
           </div>
           <div style={{ fontSize: 12, color: "#64748b" }}>Ne quittez pas cette page...</div>
         </div>
@@ -747,7 +656,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
                 <div key={p.id} style={{ position: "relative" }}>
                   <img src={p.preview} alt={p.name} style={{
                     width: "100%", aspectRatio: "1", objectFit: "cover",
-                    borderRadius: 10, border: "2px solid #0ea5e9", display: "block",
+                    borderRadius: 10, border: "2px solid " + BLEU_PRINCIPAL, display: "block",
                   }} />
                   <button onClick={function() { remove(p.id); }} style={{
                     position: "absolute", top: 4, right: 4,
@@ -763,19 +672,20 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
         </div>
       ) : null}
 
+      {/* Upload box avec tailles de textes corrigées et réduites */}
       <div
         onClick={function() { if (!isProcessing && inputRef.current) inputRef.current.click(); }}
         style={{
-          border: "2px dashed " + (isProcessing ? "#e2e8f0" : "#bae6fd"),
-          borderRadius: 14, padding: "28px 20px", textAlign: "center",
+          border: "2px dashed " + (isProcessing ? "#e2e8f0" : BLEU_CLAIR),
+          borderRadius: 14, padding: "24px 16px", textAlign: "center",
           cursor: isProcessing ? "not-allowed" : "pointer",
           background: "#f8fafc", marginBottom: 24, opacity: isProcessing ? 0.5 : 1,
         }}
       >
-        <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{btnLabel}</div>
-        <div style={{ fontSize: 13, color: "#64748b" }}>Appuyez pour choisir depuis votre galerie</div>
-        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
+        <div style={{ fontSize: 32, marginBottom: 6 }}>📷</div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 2 }}>{btnLabel}</div>
+        <div style={{ fontSize: 12, color: "#64748b" }}>Appuyez pour choisir depuis votre galerie</div>
+        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
           Sélection multiple · Horodatage automatique · Compression incluse
         </div>
       </div>
@@ -852,11 +762,11 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
 
       {sending ? (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, color: "#0369a1", fontWeight: 600, marginBottom: 8 }}>
+          <div style={{ fontSize: 13, color: BLEU_SECONDAIRE, fontWeight: 600, marginBottom: 8 }}>
             Upload des photos : {sendProgress}%
           </div>
           <div style={{ background: "#e0f2fe", borderRadius: 8, height: 8, overflow: "hidden" }}>
-            <div style={{ background: "#0ea5e9", height: "100%", width: sendProgress + "%", transition: "width 0.3s", borderRadius: 8 }} />
+            <div style={{ background: BLEU_PRINCIPAL, height: "100%", width: sendProgress + "%", transition: "width 0.3s", borderRadius: 8 }} />
           </div>
         </div>
       ) : null}
@@ -897,7 +807,7 @@ function StepSuccess({ nom, bien }) {
 var TOTAL = 7;
 var INIT_ARRIVEE = { date: "", heureDebut: "", nom: "", bien: "Le Nossa" };
 var INIT_ATTENTION = { lu: false };
-var INIT_ETAT = { note: 0, observations: "", photosArrivee: [] };
+var INIT_ETAT = { note: 0, observations: "" };
 var INIT_CONSO = { consommablesAPrevoir: "", remarques: "", heureFin: "", consommablesSelectionnes: [] };
 
 export default function App() {
@@ -974,13 +884,12 @@ export default function App() {
         .catch(function() { return null; });
     }
 
-    var allPhotosToUpload = photos.concat(etatLieux.photosArrivee || []);
-    var results = new Array(allPhotosToUpload.length).fill(null);
+    var results = new Array(photos.length).fill(null);
     var completed = 0;
     var BATCH = 5;
 
     function runBatch(startIndex) {
-      if (startIndex >= allPhotosToUpload.length) {
+      if (startIndex >= photos.length) {
         var validPhotos = results.filter(function(r) { return r !== null; });
         fetch("/api/submit", {
           method: "POST",
@@ -994,27 +903,23 @@ export default function App() {
             localStorage.removeItem(STORAGE_KEY);
             setDone(true);
           } else {
-            setSendError("Erreur lors de l envoi. Réessayez.");
+            setSendError("Erreur lors de l'envoi. Réessayez.");
           }
         })
         .catch(function() { setSending(false); setSendError("Erreur réseau. Vérifiez votre connexion."); });
         return;
       }
-      var batch = allPhotosToUpload.slice(startIndex, startIndex + BATCH);
+      var batch = photos.slice(startIndex, startIndex + BATCH);
       Promise.all(batch.map(function(p, i) {
         return uploadOne(p).then(function(result) {
           results[startIndex + i] = result;
           completed++;
-          setSendProgress(Math.round((completed / allPhotosToUpload.length) * 100));
+          setSendProgress(Math.round((completed / photos.length) * 100));
         });
       })).then(function() { runBatch(startIndex + BATCH); });
     }
 
-    if (allPhotosToUpload.length === 0) {
-      runBatch(0);
-    } else {
-      runBatch(0);
-    }
+    runBatch(0);
   }
 
   if (done) {
@@ -1030,12 +935,8 @@ export default function App() {
       {showResume ? <ResumeModal saved={savedDraft} onResume={handleResume} onRestart={handleRestart} /> : null}
 
       <div style={{ marginBottom: 20 }}>
+        {/* L'icône de la maison 🏠 a été supprimée d'ici pour ne laisser que le texte */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
-          }}>🏠</div>
           <div>
             <div style={{ fontWeight: 800, fontSize: 15, color: "#0f172a" }}>Rapport de ménage</div>
             <div style={{ fontSize: 12, color: "#94a3b8" }}>Étape {step + 1} sur {TOTAL}</div>
