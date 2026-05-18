@@ -100,7 +100,7 @@ function base64ToFile(base64String, filename) {
   return new File([u8arr], filename, {type:mime});
 }
 
-// ── Icônes SVG Inline aux couleurs officielles Izinest ──────────────────────
+// ── Icônes SVG ──────────────────────────────────────────────────────────────
 
 function IconWifi() {
   return (
@@ -147,7 +147,7 @@ function IconCheckIzinest() {
   );
 }
 
-// ── Composants Structurels ───────────────────────────────────────────────────
+// ── Composants de structure ──────────────────────────────────────────────────
 
 function ProgressBar({ current, total }) {
   return (
@@ -330,16 +330,20 @@ function CopyAdresse({ adresse }) {
   );
 }
 
-// ── Module Photo Unique avec Horodatage & Avertissements mis en avant ────────
+// ── Module de Gestion des Photos avec Horodatage et retour visuel ───────────
 
-function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
+function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle, onProcessingChange }) {
   const inputRef = useRef();
   const [localProcessing, setLocalProcessing] = useState(false);
+  const [processProgress, setProcessProgress] = useState(0);
 
   const handleFiles = useCallback((files) => {
     const arr = Array.from(files).filter(f => f.type.startsWith("image/"));
     if (arr.length === 0) return;
+    
     setLocalProcessing(true);
+    setProcessProgress(0);
+    if (onProcessingChange) onProcessingChange(true);
 
     let processedArray = [];
     let counter = 0;
@@ -348,8 +352,10 @@ function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
       if (counter >= arr.length) {
         onAddPhotos(processedArray);
         setLocalProcessing(false);
+        if (onProcessingChange) onProcessingChange(false);
         return;
       }
+      
       processPhoto(arr[counter]).then((stamped) => {
         processedArray.push({
           id: Math.random().toString(36).slice(2),
@@ -358,22 +364,26 @@ function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
           name: arr[counter].name,
         });
         counter++;
+        setProcessProgress(Math.round((counter / arr.length) * 100));
         processNext();
       });
     }
     processNext();
-  }, [onAddPhotos]);
+  }, [onAddPhotos, onProcessingChange]);
 
   return (
     <div style={{ marginBottom: 20 }}>
       {title && <div style={{ fontWeight: 600, fontSize: 14, color: "#085157", marginBottom: 4 }}>{title}</div>}
       {subtitle && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 10 }}>{subtitle}</div>}
 
-      {/* Alerte Rouge d'origine mise en valeur au chargement */}
+      {/* Bandeau d'avertissement restauré et épuré */}
       {localProcessing && (
         <AlertCard title="Traitement des photos en cours">
-          Ajout de l'horodatage officiel Izinest et compression de l'image... <br />
+          Ajout de l'horodatage et compression de l'image...<br />
           <strong>Ne fermez pas l'application et ne verrouillez pas votre écran.</strong>
+          <div style={{ background: "#e5e7eb", borderRadius: 6, height: 6, overflow: "hidden", marginTop: 8 }}>
+            <div style={{ background: "#00bab3", height: "100%", width: processProgress + "%", transition: "width 0.2s" }} />
+          </div>
         </AlertCard>
       )}
 
@@ -397,7 +407,7 @@ function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
       }}>
         <div style={{ fontSize: 24, marginBottom: 4 }}>📷</div>
         <div style={{ fontSize: 14, fontWeight: 700, color: "#085157" }}>
-          {localProcessing ? "Horodatage actif..." : "Prendre / Ajouter des photos"}
+          {localProcessing ? `Traitement (${processProgress}%)` : "Prendre / Ajouter des photos"}
         </div>
       </div>
       <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => handleFiles(e.target.files)} />
@@ -405,7 +415,7 @@ function PhotoModule({ photos, onAddPhotos, onRemovePhoto, title, subtitle }) {
   );
 }
 
-// ── Modale de Continuité ──────────────────────────────────────────────────────
+// ── Modale de continuité ─────────────────────────────────────────────────────
 
 function ResumeModal({ saved, onResume, onRestart }) {
   return (
@@ -536,7 +546,7 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
   );
 }
 
-function Step4EtatLieux({ data, setData, onNext, onPrev }) {
+function Step4EtatLieux({ data, setData, onNext, onPrev, onProcessingChange }) {
   var ok = data.note > 0 && data.observations;
   return (
     <div>
@@ -551,10 +561,11 @@ function Step4EtatLieux({ data, setData, onNext, onPrev }) {
         <Textarea value={data.observations} onChange={function(v) { setData(Object.assign({}, data, { observations: v })); }} placeholder="Détaillez les anomalies constatées ou écrivez RAS." />
       </Field>
 
+      {/* Suppression complète du sous-titre explicatif ici */}
       <PhotoModule 
         photos={data.photosArrivee || []}
         title="Photos à l'arrivée (Optionnel)"
-        subtitle="Ces clichés d'anomalies seront gravés avec la date et l'heure."
+        onProcessingChange={onProcessingChange}
         onAddPhotos={(newPhotos) => {
           const current = data.photosArrivee || [];
           setData(Object.assign({}, data, { photosArrivee: current.concat(newPhotos) }));
@@ -589,7 +600,12 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
       <Subtitle>Remplir selon les stocks disponibles dans le placard.</Subtitle>
 
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontWeight: 700, fontSize: 11, color: "#6b7280", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>À laisser obligatoirement</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.5px" }}>À laisser obligatoirement</div>
+          {/* Restauration du sous-texte informatif d'origine */}
+          <div style={{ fontSize: 11, color: "#6b7280", fontStyle: "italic" }}>Compléter les existants (qtés totales exprimées)</div>
+        </div>
+        
         {CONSOMMABLES_LAISSER.map(function(c) {
           return (
             <div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "#f9fafb", borderRadius: 8, fontSize: 14, marginBottom: 6, border: "1px solid #f3f4f6" }}>
@@ -635,7 +651,7 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
   );
 }
 
-function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
+function Step6Photos({ photos, setPhotos, onNext, onPrev, onProcessingChange }) {
   var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
 
   return (
@@ -650,6 +666,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
 
       <PhotoModule 
         photos={photos}
+        onProcessingChange={onProcessingChange}
         onAddPhotos={(newPhotos) => setPhotos(prev => prev.concat(newPhotos))}
         onRemovePhoto={(id) => setPhotos(prev => prev.filter(p => p.id !== id))}
       />
@@ -757,6 +774,7 @@ export default function App() {
   
   var [done, setDone] = useState(false);
   var [sending, setSending] = useState(false);
+  var [localProcessingActive, setLocalProcessingActive] = useState(false); // Suivi de l'horodatage en cours
   var [sendError, setSendError] = useState("");
   var [sendProgress, setSendProgress] = useState(0);
   var [showResume, setShowResume] = useState(false);
@@ -817,16 +835,18 @@ export default function App() {
     saveCurrentDraft();
   }, [step, arrivee, attention, etatLieux, consommables, photos, done]);
 
+  // Fiabilisation globale du WakeLock (anti-verrouillage écran actif lors de l'horodatage local ou de l'envoi Notion)
   useEffect(function() {
-    if (sending && "wakeLock" in navigator) {
+    var checkWakeLock = (sending || localProcessingActive);
+    if (checkWakeLock && "wakeLock" in navigator) {
       navigator.wakeLock.request("screen")
         .then(function(lock) { wakeLockRef.current = lock; })
         .catch(function(){});
-    } else if (!sending && wakeLockRef.current) {
+    } else if (!checkWakeLock && wakeLockRef.current) {
       wakeLockRef.current.release().then(function() { wakeLockRef.current = null; });
     }
     return function() { if (wakeLockRef.current) wakeLockRef.current.release(); };
-  }, [sending]);
+  }, [sending, localProcessingActive]);
 
   function handleResume() {
     setStep(savedDraft.step || 0);
@@ -920,7 +940,7 @@ export default function App() {
     photos.forEach((o, i) => tasks.push({ type: "fin", pos: i, obj: o }));
 
     executeUploads(tasks, function() {
-      // Filtrer pour extraire uniquement les identifiants d'upload Notion valides
+      // Extraction stricte et propre des IDs d'upload Notion valides
       var finalPhotosArrivee = uploadResultsArrivee.filter(r => r !== null);
       var finalPhotosFin = uploadResultsFin.filter(r => r !== null);
 
@@ -929,7 +949,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           arrivee: arrivee,
-          // Correction majeure : Injection explicite des ID d'upload pour les photos d'arrivée
+          // Correction majeure : Injection explicite de la liste des IDs d'upload pour l'arrivée
           etatLieux: Object.assign({}, etatLieux, { photosIds: finalPhotosArrivee }),
           consommables: consommables,
           photos: finalPhotosFin
@@ -975,9 +995,9 @@ export default function App() {
       {step === 0 && <Step1Infos onNext={next} />}
       {step === 1 && <Step2Arrivee data={arrivee} setData={setArrivee} onNext={next} onPrev={prev} />}
       {step === 2 && <Step3Attention data={attention} setData={setAttention} onNext={next} onPrev={prev} />}
-      {step === 3 && <Step4EtatLieux data={etatLieux} setData={setEtatLieux} onNext={next} onPrev={prev} />}
+      {step === 3 && <Step4EtatLieux data={etatLieux} setData={setEtatLieux} onNext={next} onPrev={prev} onProcessingChange={setLocalProcessingActive} />}
       {step === 4 && <Step5Consommables data={consommables} setData={setConsommables} onNext={next} onPrev={prev} />}
-      {step === 5 && <Step6Photos photos={photos} setPhotos={setPhotos} onNext={next} onPrev={prev} />}
+      {step === 5 && <Step6Photos photos={photos} setPhotos={setPhotos} onNext={next} onPrev={prev} onProcessingChange={setLocalProcessingActive} />}
       {step === 6 && (
         <Step7Recap
           arrivee={arrivee}
