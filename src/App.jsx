@@ -11,7 +11,7 @@ const PIECES = [
 const CONSOMMABLES_LAISSER = [
   { id: "cafe", label: "Dosettes café", qt: "x4" },
   { id: "the", label: "Thé (2 de chaque variété)", qt: "x4" },
-  { id: "sucre", label: "Buchechets de sucre", qt: "x6" },
+  { id: "sucre", label: "Buchettes de sucre", qt: "x6" },
   { id: "papier", label: "Papier toilette", qt: "x2" },
   { id: "essuie", label: "Essuie-tout", qt: "x1" },
   { id: "eponge", label: "Éponge (à changer)", qt: "x1" },
@@ -51,7 +51,8 @@ function processPhoto(file) {
     var img = new Image();
     var url = URL.createObjectURL(file);
     img.onload = function() {
-      var maxW = 2400;
+      // RÉDUCTION DE TAILLE : Changé de 2400 à 1600 pour un upload 2x plus rapide
+      var maxW = 1600;
       var scale = img.width > maxW ? maxW / img.width : 1;
       var w = Math.round(img.width * scale);
       var h = Math.round(img.height * scale);
@@ -76,13 +77,13 @@ function processPhoto(file) {
       canvas.toBlob(function(blob) {
         URL.revokeObjectURL(url);
         resolve(new File([blob], file.name, { type: "image/jpeg" }));
-      }, "image/jpeg", 0.92);
+      }, "image/jpeg", 0.88); // Légère optimisation du taux de compression
     };
     img.src = url;
   });
 }
 
-// ── Icônes SVG inline optimisées et harmonisées ────────────────────────────────────────────────────────
+// ── Icônes SVG ────────────────────────────────────────────────────────
 
 function IconWifi() {
   return (
@@ -496,7 +497,6 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
       ? selected.filter(function(x) { return x !== c; })
       : selected.concat([c]);
     
-    // Met également à jour automatiquement le champ texte pour aider le prestataire
     var texteAuto = next.length > 0 ? "Besoin de réapprovisionner : " + next.join(", ") : "";
     setData(Object.assign({}, data, { 
       consommablesSelectionnes: next,
@@ -521,7 +521,7 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
               fontSize: 14, marginBottom: 6, border: "1px solid #f1f5f9"
             }}>
               <span style={{ fontWeight: 500, color: "#334155" }}>{c.label}</span>
-              <span style={{ background: "#e0f2fe", color: "#0369a1", strokeWidth:"2.5", fontWeight: 700, borderRadius: 6, padding: "2px 10px", fontSize: 13 }}>{c.qt}</span>
+              <span style={{ background: "#e0f2fe", color: "#0369a1", fontWeight: 700, borderRadius: 6, padding: "2px 10px", fontSize: 13 }}>{c.qt}</span>
             </div>
           );
         })}
@@ -770,10 +770,10 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
       {sending ? (
         <div style={{ marginBottom: 20, background: "#fff7ed", border: "1px solid #ffedd5", padding: 14, borderRadius: 12 }}>
           <div style={{ fontSize: 13, color: "#c2410c", fontWeight: 700, marginBottom: 4 }}>
-            ⚠️ Envoi en cours : Laissez l'écran allumé
+            💡 Écran verrouillé automatiquement par l'application
           </div>
           <div style={{ fontSize: 12, color: "#9a3412", marginBottom: 10, lineHeight: 1.4 }}>
-            Pour éviter l'échec de l'envoi, ne verrouillez pas votre téléphone et ne changez pas d'application.
+            Le téléphone restera éveillé jusqu'à la fin complète du transfert. Merci de ne pas fermer manuellement le navigateur.
           </div>
           <div style={{ fontSize: 13, color: "#0369a1", fontWeight: 600, marginBottom: 8 }}>
             Progression : {sendProgress}%
@@ -836,14 +836,15 @@ export default function App() {
   var [sendProgress, setSendProgress] = useState(0);
   var [showResume, setShowResume] = useState(false);
   var [savedDraft, setSavedDraft] = useState(null);
+  
+  // Référence pour stocker le verrou de mise en veille (WakeLock)
+  var wakeLockRef = useRef(null);
 
-  // Vérifier s'il y a un brouillon au chargement initial
   useEffect(function() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         var draft = JSON.parse(raw);
-        // On s'assure qu'un formulaire a bien démarré au delà de l'accueil ou possède des données
         if (draft && (draft.step > 0 || draft.arrivee.nom !== "")) {
           setSavedDraft(draft);
           setShowResume(true);
@@ -852,10 +853,9 @@ export default function App() {
     } catch(e) {}
   }, []);
 
-  // Sauvegarder à chaque changement d'étape importante ou saisie de données
   useEffect(function() {
     if (done) { localStorage.removeItem(STORAGE_KEY); return; }
-    if (step === 0 && arrivee.nom === "") return; // Ne pas enregistrer un brouillon totalement vide
+    if (step === 0 && arrivee.nom === "") return; 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         step: step,
@@ -866,6 +866,35 @@ export default function App() {
       }));
     } catch(e) {}
   }, [step, arrivee, attention, etatLieux, consommables, done]);
+
+  // Logique d'activation/désactivation du Wake Lock de l'écran
+  useEffect(function() {
+    if (sending) {
+      if ("wakeLock" in navigator) {
+        navigator.wakeLock.request("screen")
+          .then(function(lock) {
+            wakeLockRef.current = lock;
+          })
+          .catch(function(err) {
+            console.error("Échec du blocage de mise en veille:", err);
+          });
+      }
+    } else {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release()
+          .then(function() {
+            wakeLockRef.current = null;
+          });
+      }
+    }
+
+    // Nettoyage de sécurité si le composant est fermé brusquement
+    return function() {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release();
+      }
+    };
+  }, [sending]);
 
   function handleResume() {
     setStep(savedDraft.step);
