@@ -19,6 +19,7 @@ const CONSOMMABLES_LAISSER = [
 
 const CONSOMMABLES_VERIFIER = [
   "Liquide vaisselle", "Gel WC", "Savon main", "Gel douche", "Huile", "Sel", "Poivre",
+  "Sacs poubelles", "Sacs poubelles SdB",
 ];
 
 const STORAGE_KEY = "menage_draft";
@@ -121,9 +122,18 @@ function IconKey() {
 }
 function IconCheck() {
   return (
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-      <polyline points="22 4 12 14.01 9 11.01"/>
+    <svg width="72" height="72" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+      <rect x="8" y="8" width="56" height="56" rx="18" fill="#dcfce7"/>
+      <rect x="8" y="8" width="56" height="56" rx="18" stroke="#86efac" strokeWidth="2"/>
+      <path d="M24 36.5L32.2 44L49 28" stroke="#16a34a" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function IconCheckSmall() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M4.5 10.4L8.1 14L15.8 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 }
@@ -494,7 +504,10 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
     var next = selected.includes(c)
       ? selected.filter(function(x) { return x !== c; })
       : selected.concat([c]);
-    setData(Object.assign({}, data, { consommablesSelectionnes: next }));
+    setData(Object.assign({}, data, {
+      consommablesSelectionnes: next,
+      consommablesAPrevoir: next.join(", "),
+    }));
   }
 
   return (
@@ -539,8 +552,9 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
                   background: isSelected ? "#0ea5e9" : "#f1f5f9",
                   color: isSelected ? "#fff" : "#475569",
                   boxShadow: isSelected ? "0 2px 8px rgba(14,165,233,0.35)" : "none",
+                  display: "inline-flex", alignItems: "center", gap: 6,
                 }}
-              >{isSelected ? "✓ " : ""}{c}</button>
+              >{isSelected ? <IconCheckSmall /> : null}<span>{c}</span></button>
             );
           })}
         </div>
