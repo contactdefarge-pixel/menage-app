@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 const PIECES = [
   { id: "cuisine", label: "Cuisine", exemples: "Vue générale, évier, plaques/micro-ondes" },
@@ -11,7 +11,7 @@ const PIECES = [
 const CONSOMMABLES_LAISSER = [
   { id: "cafe", label: "Dosettes café", qt: "x4" },
   { id: "the", label: "Thé (2 de chaque variété)", qt: "x4" },
-  { id: "sucre", label: "Buchettes de sucre", qt: "x6" },
+  { id: "sucre", label: "Buchechets de sucre", qt: "x6" },
   { id: "papier", label: "Papier toilette", qt: "x2" },
   { id: "essuie", label: "Essuie-tout", qt: "x1" },
   { id: "eponge", label: "Éponge (à changer)", qt: "x1" },
@@ -21,9 +21,9 @@ const CONSOMMABLES_VERIFIER = [
   "Liquide vaisselle", "Gel WC", "Savon main", "Gel douche", "Huile", "Sel", "Poivre",
 ];
 
-function padTwo(n) {
-  return String(n).padStart(2, "0");
-}
+const STORAGE_KEY = "menage_draft";
+
+function padTwo(n) { return String(n).padStart(2, "0"); }
 
 function getStamp() {
   var d = new Date();
@@ -51,7 +51,7 @@ function processPhoto(file) {
     var img = new Image();
     var url = URL.createObjectURL(file);
     img.onload = function() {
-      var maxW = 1600;
+      var maxW = 2400;
       var scale = img.width > maxW ? maxW / img.width : 1;
       var w = Math.round(img.width * scale);
       var h = Math.round(img.height * scale);
@@ -60,7 +60,6 @@ function processPhoto(file) {
       canvas.height = h;
       var ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, w, h);
-
       var stamp = getStamp();
       var fontSize = Math.max(18, Math.round(w * 0.025));
       ctx.font = "bold " + fontSize + "px monospace";
@@ -69,21 +68,68 @@ function processPhoto(file) {
       var bh = fontSize + pad * 2;
       var bw = tw + pad * 2;
       var margin = fontSize * 0.8;
-
       ctx.fillStyle = "rgba(0,0,0,0.65)";
       roundRect(ctx, margin, h - bh - margin, bw, bh, 6);
       ctx.fill();
       ctx.fillStyle = "#ffffff";
       ctx.fillText(stamp, margin + pad, h - margin - pad);
-
       canvas.toBlob(function(blob) {
         URL.revokeObjectURL(url);
         resolve(new File([blob], file.name, { type: "image/jpeg" }));
-      }, "image/jpeg", 0.82);
+      }, "image/jpeg", 0.92);
     };
     img.src = url;
   });
 }
+
+// ── Icônes SVG inline optimisées et harmonisées ────────────────────────────────────────────────────────
+
+function IconWifi() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0284c7" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#0284c7"/>
+    </svg>
+  );
+}
+function IconUsers() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  );
+}
+function IconTrash() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+    </svg>
+  );
+}
+function IconBox() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+    </svg>
+  );
+}
+function IconKey() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+    </svg>
+  );
+}
+function IconCheckBancaire() {
+  return (
+    <svg width="72" height="72" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="32" r="30" fill="#22c55e" fillOpacity="0.15"/>
+      <circle cx="32" cy="32" r="24" fill="#22c55e"/>
+      <path d="M23 32.5L29 38.5L41 25.5" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+// ── Composants UI ─────────────────────────────────────────────────────────────
 
 function ProgressBar({ current, total }) {
   return (
@@ -117,13 +163,26 @@ function Subtitle({ children }) {
   );
 }
 
-function InfoCard({ children }) {
+function InfoCard({ icon, colorTheme, children }) {
+  var bg = "#f0f9ff";
+  var border = "#bae6fd";
+  var text = "#0369a1";
+
+  if (colorTheme === "indigo") { bg = "#f5f3ff"; border = "#ddd6fe"; text = "#4338ca"; }
+  if (colorTheme === "rose") { bg = "#fff1f2"; border = "#fecdd3"; text = "#be123c"; }
+  if (colorTheme === "amber") { bg = "#fffeb3b"; border = "#fef3c7"; text = "#b45309"; }
+  if (colorTheme === "emerald") { bg = "#ecfdf5"; border = "#a7f3d0"; text = "#047857"; }
+
   return (
     <div style={{
-      background: "#f0f9ff", border: "1px solid #bae6fd",
+      background: bg, border: "1px solid " + border,
       borderRadius: 12, padding: "13px 15px", marginBottom: 14,
-      fontSize: 14, color: "#0369a1", lineHeight: 1.6,
-    }}>{children}</div>
+      fontSize: 14, color: text, lineHeight: 1.6,
+      display: "flex", gap: 12, alignItems: "flex-start",
+    }}>
+      {icon ? <div style={{ flexShrink: 0, marginTop: 2 }}>{icon}</div> : null}
+      <div style={{ flex: 1 }}>{children}</div>
+    </div>
   );
 }
 
@@ -147,8 +206,7 @@ var baseInput = {
 function Input({ value, onChange, placeholder, type }) {
   type = type || "text";
   return (
-    <input
-      type={type} value={value} placeholder={placeholder || ""}
+    <input type={type} value={value} placeholder={placeholder || ""}
       onChange={function(e) { onChange(e.target.value); }}
       style={baseInput}
       onFocus={function(e) { e.target.style.borderColor = "#0ea5e9"; }}
@@ -160,8 +218,7 @@ function Input({ value, onChange, placeholder, type }) {
 function Textarea({ value, onChange, placeholder, rows }) {
   rows = rows || 4;
   return (
-    <textarea
-      value={value} placeholder={placeholder || ""} rows={rows}
+    <textarea value={value} placeholder={placeholder || ""} rows={rows}
       onChange={function(e) { onChange(e.target.value); }}
       style={Object.assign({}, baseInput, { resize: "vertical" })}
       onFocus={function(e) { e.target.style.borderColor = "#0ea5e9"; }}
@@ -172,8 +229,7 @@ function Textarea({ value, onChange, placeholder, rows }) {
 
 function Btn({ onClick, disabled, children, secondary }) {
   return (
-    <button
-      onClick={onClick} disabled={disabled}
+    <button onClick={onClick} disabled={disabled}
       style={{
         padding: "13px 24px", borderRadius: 12, border: "none",
         cursor: disabled ? "not-allowed" : "pointer",
@@ -189,18 +245,21 @@ function Btn({ onClick, disabled, children, secondary }) {
 function StarRating({ value, onChange }) {
   var [hov, setHov] = useState(0);
   return (
-    <div style={{ display: "flex", gap: 6, margin: "6px 0" }}>
+    <div style={{ display: "flex", gap: 8, margin: "6px 0" }}>
       {[1,2,3,4,5].map(function(s) {
+        var active = s <= (hov || value);
         return (
           <button key={s}
             onClick={function() { onChange(s); }}
             onMouseEnter={function() { setHov(s); }}
             onMouseLeave={function() { setHov(0); }}
             style={{
-              background: "none", border: "none", fontSize: 32, cursor: "pointer",
-              color: s <= (hov || value) ? "#f59e0b" : "#cbd5e1",
-              transform: s <= (hov || value) ? "scale(1.15)" : "scale(1)",
+              background: "none", border: "none", padding: 0, cursor: "pointer",
+              fontSize: 36, lineHeight: 1,
+              color: active ? "#f59e0b" : "#e2e8f0",
+              transform: active ? "scale(1.15)" : "scale(1)",
               transition: "color 0.15s, transform 0.1s",
+              filter: active ? "drop-shadow(0 1px 2px rgba(245,158,11,0.4))" : "none",
             }}
           >&#9733;</button>
         );
@@ -224,7 +283,7 @@ function CopyRow({ label, value }) {
         background: copied ? "#dcfce7" : "#e0f2fe", border: "none", borderRadius: 8,
         cursor: "pointer", padding: "4px 10px", fontSize: 13, marginLeft: 10,
         color: copied ? "#16a34a" : "#0369a1", fontWeight: 600, flexShrink: 0,
-      }}>{copied ? "Copie !" : "Copier"}</button>
+      }}>{copied ? "Copié !" : "Copier"}</button>
     </div>
   );
 }
@@ -244,34 +303,68 @@ function CopyAdresse({ adresse }) {
         background: copied ? "#dcfce7" : "#e0f2fe", border: "none", borderRadius: 8,
         cursor: "pointer", padding: "4px 10px", fontSize: 13, marginLeft: 10,
         color: copied ? "#16a34a" : "#0369a1", fontWeight: 600, flexShrink: 0,
-      }}>{copied ? "Copie !" : "Copier"}</button>
+      }}>{copied ? "Copié !" : "Copier"}</button>
     </div>
   );
 }
+
+// ── Popup reprise ─────────────────────────────────────────────────────────────
+
+function ResumeModal({ saved, onResume, onRestart }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.6)",
+      backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 1000, padding: 24,
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 20, padding: 28,
+        maxWidth: 360, width: "100%",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+      }}>
+        <div style={{ fontSize: 36, marginBottom: 12, textAlign: "center" }}>📝</div>
+        <h3 style={{ fontWeight: 800, fontSize: 18, color: "#0f172a", textAlign: "center", margin: "0 0 8px 0" }}>
+          Formulaire en cours
+        </h3>
+        <p style={{ fontSize: 14, color: "#64748b", textAlign: "center", margin: "0 0 24px 0", lineHeight: 1.5 }}>
+          Un ménage non terminé a été trouvé pour <strong>{saved.arrivee && saved.arrivee.bien ? saved.arrivee.bien : "Le Nossa"}</strong>.
+          Voulez-vous reprendre là où vous en étiez ?
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Btn onClick={onResume}>Reprendre le travail</Btn>
+          <Btn secondary onClick={onRestart}>Recommencer à zéro</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Étapes ────────────────────────────────────────────────────────────────────
 
 function Step1Infos({ onNext }) {
   return (
     <div>
       <SectionTitle>Le Nossa</SectionTitle>
       <CopyAdresse adresse="33 Bis rue des Pyrénées, 65100 Lourdes" />
-      <InfoCard>
+      <InfoCard icon={<IconWifi />} colorTheme="sky">
         <strong>WiFi</strong>
         <CopyRow label="Réseau" value="SFR_FE68" />
         <CopyRow label="Mot de passe" value="7grh55pvtr7brf27fury" />
       </InfoCard>
-      <InfoCard>
+      <InfoCard icon={<IconUsers />} colorTheme="indigo">
         <strong>Voyageurs</strong><br />
         3 max — 1 lit double 160x190 (parure marron ou grise) + 1 canapé lit
       </InfoCard>
-      <InfoCard>
+      <InfoCard icon={<IconTrash />} colorTheme="rose">
         <strong>Poubelles</strong><br />
         Local poubelle : Place Pyrénées. Badge sur les clés.
       </InfoCard>
-      <InfoCard>
+      <InfoCard icon={<IconBox />} colorTheme="amber">
         <strong>Consommables</strong><br />
         Placard à droite du lit. Clé cachée dans le meuble TV, porte gauche.
       </InfoCard>
-      <InfoCard>
+      <InfoCard icon={<IconKey />} colorTheme="emerald">
         <strong>Accès logement</strong><br />
         Boîte à clé au rez-de-chaussée, après les boîtes aux lettres.<br />
         Code : <strong>0359</strong> — Appartement au 1er étage.
@@ -309,50 +402,57 @@ function Step2Arrivee({ data, setData, onNext, onPrev }) {
 
 function Step3Attention({ data, setData, onNext, onPrev }) {
   var points = [
-    "Ouvrir les fenêtres en grand pour éviter l'humidité.",
-    "Retirer systématiquement les cheveux dans les deux bondes de douche.",
-    "Une fois le ménage terminé, veiller à laisser la VMC dans les toilettes allumée.",
+    { emoji: "🪟", text: "Ouvrir les fenêtres en grand pour éviter l'humidité." },
+    { emoji: "🚿", text: "Retirer systématiquement les cheveux dans les deux bondes de douche." },
+    { emoji: "💨", text: "Une fois le ménage terminé, veiller à laisser la VMC dans les toilettes allumée." },
   ];
   return (
     <div>
       <SectionTitle>Points d'attention</SectionTitle>
       <Subtitle>Merci de prendre connaissance de ces consignes avant de commencer.</Subtitle>
-      {points.map(function(pt, i) {
-        return (
-          <div key={i} style={{
-            display: "flex", gap: 12, padding: "12px 14px",
-            background: "#f8fafc", borderRadius: 10, marginBottom: 10,
-            fontSize: 14, color: "#334155", lineHeight: 1.5,
-            borderLeft: "3px solid #0ea5e9",
-          }}>
-            <span style={{ fontWeight: 700, color: "#0ea5e9", minWidth: 20 }}>{i + 1}.</span>
-            <span>{pt}</span>
-          </div>
-        );
-      })}
+      
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 24 }}>
+        {points.map(function(pt, i) {
+          return (
+            <div key={i} style={{
+              display: "flex", gap: 14, padding: "16px 18px",
+              background: "#fff", borderRadius: 14,
+              fontSize: 14, color: "#334155", lineHeight: 1.5,
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.03)",
+              border: "1px solid #f1f5f9"
+            }}>
+              <span style={{ fontSize: 24, flexShrink: 0 }}>{pt.emoji}</span>
+              <span style={{ fontWeight: 500 }}>{pt.text}</span>
+            </div>
+          );
+        })}
+      </div>
+
       <div
         onClick={function() { setData(Object.assign({}, data, { lu: !data.lu })); }}
         style={{
-          display: "flex", alignItems: "center", gap: 12,
-          padding: "14px 16px", borderRadius: 12, cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 14,
+          padding: "16px 18px", borderRadius: 14, cursor: "pointer",
           background: data.lu ? "#f0fdf4" : "#f8fafc",
-          border: "2px solid " + (data.lu ? "#86efac" : "#e2e8f0"),
-          margin: "20px 0", transition: "all 0.2s",
+          border: "2px solid " + (data.lu ? "#22c55e" : "#e2e8f0"),
+          marginBottom: 24, transition: "all 0.2s",
+          boxShadow: data.lu ? "0 4px 12px rgba(34,197,94,0.15)" : "none",
         }}
       >
         <div style={{
-          width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+          width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
           border: "2px solid " + (data.lu ? "#22c55e" : "#cbd5e1"),
           background: data.lu ? "#22c55e" : "#fff",
           display: "flex", alignItems: "center", justifyContent: "center",
           transition: "all 0.2s",
         }}>
-          {data.lu ? <span style={{ color: "#fff", fontSize: 13 }}>&#10003;</span> : null}
+          {data.lu ? <span style={{ color: "#fff", fontSize: 13, fontWeight: 700 }}>✓</span> : null}
         </div>
-        <span style={{ fontSize: 14, color: "#334155", fontWeight: 500 }}>
-          J'ai pris connaissance des points d'attention
+        <span style={{ fontSize: 14, color: data.lu ? "#166534" : "#334155", fontWeight: 700 }}>
+          J'ai pris connaissance de ces consignes importants
         </span>
       </div>
+
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev}>Retour</Btn>
         <Btn onClick={onNext} disabled={!data.lu}>Suivant</Btn>
@@ -367,7 +467,7 @@ function Step4EtatLieux({ data, setData, onNext, onPrev }) {
     <div>
       <SectionTitle>État des lieux</SectionTitle>
       <Subtitle>
-        Vérifiez l'appartement à votre arrivée. À la moindre anomalie, prenez des photos — c'est crucial pour les réclamations sur les plateformes.
+        Vérifiez l'appartement à votre arrivée. À la moindre anomalie, prenez des photos — c'est crucial pour les réclamations.
       </Subtitle>
       <Field label="Notez les voyageurs" required>
         <StarRating value={data.note} onChange={function(v) { setData(Object.assign({}, data, { note: v })); }} />
@@ -376,7 +476,7 @@ function Step4EtatLieux({ data, setData, onNext, onPrev }) {
         <Textarea
           value={data.observations}
           onChange={function(v) { setData(Object.assign({}, data, { observations: v })); }}
-          placeholder="Problèmes constatés + photos si nécessaire. Sinon écrire RAS."
+          placeholder="Problèmes constatés. Sinon écrire RAS."
         />
       </Field>
       <div style={{ display: "flex", gap: 12 }}>
@@ -389,13 +489,27 @@ function Step4EtatLieux({ data, setData, onNext, onPrev }) {
 
 function Step5Consommables({ data, setData, onNext, onPrev }) {
   var ok = data.consommablesAPrevoir !== undefined && data.remarques !== undefined && data.heureFin;
+  var selected = data.consommablesSelectionnes || [];
+
+  function toggleConso(c) {
+    var next = selected.includes(c)
+      ? selected.filter(function(x) { return x !== c; })
+      : selected.concat([c]);
+    
+    // Met également à jour automatiquement le champ texte pour aider le prestataire
+    var texteAuto = next.length > 0 ? "Besoin de réapprovisionner : " + next.join(", ") : "";
+    setData(Object.assign({}, data, { 
+      consommablesSelectionnes: next,
+      consommablesAPrevoir: texteAuto
+    }));
+  }
+
   return (
     <div>
       <SectionTitle>Consommables</SectionTitle>
-      <Subtitle>
-        Consommables dans le placard à droite du lit. Clé dans le meuble TV, porte gauche.
-      </Subtitle>
-      <div style={{ marginBottom: 18 }}>
+      <Subtitle>Consommables dans le placard à droite du lit. Clé dans le meuble TV, porte gauche.</Subtitle>
+
+      <div style={{ marginBottom: 22 }}>
         <div style={{ fontWeight: 700, fontSize: 12, color: "#0369a1", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           À laisser (compléter pour atteindre la quantité)
         </div>
@@ -403,38 +517,49 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
           return (
             <div key={c.id} style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "9px 13px", background: "#f8fafc", borderRadius: 8,
-              fontSize: 14, marginBottom: 6,
+              padding: "10px 14px", background: "#f8fafc", borderRadius: 8,
+              fontSize: 14, marginBottom: 6, border: "1px solid #f1f5f9"
             }}>
-              <span>{c.label}</span>
-              <span style={{
-                background: "#dbeafe", color: "#1d4ed8",
-                fontWeight: 700, borderRadius: 6, padding: "2px 10px", fontSize: 13,
-              }}>{c.qt}</span>
+              <span style={{ fontWeight: 500, color: "#334155" }}>{c.label}</span>
+              <span style={{ background: "#e0f2fe", color: "#0369a1", strokeWidth:"2.5", fontWeight: 700, borderRadius: 6, padding: "2px 10px", fontSize: 13 }}>{c.qt}</span>
             </div>
           );
         })}
       </div>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, color: "#0369a1", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-          À vérifier
+
+      <div style={{ marginBottom: 24, background: "#f0f9ff", border: "1px solid #bae6fd", padding: 16, borderRadius: 12 }}>
+        <div style={{ fontWeight: 700, fontSize: 12, color: "#0369a1", marginBottom: 2, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          À vérifier et commander
+        </div>
+        <div style={{ fontSize: 13, color: "#0284c7", marginBottom: 12, fontWeight: 500, lineHeight: 1.4 }}>
+          💡 Appuyez sur les produits manquants pour les ajouter à la liste de la prochaine commande :
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           {CONSOMMABLES_VERIFIER.map(function(c) {
+            var isSelected = selected.includes(c);
             return (
-              <span key={c} style={{
-                padding: "5px 13px", background: "#f1f5f9", borderRadius: 20,
-                fontSize: 13, color: "#475569", border: "1px solid #e2e8f0",
-              }}>{c}</span>
+              <button key={c}
+                type="button"
+                onClick={function() { toggleConso(c); }}
+                style={{
+                  padding: "9px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600,
+                  cursor: "pointer", transition: "all 0.15s", 
+                  border: isSelected ? "2px solid #0284c7" : "2px solid #e2e8f0",
+                  background: isSelected ? "#0ea5e9" : "#fff",
+                  color: isSelected ? "#fff" : "#475569",
+                  boxShadow: isSelected ? "0 4px 10px rgba(14,165,233,0.25)" : "none",
+                }}
+              >{isSelected ? "✓ " : "+ "}{c}</button>
             );
           })}
         </div>
       </div>
-      <Field label="Consommables à prévoir" required>
+
+      <Field label="Consommables à prévoir pour la prochaine fois" required>
         <Textarea
           value={data.consommablesAPrevoir || ""}
           onChange={function(v) { setData(Object.assign({}, data, { consommablesAPrevoir: v })); }}
-          placeholder="Notez les consommables manquants à réapprovisionner."
+          placeholder="Notez ici les stocks restants ou manquants si nécessaire."
           rows={3}
         />
       </Field>
@@ -442,7 +567,7 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
         <Textarea
           value={data.remarques || ""}
           onChange={function(v) { setData(Object.assign({}, data, { remarques: v })); }}
-          placeholder="Interventions à prévoir, anomalies constatées..."
+          placeholder="Interventions à prévoir, ampoule grillée, anomalies constatées..."
           rows={3}
         />
       </Field>
@@ -503,14 +628,10 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
   return (
     <div>
       <SectionTitle>Photos de fin de ménage</SectionTitle>
-      <Subtitle>
-        Sélectionnez toutes vos photos en une seule fois. L'horodatage est gravé automatiquement.
-      </Subtitle>
+      <Subtitle>Sélectionnez toutes vos photos en une seule fois. L'horodatage est gravé automatiquement.</Subtitle>
 
       <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "12px 15px", marginBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-          Photos attendues
-        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Photos attendues</div>
         {PIECES.map(function(p) {
           return (
             <div key={p.id} style={{ fontSize: 13, color: "#0369a1", marginBottom: 3 }}>
@@ -528,9 +649,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
           <div style={{ background: "#e0f2fe", borderRadius: 8, height: 10, overflow: "hidden", marginBottom: 8 }}>
             <div style={{ background: "#0ea5e9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
           </div>
-          <div style={{ fontSize: 12, color: "#64748b" }}>
-            Ne quittez pas cette page...
-          </div>
+          <div style={{ fontSize: 12, color: "#64748b" }}>Ne quittez pas cette page...</div>
         </div>
       ) : null}
 
@@ -567,11 +686,10 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
           border: "2px dashed " + (isProcessing ? "#e2e8f0" : "#bae6fd"),
           borderRadius: 14, padding: "28px 20px", textAlign: "center",
           cursor: isProcessing ? "not-allowed" : "pointer",
-          background: "#f8fafc", marginBottom: 24,
-          opacity: isProcessing ? 0.5 : 1,
+          background: "#f8fafc", marginBottom: 24, opacity: isProcessing ? 0.5 : 1,
         }}
       >
-        <div style={{ fontSize: 36, marginBottom: 8 }}>&#128247;</div>
+        <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
         <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{btnLabel}</div>
         <div style={{ fontSize: 13, color: "#64748b" }}>Appuyez pour choisir depuis votre galerie</div>
         <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
@@ -592,9 +710,10 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
 
 function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit, sending, sendError, sendProgress }) {
   var etoiles = "";
-  for (var i = 0; i < etatLieux.note; i++) etoiles += "\u2605";
-  for (var j = etatLieux.note; j < 5; j++) etoiles += "\u2606";
+  for (var i = 0; i < etatLieux.note; i++) etoiles += "★";
+  for (var j = etatLieux.note; j < 5; j++) etoiles += "☆";
   var duree = arrivee.heureDebut + (consommables.heureFin ? " - " + consommables.heureFin : "");
+  var selected = consommables.consommablesSelectionnes || [];
 
   return (
     <div>
@@ -613,10 +732,21 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
       <div style={{ background: "#f8fafc", borderRadius: 14, padding: 16, marginBottom: 14 }}>
         <div style={{ fontWeight: 700, fontSize: 12, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>État des lieux</div>
         <div style={{ fontSize: 14, color: "#1e293b", lineHeight: 1.9 }}>
-          <div>Note : {etoiles}</div>
+          <div style={{ color: "#f59e0b", fontSize: 18 }}>{etoiles}</div>
           <div>{etatLieux.observations}</div>
         </div>
       </div>
+
+      {selected.length > 0 ? (
+        <div style={{ background: "#f8fafc", borderRadius: 14, padding: 16, marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Consommables manquants</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {selected.map(function(c) {
+              return <span key={c} style={{ background: "#e0f2fe", color: "#0369a1", borderRadius: 20, padding: "3px 12px", fontSize: 13, fontWeight: 600 }}>{c}</span>;
+            })}
+          </div>
+        </div>
+      ) : null}
 
       {consommables.consommablesAPrevoir ? (
         <div style={{ background: "#f8fafc", borderRadius: 14, padding: 16, marginBottom: 14 }}>
@@ -634,15 +764,19 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
 
       <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 14, padding: 16, marginBottom: 24 }}>
         <div style={{ fontWeight: 700, fontSize: 12, color: "#15803d", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>Photos</div>
-        <div style={{ fontSize: 14, color: "#166534" }}>
-          {photos.length} photo(s) horodatée(s) prêtes à l'envoi
-        </div>
+        <div style={{ fontSize: 14, color: "#166534" }}>{photos.length} photo(s) horodatée(s) prêtes à l'envoi</div>
       </div>
 
       {sending ? (
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 20, background: "#fff7ed", border: "1px solid #ffedd5", padding: 14, borderRadius: 12 }}>
+          <div style={{ fontSize: 13, color: "#c2410c", fontWeight: 700, marginBottom: 4 }}>
+            ⚠️ Envoi en cours : Laissez l'écran allumé
+          </div>
+          <div style={{ fontSize: 12, color: "#9a3412", marginBottom: 10, lineHeight: 1.4 }}>
+            Pour éviter l'échec de l'envoi, ne verrouillez pas votre téléphone et ne changez pas d'application.
+          </div>
           <div style={{ fontSize: 13, color: "#0369a1", fontWeight: 600, marginBottom: 8 }}>
-            Upload des photos : {sendProgress}%
+            Progression : {sendProgress}%
           </div>
           <div style={{ background: "#e0f2fe", borderRadius: 8, height: 8, overflow: "hidden" }}>
             <div style={{ background: "#0ea5e9", height: "100%", width: sendProgress + "%", transition: "width 0.3s", borderRadius: 8 }} />
@@ -658,9 +792,7 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
 
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev} disabled={sending}>Retour</Btn>
-        <Btn onClick={onSubmit} disabled={sending}>
-          {sending ? "Envoi en cours..." : "Envoyer le rapport"}
-        </Btn>
+        <Btn onClick={onSubmit} disabled={sending}>{sending ? "Envoi en cours..." : "Envoyer le rapport"}</Btn>
       </div>
     </div>
   );
@@ -668,38 +800,92 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
 
 function StepSuccess({ nom, bien }) {
   return (
-    <div style={{ textAlign: "center", padding: "48px 0" }}>
-      <div style={{ fontSize: 64, marginBottom: 20, color: "#22c55e" }}>&#10003;</div>
-      <h2 style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>
-        Rapport envoyé !
-      </h2>
-      <p style={{ color: "#64748b", fontSize: 15, lineHeight: 1.6 }}>
-        Merci <strong>{nom}</strong>, votre rapport pour <strong>{bien}</strong> a bien été transmis.
+    <div style={{ textAlign: "center", padding: "40px 0 20px" }}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
+        <IconCheckBancaire />
+      </div>
+      <h2 style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginBottom: 12, letterSpacing: "-0.5px" }}>Rapport envoyé !</h2>
+      <p style={{ color: "#64748b", fontSize: 15, lineHeight: 1.6, margin: "0 0 32px 0" }}>
+        Merci <strong>{nom}</strong>, votre rapport de ménage pour le logement <strong>{bien}</strong> a bien été validé et transmis avec succès.
       </p>
-      <div style={{
-        marginTop: 32, padding: "16px 20px",
-        background: "#f0fdf4", border: "1px solid #86efac",
-        borderRadius: 14, fontSize: 14, color: "#166534",
-      }}>
-        Vous pouvez fermer cette fenêtre.
+      <div style={{ padding: "16px 20px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 14, fontSize: 14, color: "#15803d", fontWeight: 600 }}>
+        ✨ Vous pouvez maintenant fermer cette page.
       </div>
     </div>
   );
 }
 
+// ── App ───────────────────────────────────────────────────────────────────────
+
 var TOTAL = 7;
+var INIT_ARRIVEE = { date: "", heureDebut: "", nom: "", bien: "Le Nossa" };
+var INIT_ATTENTION = { lu: false };
+var INIT_ETAT = { note: 0, observations: "" };
+var INIT_CONSO = { consommablesAPrevoir: "", remarques: "", heureFin: "", consommablesSelectionnes: [] };
 
 export default function App() {
   var [step, setStep] = useState(0);
-  var [arrivee, setArrivee] = useState({ date: "", heureDebut: "", nom: "", bien: "Le Nossa" });
-  var [attention, setAttention] = useState({ lu: false });
-  var [etatLieux, setEtatLieux] = useState({ note: 0, observations: "" });
-  var [consommables, setConsommables] = useState({ consommablesAPrevoir: "", remarques: "", heureFin: "" });
+  var [arrivee, setArrivee] = useState(INIT_ARRIVEE);
+  var [attention, setAttention] = useState(INIT_ATTENTION);
+  var [etatLieux, setEtatLieux] = useState(INIT_ETAT);
+  var [consommables, setConsommables] = useState(INIT_CONSO);
   var [photos, setPhotos] = useState([]);
   var [done, setDone] = useState(false);
   var [sending, setSending] = useState(false);
   var [sendError, setSendError] = useState("");
   var [sendProgress, setSendProgress] = useState(0);
+  var [showResume, setShowResume] = useState(false);
+  var [savedDraft, setSavedDraft] = useState(null);
+
+  // Vérifier s'il y a un brouillon au chargement initial
+  useEffect(function() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var draft = JSON.parse(raw);
+        // On s'assure qu'un formulaire a bien démarré au delà de l'accueil ou possède des données
+        if (draft && (draft.step > 0 || draft.arrivee.nom !== "")) {
+          setSavedDraft(draft);
+          setShowResume(true);
+        }
+      }
+    } catch(e) {}
+  }, []);
+
+  // Sauvegarder à chaque changement d'étape importante ou saisie de données
+  useEffect(function() {
+    if (done) { localStorage.removeItem(STORAGE_KEY); return; }
+    if (step === 0 && arrivee.nom === "") return; // Ne pas enregistrer un brouillon totalement vide
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        step: step,
+        arrivee: arrivee,
+        attention: attention,
+        etatLieux: etatLieux,
+        consommables: consommables,
+      }));
+    } catch(e) {}
+  }, [step, arrivee, attention, etatLieux, consommables, done]);
+
+  function handleResume() {
+    setStep(savedDraft.step);
+    setArrivee(savedDraft.arrivee || INIT_ARRIVEE);
+    setAttention(savedDraft.attention || INIT_ATTENTION);
+    setEtatLieux(savedDraft.etatLieux || INIT_ETAT);
+    setConsommables(savedDraft.consommables || INIT_CONSO);
+    setShowResume(false);
+  }
+
+  function handleRestart() {
+    localStorage.removeItem(STORAGE_KEY);
+    setStep(0);
+    setArrivee(INIT_ARRIVEE);
+    setAttention(INIT_ATTENTION);
+    setEtatLieux(INIT_ETAT);
+    setConsommables(INIT_CONSO);
+    setPhotos([]);
+    setShowResume(false);
+  }
 
   function next() { setStep(function(s) { return Math.min(s + 1, TOTAL - 1); }); }
   function prev() { setStep(function(s) { return Math.max(s - 1, 0); }); }
@@ -733,10 +919,14 @@ export default function App() {
         .then(function(res) { return res.json(); })
         .then(function(data) {
           setSending(false);
-          if (data.success) setDone(true);
-          else setSendError("Erreur lors de l envoi. Réessayez.");
+          if (data.success) {
+            localStorage.removeItem(STORAGE_KEY);
+            setDone(true);
+          } else {
+            setSendError("Erreur lors de l'envoi. Veuillez réessuyer.");
+          }
         })
-        .catch(function() { setSending(false); setSendError("Erreur réseau. Vérifiez votre connexion."); });
+        .catch(function() { setSending(false); setSendError("Erreur réseau. Vérifiez votre connexion internet."); });
         return;
       }
       var batch = photos.slice(startIndex, startIndex + BATCH);
@@ -762,13 +952,15 @@ export default function App() {
 
   return (
     <div style={wrap}>
+      {showResume ? <ResumeModal saved={savedDraft} onResume={handleResume} onRestart={handleRestart} /> : null}
+
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
           <div style={{
             width: 36, height: 36, borderRadius: 10, flexShrink: 0,
             background: "linear-gradient(135deg,#0ea5e9,#0284c7)",
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
-          }}>&#127968;</div>
+          }}>🏠</div>
           <div>
             <div style={{ fontWeight: 800, fontSize: 15, color: "#0f172a" }}>Rapport de ménage</div>
             <div style={{ fontSize: 12, color: "#94a3b8" }}>Étape {step + 1} sur {TOTAL}</div>
@@ -804,7 +996,8 @@ var wrap = {
   maxWidth: 480,
   margin: "0 auto",
   padding: "24px 20px 60px",
-  fontFamily: "'Segoe UI', system-ui, sans-serif",
+  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   minHeight: "100vh",
   background: "#fff",
+  WebkitFontSmoothing: "antialiased"
 };
