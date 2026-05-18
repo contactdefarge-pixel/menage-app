@@ -83,6 +83,70 @@ function processPhoto(file) {
   });
 }
 
+function useScreenWakeLock(active) {
+  var [status, setStatus] = useState("idle");
+  var wakeLockRef = useRef(null);
+
+  useEffect(function() {
+    var cancelled = false;
+
+    function releaseWakeLock() {
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(function() {});
+        wakeLockRef.current = null;
+      }
+    }
+
+    function requestWakeLock() {
+      if (!active) {
+        releaseWakeLock();
+        setStatus("idle");
+        return;
+      }
+      if (!("wakeLock" in navigator)) {
+        setStatus("unsupported");
+        return;
+      }
+      if (document.visibilityState !== "visible") {
+        setStatus("waiting");
+        return;
+      }
+      navigator.wakeLock.request("screen")
+        .then(function(lock) {
+          if (cancelled) {
+            lock.release().catch(function() {});
+            return;
+          }
+          wakeLockRef.current = lock;
+          setStatus("active");
+          lock.addEventListener("release", function() {
+            if (!cancelled && active) setStatus("waiting");
+          });
+        })
+        .catch(function() {
+          if (!cancelled) setStatus("blocked");
+        });
+    }
+
+    function handleVisibilityChange() {
+      if (active && document.visibilityState === "visible" && !wakeLockRef.current) {
+        requestWakeLock();
+      }
+    }
+
+    requestWakeLock();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return function() {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [active]);
+
+  return status;
+}
+
 // ── Icônes SVG inline ────────────────────────────────────────────────────────
 
 function IconWifi() {
@@ -193,6 +257,38 @@ function Field({ label, required, children }) {
         {label}{required ? <span style={{ color: "#ef4444" }}> *</span> : null}
       </label>
       {children}
+    </div>
+  );
+}
+
+function KeepAwakeWarning({ title, children, wakeLockStatus }) {
+  var statusText = "";
+  if (wakeLockStatus === "active") {
+    statusText = "Écran maintenu éveillé pendant cette opération.";
+  } else if (wakeLockStatus === "unsupported") {
+    statusText = "Votre navigateur ne permet pas de bloquer automatiquement la veille.";
+  } else if (wakeLockStatus === "blocked" || wakeLockStatus === "waiting") {
+    statusText = "Maintien de l'écran éveillé indisponible pour le moment.";
+  }
+
+  return (
+    <div style={{
+      background: "#fff7ed", border: "2px solid #fb923c", borderRadius: 14,
+      padding: "14px 16px", marginBottom: 16, color: "#9a3412",
+      boxShadow: "0 8px 20px rgba(251,146,60,0.12)",
+    }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+        <div style={{ fontSize: 22, lineHeight: 1 }}>!</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+            {title}
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.5, fontWeight: 600 }}>{children}</div>
+          {statusText ? (
+            <div style={{ fontSize: 12, lineHeight: 1.45, marginTop: 8, color: "#c2410c" }}>{statusText}</div>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -596,6 +692,7 @@ function PhotoModule({ photos, setPhotos, title, subtitle, infoTitle, infoItems,
   var inputRef = useRef();
   var [progress, setProgress] = useState({ current: 0, total: 0 });
   var isProcessing = progress.total > 0;
+  var wakeLockStatus = useScreenWakeLock(isProcessing);
 
   useEffect(function() {
     if (onProcessingChange) onProcessingChange(isProcessing);
@@ -655,14 +752,19 @@ function PhotoModule({ photos, setPhotos, title, subtitle, infoTitle, infoItems,
       </div>
 
       {isProcessing ? (
-        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
+        <div>
+          <KeepAwakeWarning title="Traitement en cours" wakeLockStatus={wakeLockStatus}>
+            Gardez cette page ouverte et le téléphone déverrouillé jusqu'à la fin de l'horodatage et de la compression.
+          </KeepAwakeWarning>
+          <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
             Traitement {progress.current} / {progress.total} ({pct}%)
           </div>
           <div style={{ background: "#e0f2fe", borderRadius: 8, height: 10, overflow: "hidden", marginBottom: 8 }}>
             <div style={{ background: "#0ea5e9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
           </div>
-          <div style={{ fontSize: 12, color: "#64748b" }}>Ne quittez pas cette page...</div>
+          <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Ne quittez pas cette page. Ne verrouillez pas l'écran.</div>
+          </div>
         </div>
       ) : null}
 
@@ -751,6 +853,7 @@ function Step7Recap({ arrivee, etatLieux, consommables, photosArrivee, photos, o
   for (var j = etatLieux.note; j < 5; j++) etoiles += "☆";
   var duree = arrivee.heureDebut + (consommables.heureFin ? " - " + consommables.heureFin : "");
   var selected = consommables.consommablesSelectionnes || [];
+  var wakeLockStatus = useScreenWakeLock(sending);
 
   return (
     <div>
@@ -807,6 +910,9 @@ function Step7Recap({ arrivee, etatLieux, consommables, photosArrivee, photos, o
 
       {sending ? (
         <div style={{ marginBottom: 16 }}>
+          <KeepAwakeWarning title="Envoi en cours" wakeLockStatus={wakeLockStatus}>
+            Gardez cette page ouverte et le téléphone déverrouillé jusqu'au message de confirmation. Si l'écran se verrouille, l'upload peut être interrompu.
+          </KeepAwakeWarning>
           <div style={{ fontSize: 13, color: "#0369a1", fontWeight: 600, marginBottom: 8 }}>
             Upload des photos : {sendProgress}%
           </div>
@@ -898,6 +1004,16 @@ export default function App() {
       }));
     } catch(e) {}
   }, [step, arrivee, attention, etatLieux, consommables, done]);
+
+  useEffect(function() {
+    function handleBeforeUnload(e) {
+      if (!sending) return;
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return function() { window.removeEventListener("beforeunload", handleBeforeUnload); };
+  }, [sending]);
 
   function handleResume() {
     setStep(savedDraft.step);
