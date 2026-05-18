@@ -25,11 +25,11 @@ function padTwo(n) {
   return String(n).padStart(2, "0");
 }
 
-function getStamp() {
+function getStamp(label) {
   var d = new Date();
   var date = padTwo(d.getDate()) + "/" + padTwo(d.getMonth() + 1) + "/" + d.getFullYear();
   var time = padTwo(d.getHours()) + "h" + padTwo(d.getMinutes());
-  return date + "  " + time;
+  return (label ? label + "  -  " : "") + date + "  " + time;
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -46,12 +46,12 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function processPhoto(file) {
+function processPhoto(file, label) {
   return new Promise(function(resolve) {
     var img = new Image();
     var url = URL.createObjectURL(file);
     img.onload = function() {
-      var maxW = 2400;
+      var maxW = 1600;
       var scale = img.width > maxW ? maxW / img.width : 1;
       var w = Math.round(img.width * scale);
       var h = Math.round(img.height * scale);
@@ -61,7 +61,7 @@ function processPhoto(file) {
       var ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, w, h);
 
-      var stamp = getStamp();
+      var stamp = getStamp(label);
       var fontSize = Math.max(18, Math.round(w * 0.025));
       ctx.font = "bold " + fontSize + "px monospace";
       var tw = ctx.measureText(stamp).width;
@@ -79,7 +79,7 @@ function processPhoto(file) {
       canvas.toBlob(function(blob) {
         URL.revokeObjectURL(url);
         resolve(new File([blob], file.name, { type: "image/jpeg" }));
-      }, "image/jpeg", 0.92);
+      }, "image/jpeg", 0.82);
     };
     img.src = url;
   });
@@ -472,7 +472,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
         setProcessing(false);
         return;
       }
-      processPhoto(arr[index]).then(function(stamped) {
+      processPhoto(arr[index], "Fin de menage").then(function(stamped) {
         results.push({
           id: Math.random().toString(36).slice(2),
           file: stamped,
@@ -490,7 +490,10 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
     setPhotos(function(prev) { return prev.filter(function(p) { return p.id !== id; }); });
   }
 
-  var btnLabel = photos.length === 0 ? "Sélectionner les photos" : "Ajouter d'autres photos";
+  var btnLabel = photos.length === 0
+    ? "Sélectionner les photos"
+    : "Ajouter d'autres photos";
+
   var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
 
   return (
@@ -500,7 +503,10 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
         Sélectionnez toutes vos photos en une seule fois. L'horodatage est gravé automatiquement sur chaque photo.
       </Subtitle>
 
-      <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "12px 15px", marginBottom: 20 }}>
+      <div style={{
+        background: "#f0f9ff", border: "1px solid #bae6fd",
+        borderRadius: 12, padding: "12px 15px", marginBottom: 20,
+      }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           Photos attendues
         </div>
@@ -526,13 +532,16 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
                     width: "100%", aspectRatio: "1", objectFit: "cover",
                     borderRadius: 10, border: "2px solid #0ea5e9", display: "block",
                   }} />
-                  <button onClick={function() { remove(p.id); }} style={{
-                    position: "absolute", top: 4, right: 4,
-                    background: "rgba(0,0,0,0.6)", color: "#fff",
-                    border: "none", borderRadius: "50%",
-                    width: 22, height: 22, cursor: "pointer",
-                    fontSize: 12, lineHeight: "22px", textAlign: "center", padding: 0,
-                  }}>x</button>
+                  <button
+                    onClick={function() { remove(p.id); }}
+                    style={{
+                      position: "absolute", top: 4, right: 4,
+                      background: "rgba(0,0,0,0.6)", color: "#fff",
+                      border: "none", borderRadius: "50%",
+                      width: 22, height: 22, cursor: "pointer",
+                      fontSize: 12, lineHeight: "22px", textAlign: "center", padding: 0,
+                    }}
+                  >x</button>
                 </div>
               );
             })}
@@ -569,8 +578,11 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
         )}
       </div>
 
-      <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
-        onChange={function(e) { handleFiles(e.target.files); }} />
+      <input
+        ref={inputRef} type="file" accept="image/*" multiple
+        style={{ display: "none" }}
+        onChange={function(e) { handleFiles(e.target.files); }}
+      />
 
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev}>Retour</Btn>
@@ -580,7 +592,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
   );
 }
 
-function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit, sending, sendError }) {
+function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit, sending, sendError, sendProgress }) {
   var etoiles = "";
   for (var i = 0; i < etatLieux.note; i++) etoiles += "\u2605";
   for (var j = etatLieux.note; j < 5; j++) etoiles += "\u2606";
@@ -628,6 +640,17 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit
           {photos.length} photo(s) horodatée(s) prêtes à l'envoi
         </div>
       </div>
+
+      {sending ? (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: "#0369a1", fontWeight: 600, marginBottom: 8 }}>
+            Upload des photos : {sendProgress}%
+          </div>
+          <div style={{ background: "#e0f2fe", borderRadius: 8, height: 8, overflow: "hidden" }}>
+            <div style={{ background: "#0ea5e9", height: "100%", width: sendProgress + "%", transition: "width 0.3s", borderRadius: 8 }} />
+          </div>
+        </div>
+      ) : null}
 
       {sendError ? (
         <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 12, padding: "12px 16px", marginBottom: 16, fontSize: 14, color: "#dc2626" }}>
@@ -678,6 +701,7 @@ export default function App() {
   var [done, setDone] = useState(false);
   var [sending, setSending] = useState(false);
   var [sendError, setSendError] = useState("");
+  var [sendProgress, setSendProgress] = useState(0);
 
   function next() { setStep(function(s) { return Math.min(s + 1, TOTAL - 1); }); }
   function prev() { setStep(function(s) { return Math.max(s - 1, 0); }); }
@@ -685,73 +709,49 @@ export default function App() {
   function handleSubmit() {
     setSending(true);
     setSendError("");
+    setSendProgress(0);
 
-    var uploadPromises = photos.map(function(p) {
-      return fetch("/api/get-upload-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: p.name }),
-      })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        if (!data.uploadUrl) return null;
-        var boundary = "----FormBoundary" + Math.random().toString(36).slice(2);
-        return new Promise(function(resolve) {
-          var reader = new FileReader();
-          reader.onload = function(e) {
-            var base64 = e.target.result.split(",")[1];
-            var binary = atob(base64);
-            var bytes = new Uint8Array(binary.length);
-            for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            var headerStr = "--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + p.name + "\"\r\nContent-Type: image/jpeg\r\n\r\n";
-            var footerStr = "\r\n--" + boundary + "--\r\n";
-            var headerBytes = new TextEncoder().encode(headerStr);
-            var footerBytes = new TextEncoder().encode(footerStr);
-            var body = new Uint8Array(headerBytes.length + bytes.length + footerBytes.length);
-            body.set(headerBytes, 0);
-            body.set(bytes, headerBytes.length);
-            body.set(footerBytes, headerBytes.length + bytes.length);
-            fetch(data.uploadUrl, {
-              method: "POST",
-              headers: { "Content-Type": "multipart/form-data; boundary=" + boundary },
-              body: body,
-            }).then(function(r) {
-              if (r.ok) resolve({ uploadId: data.uploadId, name: p.name });
-              else resolve(null);
-            }).catch(function() { resolve(null); });
-          };
-          reader.readAsDataURL(p.file);
-        });
-      })
-      .catch(function() { return null; });
-    });
+    function uploadOne(p) {
+      var formData = new FormData();
+      formData.append("file", p.file, p.name);
+      return fetch("/api/upload-photo", { method: "POST", body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) { return data.uploadId ? { uploadId: data.uploadId, name: p.name } : null; })
+        .catch(function() { return null; });
+    }
 
-    Promise.all(uploadPromises).then(function(uploadedPhotos) {
-      var validPhotos = uploadedPhotos.filter(function(p) { return p !== null; });
-      return fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          arrivee: arrivee,
-          etatLieux: etatLieux,
-          consommables: consommables,
-          photos: validPhotos,
-        }),
-      });
-    }).then(function(res) {
-      return res.json();
-    }).then(function(data) {
-      if (data.success) {
-        setSending(false);
-        setDone(true);
-      } else {
-        setSending(false);
-        setSendError("Erreur lors de l envoi. Réessayez.");
+    var results = new Array(photos.length).fill(null);
+    var completed = 0;
+    var BATCH = 5;
+
+    function runBatch(startIndex) {
+      if (startIndex >= photos.length) {
+        var validPhotos = results.filter(function(r) { return r !== null; });
+        fetch("/api/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ arrivee: arrivee, etatLieux: etatLieux, consommables: consommables, photos: validPhotos }),
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          setSending(false);
+          if (data.success) setDone(true);
+          else setSendError("Erreur lors de l envoi. Réessayez.");
+        })
+        .catch(function() { setSending(false); setSendError("Erreur réseau. Vérifiez votre connexion."); });
+        return;
       }
-    }).catch(function() {
-      setSending(false);
-      setSendError("Erreur réseau. Vérifiez votre connexion.");
-    });
+      var batch = photos.slice(startIndex, startIndex + BATCH);
+      Promise.all(batch.map(function(p, i) {
+        return uploadOne(p).then(function(result) {
+          results[startIndex + i] = result;
+          completed++;
+          setSendProgress(Math.round((completed / photos.length) * 100));
+        });
+      })).then(function() { runBatch(startIndex + BATCH); });
+    }
+
+    runBatch(0);
   }
 
   if (done) {
@@ -795,6 +795,7 @@ export default function App() {
           onSubmit={handleSubmit}
           sending={sending}
           sendError={sendError}
+          sendProgress={sendProgress}
         />
       )}
     </div>
