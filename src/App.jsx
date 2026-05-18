@@ -446,49 +446,8 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
   );
 }
 
-function Step4EtatLieux({ data, setData, photosArrivee, setPhotosArrivee, onNext, onPrev }) {
+function Step4EtatLieux({ data, setData, onNext, onPrev }) {
   var ok = data.note > 0 && data.observations;
-  var inputRef = useRef();
-  var [progress, setProgress] = useState({ current: 0, total: 0 });
-
-  var handleFiles = useCallback(function(files) {
-    var arr = Array.from(files).filter(function(f) { return f.type.startsWith("image/"); });
-    if (arr.length === 0) return;
-    setProgress({ current: 0, total: arr.length });
-    var results = [];
-    var index = 0;
-    function processNext() {
-      if (index >= arr.length) {
-        setPhotosArrivee(function(prev) { return prev.concat(results); });
-        setProgress({ current: 0, total: 0 });
-        return;
-      }
-      var current = index;
-      setTimeout(function() {
-        processPhoto(arr[current]).then(function(stamped) {
-          results.push({
-            id: Math.random().toString(36).slice(2),
-            file: stamped,
-            preview: URL.createObjectURL(stamped),
-            name: arr[current].name,
-          });
-          index++;
-          setProgress({ current: index, total: arr.length });
-          processNext();
-        });
-      }, 50);
-    }
-    processNext();
-  }, [setPhotosArrivee]);
-
-  function remove(id) {
-    setPhotosArrivee(function(prev) { return prev.filter(function(p) { return p.id !== id; }); });
-  }
-
-  var isProcessing = progress.total > 0;
-  var pct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
-  var btnLabel = photosArrivee.length === 0 ? "Photos de l'état des lieux (optionnel)" : "Ajouter d'autres photos d'arrivée";
-
   return (
     <div>
       <SectionTitle>État des lieux</SectionTitle>
@@ -505,66 +464,9 @@ function Step4EtatLieux({ data, setData, photosArrivee, setPhotosArrivee, onNext
           placeholder="Problèmes constatés. Sinon écrire RAS."
         />
       </Field>
-
-      <Field label="Photos à l'arrivée">
-        {isProcessing ? (
-          <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
-              Traitement {progress.current} / {progress.total} ({pct}%)
-            </div>
-            <div style={{ background: "#e0f2fe", borderRadius: 8, height: 10, overflow: "hidden", marginBottom: 8 }}>
-              <div style={{ background: "#0ea5e9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
-            </div>
-          </div>
-        ) : null}
-
-        {photosArrivee.length > 0 ? (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-              {photosArrivee.map(function(p) {
-                return (
-                  <div key={p.id} style={{ position: "relative" }}>
-                    <img src={p.preview} alt={p.name} style={{
-                      width: "100%", aspectRatio: "1", objectFit: "cover",
-                      borderRadius: 10, border: "2px solid #0ea5e9", display: "block",
-                    }} />
-                    <button onClick={function() { remove(p.id); }} style={{
-                      position: "absolute", top: 4, right: 4,
-                      background: "rgba(0,0,0,0.6)", color: "#fff",
-                      border: "none", borderRadius: "50%",
-                      width: 22, height: 22, cursor: "pointer",
-                      fontSize: 12, lineHeight: "22px", textAlign: "center", padding: 0,
-                    }}>x</button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
-
-        <div
-          onClick={function() { if (!isProcessing && inputRef.current) inputRef.current.click(); }}
-          style={{
-            border: "2px dashed " + (isProcessing ? "#e2e8f0" : "#bae6fd"),
-            borderRadius: 14, padding: "20px", textAlign: "center",
-            cursor: isProcessing ? "not-allowed" : "pointer",
-            background: "#f8fafc", opacity: isProcessing ? 0.5 : 1,
-          }}
-        >
-          <div style={{ fontSize: 24, marginBottom: 4 }}>📷</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>{btnLabel}</div>
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
-            Sera lié au champ Notion 'Photos à l'arrivée'
-          </div>
-        </div>
-
-        <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
-          onChange={function(e) { handleFiles(e.target.files); }} />
-      </Field>
-
-      <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-        <Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn>
-        <Btn onClick={onNext} disabled={!ok || isProcessing}>Suivant</Btn>
+      <div style={{ display: "flex", gap: 12 }}>
+        <Btn secondary onClick={onPrev}>Retour</Btn>
+        <Btn onClick={onNext} disabled={!ok}>Suivant</Btn>
       </div>
     </div>
   );
@@ -788,7 +690,7 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
   );
 }
 
-function Step7Recap({ arrivee, etatLieux, consommables, photos, photosArrivee, onPrev, onSubmit, sending, sendError, sendProgress }) {
+function Step7Recap({ arrivee, etatLieux, consommables, photos, onPrev, onSubmit, sending, sendError, sendProgress }) {
   var etoiles = "";
   for (var i = 0; i < etatLieux.note; i++) etoiles += "★";
   for (var j = etatLieux.note; j < 5; j++) etoiles += "☆";
@@ -814,9 +716,6 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, photosArrivee, o
         <div style={{ fontSize: 14, color: "#1e293b", lineHeight: 1.9 }}>
           <div style={{ color: "#f59e0b", fontSize: 18 }}>{etoiles}</div>
           <div>{etatLieux.observations}</div>
-          <div style={{ fontSize: 13, color: "#0ea5e9", marginTop: 4, fontWeight: 600 }}>
-            {photosArrivee.length} photo(s) d'arrivée liée(s)
-          </div>
         </div>
       </div>
 
@@ -846,7 +745,7 @@ function Step7Recap({ arrivee, etatLieux, consommables, photos, photosArrivee, o
       ) : null}
 
       <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 14, padding: 16, marginBottom: 24 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, color: "#15803d", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>Photos de fin</div>
+        <div style={{ fontWeight: 700, fontSize: 12, color: "#15803d", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>Photos</div>
         <div style={{ fontSize: 14, color: "#166534" }}>{photos.length} photo(s) horodatée(s) prêtes à l'envoi</div>
       </div>
 
@@ -907,7 +806,6 @@ export default function App() {
   var [etatLieux, setEtatLieux] = useState(INIT_ETAT);
   var [consommables, setConsommables] = useState(INIT_CONSO);
   var [photos, setPhotos] = useState([]);
-  var [photosArrivee, setPhotosArrivee] = useState([]);
   var [done, setDone] = useState(false);
   var [sending, setSending] = useState(false);
   var [sendError, setSendError] = useState("");
@@ -975,28 +873,17 @@ export default function App() {
         .catch(function() { return null; });
     }
 
-    var allPhotosToUpload = [];
-    photosArrivee.forEach(function(p) { allPhotosToUpload.push({ item: p, type: "arrivee" }); });
-    photos.forEach(function(p) { allPhotosToUpload.push({ item: p, type: "fin" }); });
-
-    var validPhotosArrivee = [];
-    var validPhotosFin = [];
+    var results = new Array(photos.length).fill(null);
     var completed = 0;
     var BATCH = 5;
 
     function runBatch(startIndex) {
-      if (startIndex >= allPhotosToUpload.length) {
-        // Soumission finale à l'API incluant distinctement les photos d'arrivée et les photos de fin
+      if (startIndex >= photos.length) {
+        var validPhotos = results.filter(function(r) { return r !== null; });
         fetch("/api/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            arrivee: arrivee, 
-            etatLieux: etatLieux, 
-            consommables: consommables, 
-            photos: validPhotosFin,
-            photosArrivee: validPhotosArrivee // C'est ici que votre backend liera le tableau au champ Notion "Photos à l'arrivée"
-          }),
+          body: JSON.stringify({ arrivee: arrivee, etatLieux: etatLieux, consommables: consommables, photos: validPhotos }),
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
@@ -1011,21 +898,21 @@ export default function App() {
         .catch(function() { setSending(false); setSendError("Erreur réseau. Vérifiez votre connexion."); });
         return;
       }
-
-      var batch = allPhotosToUpload.slice(startIndex, startIndex + BATCH);
-      Promise.all(batch.map(function(obj) {
-        return uploadOne(obj.item).then(function(result) {
-          if (result) {
-            if (obj.type === "arrivee") validPhotosArrivee.push(result);
-            if (obj.type === "fin") validPhotosFin.push(result);
-          }
+      var batch = photos.slice(startIndex, startIndex + BATCH);
+      Promise.all(batch.map(function(p, i) {
+        return uploadOne(p).then(function(result) {
+          results[startIndex + i] = result;
           completed++;
-          setSendProgress(Math.round((completed / allPhotosToUpload.length) * 100));
+          setSendProgress(Math.round((completed / photos.length) * 100));
         });
       })).then(function() { runBatch(startIndex + BATCH); });
     }
 
-    runBatch(0);
+    if (photos.length === 0) {
+      runBatch(0);
+    } else {
+      runBatch(0);
+    }
   }
 
   if (done) {
@@ -1058,7 +945,7 @@ export default function App() {
       {step === 0 && <Step1Infos onNext={next} />}
       {step === 1 && <Step2Arrivee data={arrivee} setData={setArrivee} onNext={next} onPrev={prev} />}
       {step === 2 && <Step3Attention data={attention} setData={setAttention} onNext={next} onPrev={prev} />}
-      {step === 3 && <Step4EtatLieux data={etatLieux} setData={setEtatLieux} photosArrivee={photosArrivee} setPhotosArrivee={setPhotosArrivee} onNext={next} onPrev={prev} />}
+      {step === 3 && <Step4EtatLieux data={etatLieux} setData={setEtatLieux} onNext={next} onPrev={prev} />}
       {step === 4 && <Step5Consommables data={consommables} setData={setConsommables} onNext={next} onPrev={prev} />}
       {step === 5 && <Step6Photos photos={photos} setPhotos={setPhotos} onNext={next} onPrev={prev} />}
       {step === 6 && (
@@ -1067,7 +954,6 @@ export default function App() {
           etatLieux={etatLieux}
           consommables={consommables}
           photos={photos}
-          photosArrivee={photosArrivee}
           onPrev={prev}
           onSubmit={handleSubmit}
           sending={sending}

@@ -21,6 +21,7 @@ export default async function handler(req, res) {
     const body = req.body;
     const { arrivee, etatLieux, consommables, photos } = body;
 
+    // ── Calcul durée ──────────────────────────────────────────────────────────
     function calcDuree(debut, fin) {
       if (!debut || !fin) return "";
       const [dh, dm] = debut.split(":").map(Number);
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
       return Math.floor(total / 60) + "h" + String(total % 60).padStart(2, "0") + "m";
     }
 
+    // ── Formule automatique ───────────────────────────────────────────────────
     function calcFormule(obs, conso, remarques) {
       if (conso && conso.trim() && remarques && remarques.trim()) return "Consommables à prévoir + Problème";
       if (conso && conso.trim()) return "Consommables à prévoir";
@@ -40,26 +42,18 @@ export default async function handler(req, res) {
     const duree = calcDuree(arrivee.heureDebut, consommables.heureFin);
     const formule = calcFormule(etatLieux.observations, consommables.consommablesAPrevoir, consommables.remarques);
 
-    // 1. Liaison des photos de Fin de ménage
-    const photosUploadedFin = [];
+    // Les photos sont déjà uploadées directement vers Notion depuis le navigateur
+    // On reçoit juste les uploadIds
+    const photosUploaded = [];
     if (photos && photos.length > 0) {
       for (const photo of photos) {
-        if (photo && photo.uploadId) {
-          photosUploadedFin.push({ type: "file_upload", file_upload: { id: photo.uploadId } });
+        if (photo.uploadId) {
+          photosUploaded.push({ type: "file_upload", file_upload: { id: photo.uploadId } });
         }
       }
     }
 
-    // 2. Liaison des photos d'Arrivée (Résolution définitive du champ vide)
-    const photosUploadedArrivee = [];
-    if (etatLieux.photosIds && etatLieux.photosIds.length > 0) {
-      for (const photo of etatLieux.photosIds) {
-        if (photo && photo.uploadId) {
-          photosUploadedArrivee.push({ type: "file_upload", file_upload: { id: photo.uploadId } });
-        }
-      }
-    }
-
+    // ── Création page Notion ──────────────────────────────────────────────────
     const properties = {
       "Adresse": {
         title: [{ text: { content: arrivee.bien || "Sans nom" } }],
@@ -94,14 +88,12 @@ export default async function handler(req, res) {
       "Note": {
         number: etatLieux.note || 0,
       },
+
     };
 
-    if (photosUploadedFin.length > 0) {
-      properties["Photos de fin de ménage"] = { files: photosUploadedFin };
-    }
-
-    if (photosUploadedArrivee.length > 0) {
-      properties["Photos à l'arrivée"] = { files: photosUploadedArrivee };
+    // Ajouter les photos si uploadées
+    if (photosUploaded.length > 0) {
+      properties["Photos de fin de ménage"] = { files: photosUploaded };
     }
 
     const notionRes = await fetch("https://api.notion.com/v1/pages", {
@@ -119,6 +111,7 @@ export default async function handler(req, res) {
 
     if (!notionRes.ok) {
       const err = await notionRes.json();
+      console.error("Notion error:", err);
       return res.status(500).json({ error: "Erreur Notion", details: err });
     }
 
@@ -126,6 +119,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, pageId: page.id });
 
   } catch (e) {
+    console.error("Erreur générale:", e);
     return res.status(500).json({ error: e.message });
   }
 }
