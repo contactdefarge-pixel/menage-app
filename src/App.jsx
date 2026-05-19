@@ -76,6 +76,7 @@ function normalizeLogement(raw) {
     poubelles: raw.poubelles || "",
     consommables: raw.consommables || "",
     consommablesALaisser: raw.consommablesALaisser || "",
+    photosReference: raw.photosReference || [],
   };
 }
 
