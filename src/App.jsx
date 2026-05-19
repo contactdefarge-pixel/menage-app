@@ -890,25 +890,38 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
   var [isProcessing, setIsProcessing] = useState(false);
   var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
 
-  var PIECES_MAP = {
-    "cuisine": "🍳 Cuisine",
-    "chambre": "🛏 Chambre",
-    "sdb": "🚿 Salle de bain",
-    "wc": "🚽 WC",
-    "entree": "🚪 Entrée",
-    "salon": "🛋 Salon",
-  };
+  var PIECES_ALIASES = {
+  "cuisine": ["cuisine"],
+  "salle de bain": ["salle de bain", "sdb", "salle_de_bain", "bathroom"],
+  "wc": ["wc", "toilette", "toilettes"],
+  "chambre": ["chambre", "bedroom"],
+  "entree": ["entree", "entrée", "couloir", "hall"],
+  "salon": ["salon", "living", "séjour", "sejour"],
+};
 
-  function grouperParPiece(photosRef) {
-    var groupes = {};
-    (photosRef || []).forEach(function(p) {
-      var nomLower = p.nom.toLowerCase();
-      var pieceKey = Object.keys(PIECES_MAP).find(function(k) { return nomLower.startsWith(k); }) || "autre";
-      if (!groupes[pieceKey]) groupes[pieceKey] = [];
-      groupes[pieceKey].push(p);
-    });
-    return groupes;
-  }
+var PIECES_LABELS = {
+  "cuisine": "🍳 Cuisine",
+  "salle de bain": "🚿 Salle de bain",
+  "wc": "🚽 WC",
+  "chambre": "🛏 Chambre",
+  "entree": "🚪 Entrée",
+  "salon": "🛋 Salon",
+};
+
+function grouperParPiece(photosRef) {
+  var groupes = {};
+  (photosRef || []).forEach(function(p) {
+    var nomLower = p.nom.toLowerCase().replace(/_/g, " ").replace(/\.[^.]+$/, ""); // retire l'extension
+    var pieceKey = Object.keys(PIECES_ALIASES).find(function(key) {
+      return PIECES_ALIASES[key].some(function(alias) {
+        return nomLower.startsWith(alias.toLowerCase());
+      });
+    }) || "autre";
+    if (!groupes[pieceKey]) groupes[pieceKey] = [];
+    groupes[pieceKey].push(p);
+  });
+  return groupes;
+}
 
   var groupes = grouperParPiece(logement && logement.photosReference);
 
