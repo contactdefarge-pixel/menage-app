@@ -924,6 +924,9 @@ function grouperParPiece(photosRef) {
 }
 
   var groupes = grouperParPiece(logement && logement.photosReference);
+  console.log("logement:", logement);
+console.log("photosReference:", logement && logement.photosReference);
+console.log("groupes:", groupes);
 
   return (
     <div>
