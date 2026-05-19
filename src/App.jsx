@@ -939,7 +939,7 @@ function grouperParPiece(photosRef) {
             return (
               <div key={pieceKey} style={{ marginBottom: 16 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: "#0369a1", marginBottom: 8 }}>
-                  {PIECES_MAP[pieceKey] || pieceKey}
+                  {PIECES_LABELS[pieceKey] || pieceKey}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
                   {photosGroupe.map(function(p, i) {
