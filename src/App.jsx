@@ -886,11 +886,64 @@ function PhotoModule({ photos, setPhotos, title, subtitle, infoTitle, infoItems,
   );
 }
 
-function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
+function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
   var [isProcessing, setIsProcessing] = useState(false);
   var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
+
+  var PIECES_MAP = {
+    "cuisine": "🍳 Cuisine",
+    "chambre": "🛏 Chambre",
+    "sdb": "🚿 Salle de bain",
+    "wc": "🚽 WC",
+    "entree": "🚪 Entrée",
+    "salon": "🛋 Salon",
+  };
+
+  function grouperParPiece(photosRef) {
+    var groupes = {};
+    (photosRef || []).forEach(function(p) {
+      var nomLower = p.nom.toLowerCase();
+      var pieceKey = Object.keys(PIECES_MAP).find(function(k) { return nomLower.startsWith(k); }) || "autre";
+      if (!groupes[pieceKey]) groupes[pieceKey] = [];
+      groupes[pieceKey].push(p);
+    });
+    return groupes;
+  }
+
+  var groupes = grouperParPiece(logement && logement.photosReference);
+
   return (
     <div>
+      {Object.keys(groupes).length > 0 ? (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, color: "#0f172a", marginBottom: 4 }}>
+            📋 Photos de référence
+          </div>
+          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>
+            Reproduisez ces photos pour chaque pièce.
+          </div>
+          {Object.entries(groupes).map(function([pieceKey, photosGroupe]) {
+            return (
+              <div key={pieceKey} style={{ marginBottom: 16 }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#0369a1", marginBottom: 8 }}>
+                  {PIECES_MAP[pieceKey] || pieceKey}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                  {photosGroupe.map(function(p, i) {
+                    return (
+                      <img key={i} src={p.url} alt={p.nom} style={{
+                        width: "100%", aspectRatio: "1", objectFit: "cover",
+                        borderRadius: 10, border: "2px solid #bae6fd",
+                      }} />
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+
       <PhotoModule
         photos={photos}
         setPhotos={setPhotos}
@@ -1202,7 +1255,7 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
       {step === 2 && <Step3Attention data={attention} setData={setAttention} onNext={next} onPrev={prev} />}
       {step === 3 && <Step4EtatLieux data={etatLieux} setData={setEtatLieux} photosArrivee={photosArrivee} setPhotosArrivee={setPhotosArrivee} onNext={next} onPrev={prev} />}
       {step === 4 && <Step5Consommables data={consommables} setData={setConsommables} logement={logement} onNext={next} onPrev={prev} />}
-      {step === 5 && <Step6Photos photos={photos} setPhotos={setPhotos} onNext={next} onPrev={prev} />}
+      {step === 5 && <Step6Photos photos={photos} setPhotos={setPhotos} logement={logement} onNext={next} onPrev={prev} />}
       {step === 6 && (
         <Step7Recap
           arrivee={arrivee}
