@@ -20,6 +20,10 @@ function plainText(prop) {
 function mapPage(page) {
   const props = page.properties || {};
   const nom = plainText(props["Nom"]);
+    const photosReference = (props["Photos fin de ménage"]?.files || []).map(f => ({
+    url: f.type === "external" ? f.external.url : f.file?.url,
+    nom: f.name || "",
+  })).filter(f => f.url);
   return {
     id: page.id,
     slug: slugify(nom),
