@@ -24,6 +24,20 @@ const CONSOMMABLES_VERIFIER = [
 
 const STORAGE_KEY = "menage_draft";
 
+const DEFAULT_LOGEMENT = {
+  nom: "Le Nossa",
+  slug: "le-nossa",
+  adresse: "33 Bis rue des Pyrénées, 65100 Lourdes",
+  wifi: "Nom : SFR_FE68\nMot de passe : 7grh55pvtr7brf27fury",
+  voyageurs: "3",
+  lits: "1 lit double 160x190 (parure marron ou grise) + 1 canapé lit",
+  acces: "Boîte à clé au rez-de-chaussée, après les boîtes aux lettres.",
+  boiteCle: "0359",
+  poubelles: "Local poubelle : Place Pyrénées. Badge sur les clés.",
+  consommables: "Placard à droite du lit. Clé cachée dans le meuble TV, porte gauche.",
+  consommablesALaisser: "",
+};
+
 function padTwo(n) { return String(n).padStart(2, "0"); }
 
 function getStamp() {
@@ -31,6 +45,38 @@ function getStamp() {
   var date = padTwo(d.getDate()) + "/" + padTwo(d.getMonth() + 1) + "/" + d.getFullYear();
   var time = padTwo(d.getHours()) + "h" + padTwo(d.getMinutes());
   return date + "  " + time;
+}
+
+function slugify(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function cleanNotionText(value) {
+  return String(value || "").replace(/<br\s*\/?>/gi, "\n").trim();
+}
+
+function normalizeLogement(raw) {
+  raw = raw || {};
+  return {
+    id: raw.id || "",
+    slug: raw.slug || slugify(raw.nom),
+    nom: raw.nom || "",
+    adresse: raw.adresse || "",
+    wifi: raw.wifi || "",
+    voyageurs: raw.voyageurs || "",
+    chambres: raw.chambres || "",
+    lits: raw.lits || "",
+    acces: raw.acces || "",
+    boiteCle: raw.boiteCle || "",
+    poubelles: raw.poubelles || "",
+    consommables: raw.consommables || "",
+    consommablesALaisser: raw.consommablesALaisser || "",
+  };
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -404,6 +450,45 @@ function CopyAdresse({ adresse }) {
   );
 }
 
+function FormattedText({ children }) {
+  var lines = cleanNotionText(children).split("\n").filter(function(line) { return line.trim(); });
+  return (
+    <span>
+      {lines.map(function(line, i) {
+        return (
+          <span key={i}>
+            {line}
+            {i < lines.length - 1 ? <br /> : null}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+function InfoCardWithCopy({ icon, title, text }) {
+  if (!cleanNotionText(text)) return null;
+  return (
+    <InfoCard icon={icon}>
+      <strong>{title}</strong><br />
+      <FormattedText>{text}</FormattedText>
+    </InfoCard>
+  );
+}
+
+function LogementLoading({ error }) {
+  return (
+    <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 14, padding: 16, marginBottom: 18 }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
+        {error ? "Logement chargé en mode secours" : "Chargement du logement"}
+      </div>
+      <div style={{ fontSize: 13, color: error ? "#b45309" : "#64748b", lineHeight: 1.5 }}>
+        {error || "Récupération des informations depuis Notion..."}
+      </div>
+    </div>
+  );
+}
+
 // ── Popup reprise ─────────────────────────────────────────────────────────────
 
 function ResumeModal({ saved, onResume, onRestart }) {
@@ -437,33 +522,23 @@ function ResumeModal({ saved, onResume, onRestart }) {
 
 // ── Étapes ────────────────────────────────────────────────────────────────────
 
-function Step1Infos({ onNext }) {
+function Step1Infos({ logement, loading, error, onNext }) {
+  var voyageurs = logement.voyageurs ? logement.voyageurs + " max" : "";
+  var voyageursText = [voyageurs, cleanNotionText(logement.lits)].filter(Boolean).join(" — ");
+  var accesText = cleanNotionText(logement.acces);
+  if (logement.boiteCle) accesText += (accesText ? "\n" : "") + "Code boîte à clé : " + logement.boiteCle;
+
   return (
     <div>
-      <SectionTitle>Le Nossa</SectionTitle>
-      <CopyAdresse adresse="33 Bis rue des Pyrénées, 65100 Lourdes" />
-      <InfoCard icon={<IconWifi />}>
-        <strong>WiFi</strong>
-        <CopyRow label="Réseau" value="SFR_FE68" />
-        <CopyRow label="Mot de passe" value="7grh55pvtr7brf27fury" />
-      </InfoCard>
-      <InfoCard icon={<IconUsers />}>
-        <strong>Voyageurs</strong><br />
-        3 max — 1 lit double 160x190 (parure marron ou grise) + 1 canapé lit
-      </InfoCard>
-      <InfoCard icon={<IconTrash />}>
-        <strong>Poubelles</strong><br />
-        Local poubelle : Place Pyrénées. Badge sur les clés.
-      </InfoCard>
-      <InfoCard icon={<IconBox />}>
-        <strong>Consommables</strong><br />
-        Placard à droite du lit. Clé cachée dans le meuble TV, porte gauche.
-      </InfoCard>
-      <InfoCard icon={<IconKey />}>
-        <strong>Accès logement</strong><br />
-        Boîte à clé au rez-de-chaussée, après les boîtes aux lettres.<br />
-        Code : <strong>0359</strong> — Appartement au 1er étage.
-      </InfoCard>
+      {loading || error ? <LogementLoading error={error} /> : null}
+      <SectionTitle>{logement.nom}</SectionTitle>
+      <CopyAdresse adresse={logement.adresse} />
+      <InfoCardWithCopy icon={<IconWifi />} title="WiFi" text={logement.wifi} />
+      <InfoCardWithCopy icon={<IconUsers />} title="Voyageurs" text={voyageursText} />
+      <InfoCardWithCopy icon={<IconTrash />} title="Poubelles" text={logement.poubelles} />
+      <InfoCardWithCopy icon={<IconBox />} title="Consommables" text={logement.consommables} />
+      <InfoCardWithCopy icon={<IconBox />} title="Consommables à laisser" text={logement.consommablesALaisser} />
+      <InfoCardWithCopy icon={<IconKey />} title="Accès logement" text={accesText} />
       <Btn onClick={onNext}>Suivant</Btn>
     </div>
   );
@@ -977,6 +1052,43 @@ export default function App() {
   var [sendProgress, setSendProgress] = useState(0);
   var [showResume, setShowResume] = useState(false);
   var [savedDraft, setSavedDraft] = useState(null);
+  var [logement, setLogement] = useState(DEFAULT_LOGEMENT);
+  var [logementLoading, setLogementLoading] = useState(true);
+  var [logementError, setLogementError] = useState("");
+
+  useEffect(function() {
+    var params = new URLSearchParams(window.location.search);
+    var slug = slugify(params.get("logement") || DEFAULT_LOGEMENT.slug);
+    var cancelled = false;
+
+    setLogementLoading(true);
+    setLogementError("");
+
+    fetch("/api/logement?slug=" + encodeURIComponent(slug))
+      .then(function(res) {
+        return res.json().then(function(data) {
+          if (!res.ok) throw new Error(data.error || "Logement introuvable");
+          return data;
+        });
+      })
+      .then(function(data) {
+        if (cancelled || !data.logement) return;
+        var nextLogement = normalizeLogement(data.logement);
+        setLogement(nextLogement);
+        setArrivee(function(prev) {
+          if (prev.bien && prev.bien !== INIT_ARRIVEE.bien) return prev;
+          return Object.assign({}, prev, { bien: nextLogement.nom || INIT_ARRIVEE.bien });
+        });
+      })
+      .catch(function(e) {
+        if (!cancelled) setLogementError(e.message || "Impossible de charger le logement depuis Notion.");
+      })
+      .finally(function() {
+        if (!cancelled) setLogementLoading(false);
+      });
+
+    return function() { cancelled = true; };
+  }, []);
 
   // Vérifier s'il y a un brouillon au chargement
   useEffect(function() {
@@ -1126,7 +1238,7 @@ export default function App() {
         <ProgressBar current={step} total={TOTAL} />
       </div>
 
-      {step === 0 && <Step1Infos onNext={next} />}
+      {step === 0 && <Step1Infos logement={logement} loading={logementLoading} error={logementError} onNext={next} />}
       {step === 1 && <Step2Arrivee data={arrivee} setData={setArrivee} onNext={next} onPrev={prev} />}
       {step === 2 && <Step3Attention data={attention} setData={setAttention} onNext={next} onPrev={prev} />}
       {step === 3 && <Step4EtatLieux data={etatLieux} setData={setEtatLieux} photosArrivee={photosArrivee} setPhotosArrivee={setPhotosArrivee} onNext={next} onPrev={prev} />}
