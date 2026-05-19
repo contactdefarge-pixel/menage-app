@@ -39,6 +39,7 @@ function mapPage(page) {
     poubelles: plainText(props["Poubelles"]),
     consommables: plainText(props["Consommables"]),
     consommablesALaisser: plainText(props["Consommables à laisser"]),
+    photosReference, // ← MANQUANT, ajouter cette ligne
   };
 }
 
