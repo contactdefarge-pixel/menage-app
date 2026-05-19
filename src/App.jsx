@@ -553,6 +553,7 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
 }
 
 function Step4EtatLieux({ data, setData, photosArrivee, setPhotosArrivee, onNext, onPrev }) {
+  var [isProcessingPhotos, setIsProcessingPhotos] = useState(false);
   var ok = data.note > 0 && data.observations;
   return (
     <div>
@@ -583,10 +584,11 @@ function Step4EtatLieux({ data, setData, photosArrivee, setPhotosArrivee, onNext
         emptyLabel="Ajouter des photos d'arrivée"
         addLabel="Ajouter d'autres photos d'arrivée"
         required={false}
+        onProcessingChange={setIsProcessingPhotos}
       />
       <div style={{ display: "flex", gap: 12 }}>
-        <Btn secondary onClick={onPrev}>Retour</Btn>
-        <Btn onClick={onNext} disabled={!ok}>Suivant</Btn>
+        <Btn secondary onClick={onPrev} disabled={isProcessingPhotos}>Retour</Btn>
+        <Btn onClick={onNext} disabled={!ok || isProcessingPhotos}>Suivant</Btn>
       </div>
     </div>
   );
