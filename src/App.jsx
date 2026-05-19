@@ -79,6 +79,25 @@ function normalizeLogement(raw) {
   };
 }
 
+function parseConsommablesALaisser(text) {
+  if (!text) return [];
+  return text.split("\n").map(function(line) {
+    line = line.trim();
+    if (!line) return null;
+    var qtMatch = line.match(/x(\d+)/i);
+    var qt = qtMatch ? "x" + qtMatch[1] : "";
+    var commentMatch = line.match(/\(([^)]+)\)/);
+    var comment = commentMatch ? commentMatch[1] : "";
+    var nom = line
+      .replace(/x\d+/i, "")
+      .replace(/\([^)]+\)/, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (!nom) return null;
+    return { label: nom, qt: qt, comment: comment };
+  }).filter(Boolean);
+}
+
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -144,45 +163,27 @@ function useScreenWakeLock(active) {
     }
 
     function requestWakeLock() {
-      if (!active) {
-        releaseWakeLock();
-        setStatus("idle");
-        return;
-      }
-      if (!("wakeLock" in navigator)) {
-        setStatus("unsupported");
-        return;
-      }
-      if (document.visibilityState !== "visible") {
-        setStatus("waiting");
-        return;
-      }
+      if (!active) { releaseWakeLock(); setStatus("idle"); return; }
+      if (!("wakeLock" in navigator)) { setStatus("unsupported"); return; }
+      if (document.visibilityState !== "visible") { setStatus("waiting"); return; }
       navigator.wakeLock.request("screen")
         .then(function(lock) {
-          if (cancelled) {
-            lock.release().catch(function() {});
-            return;
-          }
+          if (cancelled) { lock.release().catch(function() {}); return; }
           wakeLockRef.current = lock;
           setStatus("active");
           lock.addEventListener("release", function() {
             if (!cancelled && active) setStatus("waiting");
           });
         })
-        .catch(function() {
-          if (!cancelled) setStatus("blocked");
-        });
+        .catch(function() { if (!cancelled) setStatus("blocked"); });
     }
 
     function handleVisibilityChange() {
-      if (active && document.visibilityState === "visible" && !wakeLockRef.current) {
-        requestWakeLock();
-      }
+      if (active && document.visibilityState === "visible" && !wakeLockRef.current) requestWakeLock();
     }
 
     requestWakeLock();
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return function() {
       cancelled = true;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -192,8 +193,6 @@ function useScreenWakeLock(active) {
 
   return status;
 }
-
-// ── Icônes SVG inline ────────────────────────────────────────────────────────
 
 function IconWifi() {
   return (
@@ -239,7 +238,6 @@ function IconCheck() {
     </svg>
   );
 }
-
 function IconCheckSmall() {
   return (
     <svg width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true">
@@ -247,8 +245,6 @@ function IconCheckSmall() {
     </svg>
   );
 }
-
-// ── Composants UI ─────────────────────────────────────────────────────────────
 
 function ProgressBar({ current, total }) {
   return (
@@ -309,13 +305,9 @@ function Field({ label, required, children }) {
 
 function KeepAwakeWarning({ title, children, wakeLockStatus }) {
   var statusText = "";
-  if (wakeLockStatus === "active") {
-    statusText = "Écran maintenu éveillé pendant cette opération.";
-  } else if (wakeLockStatus === "unsupported") {
-    statusText = "Votre navigateur ne permet pas de bloquer automatiquement la veille.";
-  } else if (wakeLockStatus === "blocked" || wakeLockStatus === "waiting") {
-    statusText = "Maintien de l'écran éveillé indisponible pour le moment.";
-  }
+  if (wakeLockStatus === "active") statusText = "Écran maintenu éveillé pendant cette opération.";
+  else if (wakeLockStatus === "unsupported") statusText = "Votre navigateur ne permet pas de bloquer automatiquement la veille.";
+  else if (wakeLockStatus === "blocked" || wakeLockStatus === "waiting") statusText = "Maintien de l'écran éveillé indisponible pour le moment.";
 
   return (
     <div style={{
@@ -326,13 +318,9 @@ function KeepAwakeWarning({ title, children, wakeLockStatus }) {
       <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
         <div style={{ fontSize: 22, lineHeight: 1 }}>!</div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.4px" }}>
-            {title}
-          </div>
+          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.4px" }}>{title}</div>
           <div style={{ fontSize: 13, lineHeight: 1.5, fontWeight: 600 }}>{children}</div>
-          {statusText ? (
-            <div style={{ fontSize: 12, lineHeight: 1.45, marginTop: 8, color: "#c2410c" }}>{statusText}</div>
-          ) : null}
+          {statusText ? <div style={{ fontSize: 12, lineHeight: 1.45, marginTop: 8, color: "#c2410c" }}>{statusText}</div> : null}
         </div>
       </div>
     </div>
@@ -489,8 +477,6 @@ function LogementLoading({ error }) {
   );
 }
 
-// ── Popup reprise ─────────────────────────────────────────────────────────────
-
 function ResumeModal({ saved, onResume, onRestart }) {
   return (
     <div style={{
@@ -508,8 +494,7 @@ function ResumeModal({ saved, onResume, onRestart }) {
           Formulaire en cours
         </h3>
         <p style={{ fontSize: 14, color: "#64748b", textAlign: "center", margin: "0 0 24px 0", lineHeight: 1.5 }}>
-          Un formulaire non terminé a été trouvé pour <strong>{saved.arrivee && saved.arrivee.bien ? saved.arrivee.bien : "ce logement"}</strong>.
-          Voulez-vous reprendre où vous en étiez ?
+          Un formulaire non terminé a été trouvé pour <strong>{saved.arrivee && saved.arrivee.bien ? saved.arrivee.bien : "ce logement"}</strong>. Voulez-vous reprendre où vous en étiez ?
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <Btn onClick={onResume}>Reprendre le formulaire</Btn>
@@ -519,8 +504,6 @@ function ResumeModal({ saved, onResume, onRestart }) {
     </div>
   );
 }
-
-// ── Étapes ────────────────────────────────────────────────────────────────────
 
 function Step1Infos({ logement, loading, error, onNext }) {
   var voyageurs = logement.voyageurs ? logement.voyageurs + " max" : "";
@@ -537,7 +520,6 @@ function Step1Infos({ logement, loading, error, onNext }) {
       <InfoCardWithCopy icon={<IconUsers />} title="Voyageurs" text={voyageursText} />
       <InfoCardWithCopy icon={<IconTrash />} title="Poubelles" text={logement.poubelles} />
       <InfoCardWithCopy icon={<IconBox />} title="Consommables" text={logement.consommables} />
-      <InfoCardWithCopy icon={<IconBox />} title="Consommables à laisser" text={logement.consommablesALaisser} />
       <InfoCardWithCopy icon={<IconKey />} title="Accès logement" text={accesText} />
       <Btn onClick={onNext}>Suivant</Btn>
     </div>
@@ -669,7 +651,7 @@ function Step4EtatLieux({ data, setData, photosArrivee, setPhotosArrivee, onNext
   );
 }
 
-function Step5Consommables({ data, setData, onNext, onPrev }) {
+function Step5Consommables({ data, setData, logement, onNext, onPrev }) {
   var ok = data.consommablesAPrevoir !== undefined && data.remarques !== undefined && data.heureFin;
   var selected = data.consommablesSelectionnes || [];
 
@@ -683,6 +665,9 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
     }));
   }
 
+  var itemsALaisser = parseConsommablesALaisser(logement && logement.consommablesALaisser);
+  if (itemsALaisser.length === 0) itemsALaisser = CONSOMMABLES_LAISSER;
+
   return (
     <div>
       <SectionTitle>Consommables</SectionTitle>
@@ -692,15 +677,18 @@ function Step5Consommables({ data, setData, onNext, onPrev }) {
         <div style={{ fontWeight: 700, fontSize: 12, color: "#0369a1", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           À laisser (compléter pour atteindre la quantité)
         </div>
-        {CONSOMMABLES_LAISSER.map(function(c) {
+        {itemsALaisser.map(function(c, i) {
           return (
-            <div key={c.id} style={{
+            <div key={i} style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
               padding: "9px 13px", background: "#f8fafc", borderRadius: 8,
               fontSize: 14, marginBottom: 6,
             }}>
-              <span>{c.label}</span>
-              <span style={{ background: "#dbeafe", color: "#1d4ed8", fontWeight: 700, borderRadius: 6, padding: "2px 10px", fontSize: 13 }}>{c.qt}</span>
+              <span style={{ flex: 1 }}>
+                {c.label}
+                {c.comment ? <span style={{ color: "#94a3b8", fontSize: 12, marginLeft: 6 }}>({c.comment})</span> : null}
+              </span>
+              {c.qt ? <span style={{ background: "#dbeafe", color: "#1d4ed8", fontWeight: 700, borderRadius: 6, padding: "2px 10px", fontSize: 13, flexShrink: 0 }}>{c.qt}</span> : null}
             </div>
           );
         })}
@@ -834,13 +822,13 @@ function PhotoModule({ photos, setPhotos, title, subtitle, infoTitle, infoItems,
             Gardez cette page ouverte et le téléphone déverrouillé jusqu'à la fin de l'horodatage et de la compression.
           </KeepAwakeWarning>
           <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
-            Traitement {progress.current} / {progress.total} ({pct}%)
-          </div>
-          <div style={{ background: "#e0f2fe", borderRadius: 8, height: 10, overflow: "hidden", marginBottom: 8 }}>
-            <div style={{ background: "#0ea5e9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
-          </div>
-          <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Ne quittez pas cette page. Ne verrouillez pas l'écran.</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
+              Traitement {progress.current} / {progress.total} ({pct}%)
+            </div>
+            <div style={{ background: "#e0f2fe", borderRadius: 8, height: 10, overflow: "hidden", marginBottom: 8 }}>
+              <div style={{ background: "#0ea5e9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
+            </div>
+            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Ne quittez pas cette page. Ne verrouillez pas l'écran.</div>
           </div>
         </div>
       ) : null}
@@ -915,7 +903,6 @@ function Step6Photos({ photos, setPhotos, onNext, onPrev }) {
         required={true}
         onProcessingChange={setIsProcessing}
       />
-
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn>
         <Btn onClick={onNext} disabled={photos.length === 0 || isProcessing}>{suivantLabel}</Btn>
@@ -988,7 +975,7 @@ function Step7Recap({ arrivee, etatLieux, consommables, photosArrivee, photos, o
       {sending ? (
         <div style={{ marginBottom: 16 }}>
           <KeepAwakeWarning title="Envoi en cours" wakeLockStatus={wakeLockStatus}>
-            Gardez cette page ouverte et le téléphone déverrouillé jusqu'au message de confirmation. Si l'écran se verrouille, l'upload peut être interrompu.
+            Gardez cette page ouverte et le téléphone déverrouillé jusqu'au message de confirmation.
           </KeepAwakeWarning>
           <div style={{ fontSize: 13, color: "#0369a1", fontWeight: 600, marginBottom: 8 }}>
             Upload des photos : {sendProgress}%
@@ -1030,8 +1017,6 @@ function StepSuccess({ nom, bien }) {
   );
 }
 
-// ── App ───────────────────────────────────────────────────────────────────────
-
 var TOTAL = 7;
 var INIT_ARRIVEE = { date: "", heureDebut: "", nom: "", bien: "Le Nossa" };
 var INIT_ATTENTION = { lu: false };
@@ -1060,10 +1045,8 @@ export default function App() {
     var params = new URLSearchParams(window.location.search);
     var slug = slugify(params.get("logement") || DEFAULT_LOGEMENT.slug);
     var cancelled = false;
-
     setLogementLoading(true);
     setLogementError("");
-
     fetch("/api/logement?slug=" + encodeURIComponent(slug))
       .then(function(res) {
         return res.json().then(function(data) {
@@ -1086,11 +1069,9 @@ export default function App() {
       .finally(function() {
         if (!cancelled) setLogementLoading(false);
       });
-
     return function() { cancelled = true; };
   }, []);
 
-  // Vérifier s'il y a un brouillon au chargement
   useEffect(function() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
@@ -1104,17 +1085,13 @@ export default function App() {
     } catch(e) {}
   }, []);
 
-  // Sauvegarder à chaque changement d'étape
   useEffect(function() {
     if (done) { localStorage.removeItem(STORAGE_KEY); return; }
     if (step === 0) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        step: step,
-        arrivee: arrivee,
-        attention: attention,
-        etatLieux: etatLieux,
-        consommables: consommables,
+        step: step, arrivee: arrivee, attention: attention,
+        etatLieux: etatLieux, consommables: consommables,
       }));
     } catch(e) {}
   }, [step, arrivee, attention, etatLieux, consommables, done]);
@@ -1174,22 +1151,15 @@ export default function App() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            arrivee: arrivee,
-            etatLieux: etatLieux,
-            consommables: consommables,
-            photosArrivee: validPhotosArrivee,
-            photos: validPhotosFin,
+            arrivee: arrivee, etatLieux: etatLieux, consommables: consommables,
+            photosArrivee: validPhotosArrivee, photos: validPhotosFin,
           }),
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
           setSending(false);
-          if (data.success) {
-            localStorage.removeItem(STORAGE_KEY);
-            setDone(true);
-          } else {
-            setSendError("Erreur lors de l envoi. Réessayez.");
-          }
+          if (data.success) { localStorage.removeItem(STORAGE_KEY); setDone(true); }
+          else setSendError("Erreur lors de l envoi. Réessayez.");
         })
         .catch(function() { setSending(false); setSendError("Erreur réseau. Vérifiez votre connexion."); });
         return;
@@ -1198,30 +1168,19 @@ export default function App() {
       Promise.all(batch.map(function(p, i) {
         return uploadOne(p).then(function(result) {
           var globalIndex = startIndex + i;
-          if (globalIndex < photosArrivee.length) {
-            resultsArrivee[globalIndex] = result;
-          } else {
-            resultsFin[globalIndex - photosArrivee.length] = result;
-          }
+          if (globalIndex < photosArrivee.length) resultsArrivee[globalIndex] = result;
+          else resultsFin[globalIndex - photosArrivee.length] = result;
           completed++;
           setSendProgress(allPhotos.length > 0 ? Math.round((completed / allPhotos.length) * 100) : 0);
         });
       })).then(function() { runBatch(startIndex + BATCH); });
     }
 
-    if (allPhotos.length === 0) {
-      runBatch(0);
-    } else {
-      runBatch(0);
-    }
+    runBatch(0);
   }
 
   if (done) {
-    return (
-      <div style={wrap}>
-        <StepSuccess nom={arrivee.nom} bien={arrivee.bien} />
-      </div>
-    );
+    return <div style={wrap}><StepSuccess nom={arrivee.nom} bien={arrivee.bien} /></div>;
   }
 
   return (
@@ -1242,7 +1201,7 @@ export default function App() {
       {step === 1 && <Step2Arrivee data={arrivee} setData={setArrivee} onNext={next} onPrev={prev} />}
       {step === 2 && <Step3Attention data={attention} setData={setAttention} onNext={next} onPrev={prev} />}
       {step === 3 && <Step4EtatLieux data={etatLieux} setData={setEtatLieux} photosArrivee={photosArrivee} setPhotosArrivee={setPhotosArrivee} onNext={next} onPrev={prev} />}
-      {step === 4 && <Step5Consommables data={consommables} setData={setConsommables} onNext={next} onPrev={prev} />}
+      {step === 4 && <Step5Consommables data={consommables} setData={setConsommables} logement={logement} onNext={next} onPrev={prev} />}
       {step === 5 && <Step6Photos photos={photos} setPhotos={setPhotos} onNext={next} onPrev={prev} />}
       {step === 6 && (
         <Step7Recap
