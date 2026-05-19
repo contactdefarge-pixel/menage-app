@@ -24,6 +24,7 @@ function mapPage(page) {
     url: f.type === "external" ? f.external.url : f.file?.url,
     nom: f.name || "",
   })).filter(f => f.url);
+  console.log("PROPS KEYS:", Object.keys(props));
   return {
     id: page.id,
     slug: slugify(nom),
