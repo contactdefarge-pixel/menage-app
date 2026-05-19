@@ -1042,8 +1042,8 @@ export default function App() {
   var [logementError, setLogementError] = useState("");
 
   useEffect(function() {
-    var params = new URLSearchParams(window.location.search);
-    var slug = slugify(params.get("logement") || DEFAULT_LOGEMENT.slug);
+var pathSlug = window.location.pathname.split("/").filter(Boolean).pop();
+var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
     var cancelled = false;
     setLogementLoading(true);
     setLogementError("");
