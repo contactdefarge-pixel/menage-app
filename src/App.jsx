@@ -945,16 +945,20 @@ console.log("groupes:", groupes);
                 <div style={{ fontWeight: 700, fontSize: 13, color: "#0369a1", marginBottom: 8 }}>
                   {PIECES_LABELS[pieceKey] || pieceKey}
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                  {photosGroupe.map(function(p, i) {
-                    return (
-                      <img key={i} src={p.url} alt={p.nom} style={{
-                        width: "100%", objectFit: "cover",
-                        borderRadius: 10, border: "2px solid #bae6fd",
-                      }} />
-                    );
-                  })}
-                </div>
+                <div style={{ columns: 2, gap: 8 }}>
+  {photosGroupe.map(function(p, i) {
+    return (
+      <img key={i} src={p.url} alt={p.nom} loading="lazy" style={{
+        width: "100%",
+        marginBottom: 8,
+        borderRadius: 10,
+        border: "2px solid #bae6fd",
+        display: "block",
+        breakInside: "avoid",
+      }} />
+    );
+  })}
+</div>
               </div>
             );
           })}
