@@ -517,22 +517,7 @@ function Step1Infos({ logement, loading, error, onNext }) {
       {loading || error ? <LogementLoading error={error} /> : null}
       <SectionTitle>{logement.nom}</SectionTitle>
       <CopyAdresse adresse={logement.adresse} />
-      <InfoCard icon={<IconWifi />}>
-  <strong>WiFi</strong><br />
-  <FormattedText>{logement.wifi}</FormattedText>
-  {logement.wifi ? (() => {
-    var mdp = logement.wifi.split("\n").find(function(l) { return l.toLowerCase().includes("mot de passe"); })?.split(":")[1]?.trim();
-    return mdp ? (
-      <div style={{ marginTop: 8 }}>
-        <button onClick={function() { navigator.clipboard.writeText(mdp); }} style={{
-          background: "#e0f2fe", border: "none", borderRadius: 8,
-          cursor: "pointer", padding: "4px 10px", fontSize: 13,
-          color: "#0369a1", fontWeight: 600,
-        }}>Copier le mot de passe</button>
-      </div>
-    ) : null;
-  })() : null}
-</InfoCard>
+      <InfoCardWithCopy icon={<IconWifi />} title="WiFi" text={logement.wifi} />
       <InfoCardWithCopy icon={<IconUsers />} title="Voyageurs" text={voyageursText} />
       <InfoCardWithCopy icon={<IconTrash />} title="Poubelles" text={logement.poubelles} />
       <InfoCardWithCopy icon={<IconBox />} title="Consommables" text={logement.consommables} />
