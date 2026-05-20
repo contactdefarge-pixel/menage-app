@@ -1154,6 +1154,7 @@ export default function App() {
   useEffect(function() {
 var pathSlug = window.location.pathname.split("/").filter(Boolean).pop();
 var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
+    if (!pathSlug) return <PageAccueil />;
     var cancelled = false;
     setLogementLoading(true);
     setLogementError("");
