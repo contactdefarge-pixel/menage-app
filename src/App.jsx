@@ -1154,7 +1154,7 @@ export default function App() {
   useEffect(function() {
 var pathSlug = window.location.pathname.split("/").filter(Boolean).pop();
 var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
-    if (!pathSlug) return <PageAccueil />;
+
     var cancelled = false;
     setLogementLoading(true);
     setLogementError("");
@@ -1303,6 +1303,9 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
     return <div style={wrap}><StepSuccess nom={arrivee.nom} bien={arrivee.bien} /></div>;
   }
 
+    var pathSlug = window.location.pathname.split("/").filter(Boolean).pop();
+  if (!pathSlug) return <PageAccueil />;
+  
   return (
     <div style={wrap}>
       {showResume ? <ResumeModal saved={savedDraft} onResume={handleResume} onRestart={handleRestart} /> : null}
