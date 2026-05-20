@@ -1097,6 +1097,42 @@ var INIT_ATTENTION = { lu: false };
 var INIT_ETAT = { note: 0, observations: "" };
 var INIT_CONSO = { consommablesAPrevoir: "", remarques: "", heureFin: "", consommablesSelectionnes: [] };
 
+function PageAccueil() {
+  var [logements, setLogements] = useState([]);
+  var [loading, setLoading] = useState(true);
+
+  useEffect(function() {
+    fetch("/api/logements")
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        setLogements(data.logements || []);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div style={{ padding: 32, textAlign: "center" }}>Chargement...</div>;
+
+  return (
+    <div style={{ maxWidth: 480, margin: "0 auto", padding: 24 }}>
+      <div style={{ fontWeight: 800, fontSize: 22, marginBottom: 8 }}>🏠 Mes logements</div>
+      <div style={{ fontSize: 14, color: "#64748b", marginBottom: 24 }}>Sélectionnez un logement pour commencer</div>
+      {logements.map(function(l) {
+        return (
+          <a key={l.slug} href={"/" + l.slug} style={{ textDecoration: "none" }}>
+            <div style={{
+              background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 14,
+              padding: "16px 20px", marginBottom: 12, cursor: "pointer",
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>{l.nom}</div>
+              <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{l.adresse}</div>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function App() {
   var [step, setStep] = useState(0);
   var [arrivee, setArrivee] = useState(INIT_ARRIVEE);
