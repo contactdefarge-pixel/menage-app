@@ -949,7 +949,7 @@ console.log("groupes:", groupes);
                   {photosGroupe.map(function(p, i) {
                     return (
                       <img key={i} src={p.url} alt={p.nom} style={{
-                        width: "100%", aspectRatio: "1", objectFit: "cover",
+                        width: "100%", objectFit: "cover",
                         borderRadius: 10, border: "2px solid #bae6fd",
                       }} />
                     );
