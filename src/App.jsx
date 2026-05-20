@@ -1143,6 +1143,15 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
   }, []);
 
   useEffect(function() {
+  if (logement && logement.photosReference) {
+    logement.photosReference.forEach(function(p) {
+      var img = new Image();
+      img.src = p.url;
+    });
+  }
+}, [logement]);
+
+  useEffect(function() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
