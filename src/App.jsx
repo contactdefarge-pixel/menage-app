@@ -517,7 +517,14 @@ function Step1Infos({ logement, loading, error, onNext }) {
       {loading || error ? <LogementLoading error={error} /> : null}
       <SectionTitle>{logement.nom}</SectionTitle>
       <CopyAdresse adresse={logement.adresse} />
-      <InfoCardWithCopy icon={<IconWifi />} title="WiFi" text={logement.wifi} />
+      <InfoCard icon={<IconWifi />}>
+  <strong>WiFi</strong><br />
+  <FormattedText>{logement.wifi}</FormattedText>
+  {logement.wifi ? (() => {
+    var mdp = logement.wifi.split("\n").find(function(l) { return l.toLowerCase().includes("mot de passe"); })?.split(":")[1]?.trim();
+    return mdp ? <CopyRow label="Mot de passe" value={mdp} /> : null;
+  })() : null}
+</InfoCard>
       <InfoCardWithCopy icon={<IconUsers />} title="Voyageurs" text={voyageursText} />
       <InfoCardWithCopy icon={<IconTrash />} title="Poubelles" text={logement.poubelles} />
       <InfoCardWithCopy icon={<IconBox />} title="Consommables" text={logement.consommables} />
