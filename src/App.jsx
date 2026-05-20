@@ -367,7 +367,7 @@ function Btn({ onClick, disabled, children, secondary }) {
         background: disabled ? "#e2e8f0" : secondary ? "#f1f5f9" : "linear-gradient(135deg,#0ea5e9,#0284c7)",
         color: disabled ? "#94a3b8" : secondary ? "#475569" : "#fff",
         fontWeight: 700, fontSize: 15,
-        boxShadow: (!secondary && !disabled) ? "0 4px 14px rgba(14,165,233,0.3)" : "none",
+        boxShadow: "none",
       }}
     >{children}</button>
   );
