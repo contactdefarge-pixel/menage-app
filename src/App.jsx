@@ -942,7 +942,7 @@ console.log("groupes:", groupes);
           {Object.entries(groupes).map(function([pieceKey, photosGroupe]) {
             return (
               <div key={pieceKey} style={{ marginBottom: 16 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: "#0369a1", marginBottom: 8 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "#0369a1", marginBottom: 8 }}>
                   {PIECES_LABELS[pieceKey] || pieceKey}
                 </div>
                 <div style={{ columns: 2, gap: 8 }}>
