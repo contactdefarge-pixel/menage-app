@@ -101,8 +101,8 @@ function parseConsommablesALaisser(text) {
 }
 
 var POINTS_EMOJI_MAP = [
-  { keys: ["fenêtre", "fenetre", "aération", "aeration", "humidité", "humidite", "ventil"], emoji: "🪟" },
-  { keys: ["douche", "bonde", "cheveux", "siphon", "évacuation", "evacuation"], emoji: "🚿" },
+  { keys: ["fenêtre", "fenetre", "aération", "aérer", "aeration", "humidité", "humidite", "ventil"], emoji: "🪟" },
+  { keys: ["douche", "bonde", "bondes", "cheveux", "siphon", "évacuation", "evacuation"], emoji: "🚿" },
   { keys: ["vmc", "ventilation", "toilette", "wc", "extraction"], emoji: "💨" },
   { keys: ["poubelle", "déchet", "dechet", "tri", "sac"], emoji: "🗑️" },
   { keys: ["lit", "parure", "drap", "coussin", "oreiller", "couette"], emoji: "🛏️" },
@@ -115,6 +115,7 @@ var POINTS_EMOJI_MAP = [
   { keys: ["canapé", "canape", "salon", "meuble", "coussin"], emoji: "🛋️" },
   { keys: ["bain", "baignoire", "lavabo", "robinet"], emoji: "🛁" },
   { keys: ["sécurité", "securite", "alarme", "digicode"], emoji: "🔒" },
+  { keys: ["araignées", "araigné"], emoji: "🕸️" },
 ];
 
 function getEmojiForPoint(text) {
@@ -125,13 +126,13 @@ function getEmojiForPoint(text) {
       if (lower.includes(entry.keys[j])) return entry.emoji;
     }
   }
-  return "📌";
+  return "✅";
 }
 
 function parsePointsAttention(text) {
   if (!text) return [];
   return text.split("\n")
-    .map(function(line) { return line.trim(); })
+    .map(function(line) { return line.trim().replace(/^[•\-\*]\s*/, ""); })
     .filter(Boolean)
     .map(function(line) {
       return { text: line, emoji: getEmojiForPoint(line) };
