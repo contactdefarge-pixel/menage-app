@@ -589,7 +589,7 @@ function ResumeModal({ saved, onResume, onRestart }) {
 
 function Step1Infos({ logement, loading, error, onNext }) {
   var voyageurs = logement.voyageurs ? logement.voyageurs + " max" : "";
-  var voyageursText = [voyageurs, cleanNotionText(logement.lits)].filter(Boolean).join(" — ");
+  var voyageursText = [voyageurs, cleanNotionText(logement.lits)].filter(Boolean).join("\n");
   var accesText = cleanNotionText(logement.acces);
   if (logement.boiteCle) accesText += (accesText ? "\n" : "") + "Code boîte à clé : " + logement.boiteCle;
 
