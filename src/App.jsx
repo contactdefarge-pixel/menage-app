@@ -485,10 +485,10 @@ function MapsLink({ url }) {
     target: "_blank",
     rel: "noopener noreferrer",
     style: {
-      color: T.primary,
+      color: "#00bab3",
       fontWeight: 700,
       textDecoration: "none",
-      borderBottom: "1px solid " + T.primaryBorder,
+      borderBottom: "1px solid #99dedd",
     }
   }, "Voir sur Maps");
 }
