@@ -25,16 +25,16 @@ const CONSOMMABLES_VERIFIER = [
 const STORAGE_KEY = "menage_draft";
 
 const DEFAULT_LOGEMENT = {
-  nom: "Le Nossa",
-  slug: "le-nossa",
-  adresse: "33 Bis rue des Pyrénées, 65100 Lourdes",
-  wifi: "Nom : SFR_FE68\nMot de passe : 7grh55pvtr7brf27fury",
-  voyageurs: "3",
-  lits: "1 lit double 160x190 (parure marron ou grise) + 1 canapé lit",
-  acces: "Boîte à clé au rez-de-chaussée, après les boîtes aux lettres.",
-  boiteCle: "0359",
-  poubelles: "Local poubelle : Place Pyrénées. Badge sur les clés.",
-  consommables: "Placard à droite du lit. Clé cachée dans le meuble TV, porte gauche.",
+  nom: "",
+  slug: "",
+  adresse: "",
+  wifi: "",
+  voyageurs: "",
+  lits: "",
+  acces: "",
+  boiteCle: "",
+  poubelles: "",
+  consommables: "",
   consommablesALaisser: "",
   proprietaire: "",
 };
