@@ -481,9 +481,35 @@ function CopyAdresse({ adresse }) {
 
 function FormattedText({ children }) {
   var lines = cleanNotionText(children).split("\n").filter(function(line) { return line.trim(); });
+  var mapsRegex = /https?:\/\/(maps\.google\.[a-z.]+|goo\.gl\/maps|maps\.app\.goo\.gl|www\.google\.[a-z.]+\/maps)[^\s]*/i;
+
   return (
     <span>
       {lines.map(function(line, i) {
+        var mapsMatch = line.match(mapsRegex);
+        if (mapsMatch) {
+          var url = mapsMatch[0];
+          var before = line.slice(0, mapsMatch.index).trim();
+          return (
+            <span key={i}>
+              {before ? before + " " : null}
+              
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: T.primary,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  borderBottom: "1px solid " + T.primaryBorder,
+                }}
+              >
+                📍 Voir sur Maps
+              </a>
+              {i < lines.length - 1 ? <br /> : null}
+            </span>
+          );
+        }
         return (
           <span key={i}>
             {line}
