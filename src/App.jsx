@@ -503,9 +503,7 @@ function FormattedText({ children }) {
                   textDecoration: "none",
                   borderBottom: "1px solid " + T.primaryBorder,
                 }}
-              >
-                📍 Voir sur Maps
-              </a>
+              >&#128205; Voir sur Maps</a>
               {i < lines.length - 1 ? <br /> : null}
             </span>
           );
