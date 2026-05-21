@@ -40,6 +40,7 @@ function mapPage(page) {
     consommables: plainText(props["Consommables"]),
     consommablesALaisser: plainText(props["Consommables à laisser"]),
     photosReference, // ← MANQUANT, ajouter cette ligne
+    pointsAttention: plainText(props["Points d'attention"]),
   };
 }
 
