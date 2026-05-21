@@ -995,17 +995,38 @@ var PIECES_LABELS = {
 
 function grouperParPiece(photosRef) {
   var groupes = {};
+  var ordre = [];
+
   (photosRef || []).forEach(function(p) {
-    var nomLower = p.nom.toLowerCase().replace(/_/g, " ").replace(/\.[^.]+$/, ""); // retire l'extension
-    var pieceKey = Object.keys(PIECES_ALIASES).find(function(key) {
-      return PIECES_ALIASES[key].some(function(alias) {
-        return nomLower.startsWith(alias.toLowerCase());
-      });
-    }) || "autre";
-    if (!groupes[pieceKey]) groupes[pieceKey] = [];
-    groupes[pieceKey].push(p);
+    // Retire l'extension : "Chambre-1(2).webp" → "Chambre-1(2)"
+    var nom = p.nom.replace(/\.[^.]+$/, "");
+
+    // Extrait le numéro de photo entre parenthèses : "(2)" → "2"
+    var photoMatch = nom.match(/\((\d+)\)$/);
+    var base = photoMatch ? nom.slice(0, nom.lastIndexOf("(")).trim() : nom.trim();
+
+    // Extrait le numéro de pièce : "Chambre-1" → { piece: "Chambre", num: "1" }
+    var pieceMatch = base.match(/^(.+?)-(\d+)$/);
+    var groupKey;
+    if (pieceMatch) {
+      // "Chambre-1" → "Chambre 1"
+      groupKey = pieceMatch[1].trim() + " " + pieceMatch[2];
+    } else {
+      // "Chambre" → "Chambre"
+      groupKey = base;
+    }
+
+    if (!groupes[groupKey]) {
+      groupes[groupKey] = [];
+      ordre.push(groupKey);
+    }
+    groupes[groupKey].push(p);
   });
-  return groupes;
+
+  // Retourne les groupes dans l'ordre d'apparition
+  var result = {};
+  ordre.forEach(function(k) { result[k] = groupes[k]; });
+  return result;
 }
 
   var groupes = grouperParPiece(logement && logement.photosReference);
@@ -1027,7 +1048,7 @@ console.log("groupes:", groupes);
             return (
               <div key={pieceKey} style={{ marginBottom: 16 }}>
                 <div style={{ fontWeight: 700, fontSize: 16, color: "#0369a1", marginBottom: 8 }}>
-                  {PIECES_LABELS[pieceKey] || pieceKey}
+                  {pieceKey}
                 </div>
                 <div style={{ columns: 2, gap: 8 }}>
   {photosGroupe.map(function(p, i) {
