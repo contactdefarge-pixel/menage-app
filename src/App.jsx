@@ -289,6 +289,17 @@ function IconCheckSmall() {
   );
 }
 
+function IconReceipt() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/>
+      <line x1="8" y1="8" x2="16" y2="8"/>
+      <line x1="8" y1="12" x2="16" y2="12"/>
+      <line x1="8" y1="16" x2="12" y2="16"/>
+    </svg>
+  );
+}
+
 function ProgressBar({ current, total }) {
   return (
     <div style={{ display: "flex", gap: 4, marginBottom: 28 }}>
@@ -587,7 +598,7 @@ function Step1Infos({ logement, loading, error, onNext }) {
       {loading || error ? <LogementLoading error={error} /> : null}
       <SectionTitle>{logement.nom}</SectionTitle>
       <CopyAdresse adresse={logement.adresse} />
-      <InfoCardWithCopy icon={<IconBox />} title="Facturation à adresser à" text={logement.proprietaire} />
+      <InfoCardWithCopy icon={<IconReceipt />} title="Facturation à adresser à" text={logement.proprietaire} />
       <InfoCardWithCopy icon={<IconWifi />} title="WiFi" text={logement.wifi} />
       <InfoCardWithCopy icon={<IconUsers />} title="Voyageurs" text={voyageursText} />
       <InfoCardWithCopy icon={<IconTrash />} title="Poubelles" text={logement.poubelles} />
