@@ -480,19 +480,17 @@ function CopyAdresse({ adresse }) {
 }
 
 function MapsLink({ url }) {
-  return (
-    
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{
-        color: T.primary,
-        fontWeight: 700,
-        textDecoration: "none",
-        borderBottom: "1px solid " + T.primaryBorder,
-      }}
-    >Voir sur Maps</a>
-  );
+  return React.createElement("a", {
+    href: url,
+    target: "_blank",
+    rel: "noopener noreferrer",
+    style: {
+      color: T.primary,
+      fontWeight: 700,
+      textDecoration: "none",
+      borderBottom: "1px solid " + T.primaryBorder,
+    }
+  }, "Voir sur Maps");
 }
 
 function FormattedText({ children }) {
