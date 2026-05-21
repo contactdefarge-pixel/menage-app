@@ -1023,7 +1023,17 @@ function grouperParPiece(photosRef) {
     groupes[groupKey].push(p);
   });
 
-  // Retourne les groupes dans l'ordre d'apparition
+  // Trie les groupes par nom de pièce puis par numéro
+  ordre.sort(function(a, b) {
+    var matchA = a.match(/^(.+?)\s+(\d+)$/);
+    var matchB = b.match(/^(.+?)\s+(\d+)$/);
+    if (matchA && matchB) {
+      if (matchA[1] === matchB[1]) return parseInt(matchA[2]) - parseInt(matchB[2]);
+      return matchA[1].localeCompare(matchB[1]);
+    }
+    return a.localeCompare(b);
+  });
+
   var result = {};
   ordre.forEach(function(k) { result[k] = groupes[k]; });
   return result;
