@@ -756,7 +756,7 @@ function Step5Consommables({ data, setData, logement, onNext, onPrev }) {
   return (
     <div>
       <SectionTitle>Consommables</SectionTitle>
-      <Subtitle>Consommables dans le placard à droite du lit. Clé dans le meuble TV, porte gauche.</Subtitle>
+      {logement.consommables ? <Subtitle><FormattedText>{logement.consommables}</FormattedText></Subtitle> : null}
 
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontWeight: 700, fontSize: 12, color: "#0369a1", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
