@@ -77,6 +77,7 @@ function normalizeLogement(raw) {
     consommables: raw.consommables || "",
     consommablesALaisser: raw.consommablesALaisser || "",
     photosReference: raw.photosReference || [],
+    pointsAttention: raw.pointsAttention || "",
   };
 }
 
@@ -97,6 +98,44 @@ function parseConsommablesALaisser(text) {
     if (!nom) return null;
     return { label: nom, qt: qt, comment: comment };
   }).filter(Boolean);
+}
+
+var POINTS_EMOJI_MAP = [
+  { keys: ["fenêtre", "fenetre", "aération", "aeration", "humidité", "humidite", "ventil"], emoji: "🪟" },
+  { keys: ["douche", "bonde", "cheveux", "siphon", "évacuation", "evacuation"], emoji: "🚿" },
+  { keys: ["vmc", "ventilation", "toilette", "wc", "extraction"], emoji: "💨" },
+  { keys: ["poubelle", "déchet", "dechet", "tri", "sac"], emoji: "🗑️" },
+  { keys: ["lit", "parure", "drap", "coussin", "oreiller", "couette"], emoji: "🛏️" },
+  { keys: ["porte", "clé", "cle", "code", "boite", "boîte", "accès", "acces", "fermer", "fermer"], emoji: "🔑" },
+  { keys: ["cuisine", "four", "plaque", "micro", "frigo", "réfrigérateur", "refrigerateur", "vaisselle"], emoji: "🍳" },
+  { keys: ["lumière", "lumiere", "lampe", "éclairage", "eclairage", "électricité", "electricite"], emoji: "💡" },
+  { keys: ["chauffage", "thermostat", "température", "temperature", "climatisation"], emoji: "🌡️" },
+  { keys: ["wifi", "internet", "box", "routeur"], emoji: "📶" },
+  { keys: ["photo", "image", "appareil"], emoji: "📷" },
+  { keys: ["canapé", "canape", "salon", "meuble", "coussin"], emoji: "🛋️" },
+  { keys: ["bain", "baignoire", "lavabo", "robinet"], emoji: "🛁" },
+  { keys: ["sécurité", "securite", "alarme", "digicode"], emoji: "🔒" },
+];
+
+function getEmojiForPoint(text) {
+  var lower = text.toLowerCase();
+  for (var i = 0; i < POINTS_EMOJI_MAP.length; i++) {
+    var entry = POINTS_EMOJI_MAP[i];
+    for (var j = 0; j < entry.keys.length; j++) {
+      if (lower.includes(entry.keys[j])) return entry.emoji;
+    }
+  }
+  return "📌";
+}
+
+function parsePointsAttention(text) {
+  if (!text) return [];
+  return text.split("\n")
+    .map(function(line) { return line.trim(); })
+    .filter(Boolean)
+    .map(function(line) {
+      return { text: line, emoji: getEmojiForPoint(line) };
+    });
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -553,12 +592,15 @@ function Step2Arrivee({ data, setData, onNext, onPrev }) {
   );
 }
 
-function Step3Attention({ data, setData, onNext, onPrev }) {
-  var points = [
-    { emoji: "🪟", text: "Ouvrir les fenêtres en grand pour éviter l'humidité." },
-    { emoji: "🚿", text: "Retirer systématiquement les cheveux dans les deux bondes de douche." },
-    { emoji: "💨", text: "Une fois le ménage terminé, veiller à laisser la VMC dans les toilettes allumée." },
-  ];
+function Step3Attention({ data, setData, logement, onNext, onPrev }) {
+  var points = parsePointsAttention(logement && logement.pointsAttention);
+  if (points.length === 0) {
+    points = [
+      { emoji: "🪟", text: "Ouvrir les fenêtres en grand pour éviter l'humidité." },
+      { emoji: "🚿", text: "Retirer systématiquement les cheveux dans les deux bondes de douche." },
+      { emoji: "💨", text: "Une fois le ménage terminé, veiller à laisser la VMC dans les toilettes allumée." },
+    ];
+  }
   return (
     <div>
       <SectionTitle>Points d'attention</SectionTitle>
@@ -586,7 +628,6 @@ function Step3Attention({ data, setData, onNext, onPrev }) {
           background: data.lu ? "#f0fdf4" : "#f8fafc",
           border: "2px solid " + (data.lu ? "#86efac" : "#e2e8f0"),
           marginBottom: 24, transition: "all 0.2s",
-          boxShadow: data.lu ? "0 0 0 3px rgba(134,239,172,0.2)" : "none",
         }}
       >
         <div style={{
@@ -1322,7 +1363,7 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
 
       {step === 0 && <Step1Infos logement={logement} loading={logementLoading} error={logementError} onNext={next} />}
       {step === 1 && <Step2Arrivee data={arrivee} setData={setArrivee} onNext={next} onPrev={prev} />}
-      {step === 2 && <Step3Attention data={attention} setData={setAttention} onNext={next} onPrev={prev} />}
+      {step === 2 && <Step3Attention data={attention} setData={setAttention} logement={logement} onNext={next} onPrev={prev} />}
       {step === 3 && <Step4EtatLieux data={etatLieux} setData={setEtatLieux} photosArrivee={photosArrivee} setPhotosArrivee={setPhotosArrivee} onNext={next} onPrev={prev} />}
       {step === 4 && <Step5Consommables data={consommables} setData={setConsommables} logement={logement} onNext={next} onPrev={prev} />}
       {step === 5 && <Step6Photos photos={photos} setPhotos={setPhotos} logement={logement} onNext={next} onPrev={prev} />}
