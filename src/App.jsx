@@ -36,6 +36,7 @@ const DEFAULT_LOGEMENT = {
   poubelles: "Local poubelle : Place Pyrénées. Badge sur les clés.",
   consommables: "Placard à droite du lit. Clé cachée dans le meuble TV, porte gauche.",
   consommablesALaisser: "",
+  proprietaire: "",
 };
 
 function padTwo(n) { return String(n).padStart(2, "0"); }
@@ -78,6 +79,7 @@ function normalizeLogement(raw) {
     consommablesALaisser: raw.consommablesALaisser || "",
     photosReference: raw.photosReference || [],
     pointsAttention: raw.pointsAttention || "",
+    proprietaire: raw.proprietaire || "",
   };
 }
 
@@ -585,6 +587,7 @@ function Step1Infos({ logement, loading, error, onNext }) {
       {loading || error ? <LogementLoading error={error} /> : null}
       <SectionTitle>{logement.nom}</SectionTitle>
       <CopyAdresse adresse={logement.adresse} />
+      <InfoCardWithCopy icon={<IconBox />} title="Facturation à adresser à" text={logement.proprietaire} />
       <InfoCardWithCopy icon={<IconWifi />} title="WiFi" text={logement.wifi} />
       <InfoCardWithCopy icon={<IconUsers />} title="Voyageurs" text={voyageursText} />
       <InfoCardWithCopy icon={<IconTrash />} title="Poubelles" text={logement.poubelles} />
