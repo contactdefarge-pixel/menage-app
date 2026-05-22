@@ -128,7 +128,7 @@ function getEmojiForPoint(text) {
       if (lower.includes(entry.keys[j])) return entry.emoji;
     }
   }
-  return "IconCircleCheck";
+  return <IconCircleCheck />;
 }
 
 function parsePointsAttention(text) {
