@@ -101,7 +101,7 @@ function parseConsommablesALaisser(text) {
     return { label: nom, qt: qt, comment: comment };
   }).filter(Boolean);
 }
-
+/*
 var POINTS_EMOJI_MAP = [
   { keys: ["fenêtre", "fenetre", "aération", "aérer", "aeration", "humidité", "humidite", "ventil"], emoji: "🪟" },
   { keys: ["douche", "bonde", "bondes", "cheveux", "siphon", "évacuation", "evacuation"], emoji: "🚿" },
@@ -119,7 +119,7 @@ var POINTS_EMOJI_MAP = [
   { keys: ["sécurité", "securite", "alarme", "digicode"], emoji: "🔒" },
   { keys: ["araignées", "araigné"], emoji: "🕸️" },
 ];
-
+*/
 function getEmojiForPoint(text) {
   var lower = text.toLowerCase();
   for (var i = 0; i < POINTS_EMOJI_MAP.length; i++) {
@@ -692,13 +692,9 @@ function Step3Attention({ data, setData, logement, onNext, onPrev }) {
           marginBottom: 24, transition: "all 0.2s",
         }}
       >
-        <div style={{
-          width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
-          border: "2px solid " + (data.lu ? "#22c55e" : "#cbd5e1"),
-          background: data.lu ? "#22c55e" : "#fff",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          transition: "all 0.2s",
-        }}>
+        <div style={{ flexShrink: 0, opacity: data.lu ? 1 : 0.25, transition: "opacity 0.2s" }}>
+  <IconCircleCheck />
+        </div>
           {data.lu ? <span style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>✓</span> : null}
         </div>
         <span style={{ fontSize: 14, color: "#334155", fontWeight: 600 }}>
