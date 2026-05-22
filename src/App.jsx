@@ -122,8 +122,8 @@ var POINTS_EMOJI_MAP = [
 */
 function getEmojiForPoint(text) {
   var lower = text.toLowerCase();
-  for (var i = 0; i < POINTS_EMOJI_MAP.length; i++) {
-    var entry = POINTS_EMOJI_MAP[i];
+  for (var i = 0; i < length; i++) {
+    var entry = [i];
     for (var j = 0; j < entry.keys.length; j++) {
       if (lower.includes(entry.keys[j])) return entry.emoji;
     }
