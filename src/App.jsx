@@ -692,9 +692,15 @@ function Step3Attention({ data, setData, logement, onNext, onPrev }) {
           marginBottom: 24, transition: "all 0.2s",
         }}
       >
-        <div style={{ flexShrink: 0, opacity: data.lu ? 1 : 0.25, transition: "opacity 0.2s" }}>
-  <IconCircleCheck />
-        </div>
+        <div style={{
+  width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+  border: "2px solid " + (data.lu ? "#22c55e" : "#cbd5e1"),
+  background: data.lu ? "#22c55e" : "#fff",
+  display: "flex", alignItems: "center", justifyContent: "center",
+  transition: "all 0.2s",
+}}>
+  {data.lu ? <span style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>✓</span> : null}
+</div>
           {data.lu ? <span style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>✓</span> : null}
         </div>
         <span style={{ fontSize: 14, color: "#334155", fontWeight: 600 }}>
