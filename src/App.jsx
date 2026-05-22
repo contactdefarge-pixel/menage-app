@@ -510,6 +510,16 @@ function FormattedText({ children }) {
   var lines = cleanNotionText(children).split("\n").filter(function(line) { return line.trim(); });
   var mapsRegex = /https?:\/\/(maps\.google\.[a-z.]+|goo\.gl\/maps|maps\.app\.goo\.gl|www\.google\.[a-z.]+\/maps)[^\s]*/i;
 
+  function renderSegments(line) {
+    var parts = line.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map(function(part, j) {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={j}>{part.slice(2, -2)}</strong>;
+      }
+      return <span key={j}>{part}</span>;
+    });
+  }
+
   return (
     <span>
       {lines.map(function(line, i) {
@@ -527,7 +537,7 @@ function FormattedText({ children }) {
         }
         return (
           <span key={i}>
-            {line}
+            {renderSegments(line)}
             {i < lines.length - 1 ? <br /> : null}
           </span>
         );
@@ -591,7 +601,7 @@ function Step1Infos({ logement, loading, error, onNext }) {
   var voyageurs = logement.voyageurs ? logement.voyageurs + " max" : "";
   var voyageursText = [voyageurs, cleanNotionText(logement.lits)].filter(Boolean).join("\n");
   var accesText = cleanNotionText(logement.acces);
-  if (logement.boiteCle) accesText += (accesText ? "\n" : "") + "Code boîte à clé : " + logement.boiteCle;
+  if (logement.boiteCle) accesText += (accesText ? "\n" : "") + "**Code boîte à clé : " + logement.boiteCle + "**";
 
   return (
     <div>
