@@ -693,9 +693,7 @@ function Step3Attention({ data, setData, logement, onNext, onPrev }) {
         }}
       >
         <div style={{ flexShrink: 0, opacity: data.lu ? 1 : 0.25, transition: "opacity 0.2s" }}>
-  <IconCircleCheck />
-</div>
-          {data.lu ? <span style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>✓</span> : null}
+          <IconCircleCheck />
         </div>
         <span style={{ fontSize: 14, color: "#334155", fontWeight: 600 }}>
           J'ai pris connaissance des points d'attention
