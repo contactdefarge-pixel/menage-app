@@ -658,9 +658,9 @@ function Step3Attention({ data, setData, logement, onNext, onPrev }) {
   var points = parsePointsAttention(logement && logement.pointsAttention);
   if (points.length === 0) {
     points = [
-      { emoji: "🪟", text: "Ouvrir les fenêtres en grand pour éviter l'humidité." },
-      { emoji: "🚿", text: "Retirer systématiquement les cheveux dans les deux bondes de douche." },
-      { emoji: "💨", text: "Une fois le ménage terminé, veiller à laisser la VMC dans les toilettes allumée." },
+      { emoji: "", text: "" },
+      { emoji: "", text: "" },
+      { emoji: "", text: "" },
     ];
   }
   return (
