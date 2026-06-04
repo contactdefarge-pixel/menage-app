@@ -239,35 +239,35 @@ function useScreenWakeLock(active) {
 
 function IconWifi() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#0369a1"/>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#085157" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#085157"/>
     </svg>
   );
 }
 function IconUsers() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#085157" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   );
 }
 function IconTrash() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#085157" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
     </svg>
   );
 }
 function IconBox() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#085157" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
     </svg>
   );
 }
 function IconKey() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#085157" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
     </svg>
   );
@@ -291,7 +291,7 @@ function IconCheckSmall() {
 
 function IconReceipt() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#085157" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/>
       <line x1="8" y1="8" x2="16" y2="8"/>
       <line x1="8" y1="12" x2="16" y2="12"/>
@@ -302,7 +302,7 @@ function IconReceipt() {
 
 function IconCircleCheck() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00bab3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2CA7A9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <path d="M8 12.5l3 3 5-5.5"/>
     </svg>
@@ -316,7 +316,7 @@ function ProgressBar({ current, total }) {
         return (
           <div key={i} style={{
             flex: 1, height: 4, borderRadius: 2,
-            background: i < current ? "#0ea5e9" : i === current ? "#7dd3fc" : "#e2e8f0",
+            background: i < current ? "#2CA7A9" : i === current ? "#99dedd" : "#cfe4e9",
             transition: "background 0.3s",
           }} />
         );
@@ -327,7 +327,11 @@ function ProgressBar({ current, total }) {
 
 function SectionTitle({ children }) {
   return (
-    <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0", letterSpacing: "-0.5px" }}>
+    <h2 style={{
+      fontFamily: "var(--font-heading)",
+      fontSize: 22, fontWeight: 700, color: "var(--color-primary-dark)",
+      margin: "0 0 6px 0", letterSpacing: "-0.01em",
+    }}>
       {children}
     </h2>
   );
@@ -335,18 +339,23 @@ function SectionTitle({ children }) {
 
 function Subtitle({ children }) {
   return (
-    <p style={{ color: "#64748b", fontSize: 14, margin: "0 0 24px 0", lineHeight: 1.55 }}>
+    <p style={{
+      fontFamily: "var(--font-body)",
+      color: "var(--color-text-muted)", fontSize: 14,
+      margin: "0 0 24px 0", lineHeight: 1.55,
+    }}>
       {children}
     </p>
   );
 }
 
+
 function InfoCard({ icon, children }) {
   return (
     <div style={{
-      background: "#f0f9ff", border: "1px solid #bae6fd",
+      background: "#D8EDF2", border: "1px solid #99dedd",
       borderRadius: 12, padding: "13px 15px", marginBottom: 14,
-      fontSize: 14, color: "#0369a1", lineHeight: 1.6,
+      fontSize: 14, color: "#085157", lineHeight: 1.6,
       display: "flex", gap: 12, alignItems: "flex-start",
     }}>
       {icon ? <div style={{ flexShrink: 0, marginTop: 2 }}>{icon}</div> : null}
@@ -358,7 +367,7 @@ function InfoCard({ icon, children }) {
 function Field({ label, required, children }) {
   return (
     <div style={{ marginBottom: 18 }}>
-      <label style={{ display: "block", fontWeight: 600, fontSize: 14, color: "#1e293b", marginBottom: 6 }}>
+      <label style={{ display: "block", fontWeight: 600, fontSize: 14, color: "#085157", marginBottom: 6 }}>
         {label}{required ? <span style={{ color: "#ef4444" }}> *</span> : null}
       </label>
       {children}
@@ -391,7 +400,7 @@ function KeepAwakeWarning({ title, children, wakeLockStatus }) {
 }
 
 var baseInput = {
-  width: "100%", padding: "12px 14px", border: "2px solid #e2e8f0",
+  width: "100%", padding: "12px 14px", border: "2px solid #cfe4e9",
   borderRadius: 10, fontSize: 15, outline: "none", boxSizing: "border-box",
   fontFamily: "inherit", background: "#fff",
 };
@@ -402,8 +411,8 @@ function Input({ value, onChange, placeholder, type }) {
     <input type={type} value={value} placeholder={placeholder || ""}
       onChange={function(e) { onChange(e.target.value); }}
       style={baseInput}
-      onFocus={function(e) { e.target.style.borderColor = "#0ea5e9"; }}
-      onBlur={function(e) { e.target.style.borderColor = "#e2e8f0"; }}
+      onFocus={function(e) { e.target.style.borderColor = "#2CA7A9"; }}
+      onBlur={function(e) { e.target.style.borderColor = "#cfe4e9"; }}
     />
   );
 }
@@ -414,8 +423,8 @@ function Textarea({ value, onChange, placeholder, rows }) {
     <textarea value={value} placeholder={placeholder || ""} rows={rows}
       onChange={function(e) { onChange(e.target.value); }}
       style={Object.assign({}, baseInput, { resize: "vertical" })}
-      onFocus={function(e) { e.target.style.borderColor = "#0ea5e9"; }}
-      onBlur={function(e) { e.target.style.borderColor = "#e2e8f0"; }}
+      onFocus={function(e) { e.target.style.borderColor = "#2CA7A9"; }}
+      onBlur={function(e) { e.target.style.borderColor = "#cfe4e9"; }}
     />
   );
 }
@@ -426,8 +435,8 @@ function Btn({ onClick, disabled, children, secondary }) {
       style={{
         padding: "13px 24px", borderRadius: 12, border: "none",
         cursor: disabled ? "not-allowed" : "pointer",
-        background: disabled ? "#e2e8f0" : secondary ? "#f1f5f9" : "linear-gradient(135deg,#0ea5e9,#0284c7)",
-        color: disabled ? "#94a3b8" : secondary ? "#475569" : "#fff",
+        background: disabled ? "#cfe4e9" : secondary ? "#eaf4f6" : "linear-gradient(135deg,#2CA7A9,#085157)",
+        color: disabled ? "#94a3b8" : secondary ? "#5b7f84" : "#fff",
         fontWeight: 700, fontSize: 15,
         boxShadow: "none",
       }}
@@ -449,7 +458,7 @@ function StarRating({ value, onChange }) {
             style={{
               background: "none", border: "none", padding: 0, cursor: "pointer",
               fontSize: 36, lineHeight: 1,
-              color: active ? "#f59e0b" : "#e2e8f0",
+              color: active ? "#f59e0b" : "#cfe4e9",
               transform: active ? "scale(1.15)" : "scale(1)",
               transition: "color 0.15s, transform 0.1s",
               filter: active ? "drop-shadow(0 1px 2px rgba(245,158,11,0.4))" : "none",
@@ -473,9 +482,9 @@ function CopyRow({ label, value }) {
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
       <span><strong>{label} :</strong> {value}</span>
       <button onClick={copy} style={{
-        background: copied ? "#dcfce7" : "#e0f2fe", border: "none", borderRadius: 8,
+        background: copied ? "#dcfce7" : "#D8EDF2", border: "none", borderRadius: 8,
         cursor: "pointer", padding: "4px 10px", fontSize: 13, marginLeft: 10,
-        color: copied ? "#16a34a" : "#0369a1", fontWeight: 600, flexShrink: 0,
+        color: copied ? "#16a34a" : "#085157", fontWeight: 600, flexShrink: 0,
       }}>{copied ? "Copié !" : "Copier"}</button>
     </div>
   );
@@ -491,11 +500,11 @@ function CopyAdresse({ adresse }) {
   }
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-      <span style={{ color: "#64748b", fontSize: 14 }}>{adresse}</span>
+      <span style={{ color: "#5b7f84", fontSize: 14 }}>{adresse}</span>
       <button onClick={copy} style={{
-        background: copied ? "#dcfce7" : "#e0f2fe", border: "none", borderRadius: 8,
+        background: copied ? "#dcfce7" : "#D8EDF2", border: "none", borderRadius: 8,
         cursor: "pointer", padding: "4px 10px", fontSize: 13, marginLeft: 10,
-        color: copied ? "#16a34a" : "#0369a1", fontWeight: 600, flexShrink: 0,
+        color: copied ? "#16a34a" : "#085157", fontWeight: 600, flexShrink: 0,
       }}>{copied ? "Copié !" : "Copier"}</button>
     </div>
   );
@@ -507,7 +516,7 @@ function MapsLink({ url }) {
     target: "_blank",
     rel: "noopener noreferrer",
     style: {
-      color: "#00bab3",
+      color: "#2CA7A9",
       fontWeight: 700,
       textDecoration: "none",
       borderBottom: "1px solid #99dedd",
@@ -567,11 +576,11 @@ function InfoCardWithCopy({ icon, title, text }) {
 
 function LogementLoading({ error }) {
   return (
-    <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 14, padding: 16, marginBottom: 18 }}>
-      <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
+    <div style={{ background: "#F6FBFC", border: "1px solid #cfe4e9", borderRadius: 14, padding: 16, marginBottom: 18 }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: "#085157", marginBottom: 4 }}>
         {error ? "Logement chargé en mode secours" : "Chargement du logement"}
       </div>
-      <div style={{ fontSize: 13, color: error ? "#b45309" : "#64748b", lineHeight: 1.5 }}>
+      <div style={{ fontSize: 13, color: error ? "#b45309" : "#5b7f84", lineHeight: 1.5 }}>
         {error || "Récupération des informations depuis Notion..."}
       </div>
     </div>
@@ -591,10 +600,10 @@ function ResumeModal({ saved, onResume, onRestart }) {
         boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
       }}>
         <div style={{ fontSize: 36, marginBottom: 12, textAlign: "center" }}>&#128221;</div>
-        <h3 style={{ fontWeight: 800, fontSize: 18, color: "#0f172a", textAlign: "center", margin: "0 0 8px 0" }}>
+        <h3 style={{ fontWeight: 800, fontSize: 18, color: "#085157", textAlign: "center", margin: "0 0 8px 0" }}>
           Formulaire en cours
         </h3>
-        <p style={{ fontSize: 14, color: "#64748b", textAlign: "center", margin: "0 0 24px 0", lineHeight: 1.5 }}>
+        <p style={{ fontSize: 14, color: "#5b7f84", textAlign: "center", margin: "0 0 24px 0", lineHeight: 1.5 }}>
           Un formulaire non terminé a été trouvé pour <strong>{saved.arrivee && saved.arrivee.bien ? saved.arrivee.bien : "ce logement"}</strong>. Voulez-vous reprendre où vous en étiez ?
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -673,8 +682,8 @@ function Step3Attention({ data, setData, logement, onNext, onPrev }) {
             <div key={i} style={{
               display: "flex", gap: 14, padding: "14px 16px",
               background: "#fff", borderRadius: 14,
-              fontSize: 14, color: "#334155", lineHeight: 1.5,
-              boxShadow: "0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px #e2e8f0",
+              fontSize: 14, color: "#085157", lineHeight: 1.5,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px #cfe4e9",
             }}>
               <span style={{ fontSize: 22, flexShrink: 0 }}>{pt.emoji}</span>
               <span>{pt.text}</span>
@@ -686,25 +695,20 @@ function Step3Attention({ data, setData, logement, onNext, onPrev }) {
         onClick={function() { setData(Object.assign({}, data, { lu: !data.lu })); }}
         style={{
           display: "flex", alignItems: "center", gap: 14,
-          padding: "16px 18px", borderRadius: 14, cursor: "pointer",
-          background: data.lu ? "#f0fdf4" : "#f8fafc",
-          border: "2px solid " + (data.lu ? "#86efac" : "#e2e8f0"),
+          padding: "16px 18px", borderRadius: "var(--radius-md)", cursor: "pointer",
+          background: data.lu ? "var(--color-primary-soft)" : "var(--color-surface)",
+          border: "2px solid " + (data.lu ? "var(--color-primary)" : "var(--color-border)"),
           marginBottom: 24, transition: "all 0.2s",
         }}
       >
-        <div style={{
-  width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
-  border: "2px solid " + (data.lu ? "#22c55e" : "#cbd5e1"),
-  background: data.lu ? "#22c55e" : "#fff",
-  display: "flex", alignItems: "center", justifyContent: "center",
-  transition: "all 0.2s",
-}}>
-  {data.lu ? <span style={{ color: "#fff", fontSize: 14, fontWeight: 700 }}>✓</span> : null}
-</div>
-        <span style={{ fontSize: 14, color: "#334155", fontWeight: 600 }}>
+        <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0, filter: data.lu ? "none" : "grayscale(1) opacity(0.5)" }}>
+          ✅
+        </span>
+        <span style={{ fontSize: 14, color: "var(--color-primary-dark)", fontWeight: 600, fontFamily: "var(--font-body)" }}>
           J'ai pris connaissance des points d'attention
         </span>
       </div>
+
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev}>Retour</Btn>
         <Btn onClick={onNext} disabled={!data.lu}>Suivant</Btn>
@@ -778,28 +782,28 @@ function Step5Consommables({ data, setData, logement, onNext, onPrev }) {
       {logement.consommables ? <Subtitle><FormattedText>{logement.consommables}</FormattedText></Subtitle> : null}
 
       <div style={{ marginBottom: 18 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, color: "#0369a1", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        <div style={{ fontWeight: 700, fontSize: 12, color: "#085157", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           À laisser (compléter pour atteindre la quantité)
         </div>
         {itemsALaisser.map(function(c, i) {
           return (
             <div key={i} style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "9px 13px", background: "#f8fafc", borderRadius: 8,
+              padding: "9px 13px", background: "#F6FBFC", borderRadius: 8,
               fontSize: 14, marginBottom: 6,
             }}>
               <span style={{ flex: 1 }}>
                 {c.label}
                 {c.comment ? <span style={{ color: "#94a3b8", fontSize: 12, marginLeft: 6 }}>({c.comment})</span> : null}
               </span>
-              {c.qt ? <span style={{ background: "#dbeafe", color: "#1d4ed8", fontWeight: 700, borderRadius: 6, padding: "2px 10px", fontSize: 13, flexShrink: 0 }}>{c.qt}</span> : null}
+              {c.qt ? <span style={{ background: "#D8EDF2", color: "#085157", fontWeight: 700, borderRadius: 6, padding: "2px 10px", fontSize: 13, flexShrink: 0 }}>{c.qt}</span> : null}
             </div>
           );
         })}
       </div>
 
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, color: "#0369a1", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        <div style={{ fontWeight: 700, fontSize: 12, color: "#085157", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
           À vérifier
         </div>
         <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
@@ -814,8 +818,8 @@ function Step5Consommables({ data, setData, logement, onNext, onPrev }) {
                 style={{
                   padding: "8px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600,
                   cursor: "pointer", transition: "all 0.15s", border: "none",
-                  background: isSelected ? "#0ea5e9" : "#f1f5f9",
-                  color: isSelected ? "#fff" : "#475569",
+                  background: isSelected ? "#2CA7A9" : "#eaf4f6",
+                  color: isSelected ? "#fff" : "#5b7f84",
                   boxShadow: isSelected ? "0 2px 8px rgba(14,165,233,0.35)" : "none",
                   display: "inline-flex", alignItems: "center", gap: 6,
                 }}
@@ -824,7 +828,7 @@ function Step5Consommables({ data, setData, logement, onNext, onPrev }) {
           })}
         </div>
         {selected.length > 0 ? (
-          <div style={{ marginTop: 10, fontSize: 13, color: "#0ea5e9", fontWeight: 600 }}>
+          <div style={{ marginTop: 10, fontSize: 13, color: "#2CA7A9", fontWeight: 600 }}>
             {selected.length} article(s) à prévoir sélectionné(s)
           </div>
         ) : null}
@@ -909,11 +913,11 @@ function PhotoModule({ photos, setPhotos, title, subtitle, infoTitle, infoItems,
       <SectionTitle>{title}</SectionTitle>
       <Subtitle>{subtitle}</Subtitle>
 
-      <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "12px 15px", marginBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#0369a1", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>{infoTitle}</div>
+      <div style={{ background: "#D8EDF2", border: "1px solid #99dedd", borderRadius: 12, padding: "12px 15px", marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#085157", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>{infoTitle}</div>
         {infoItems.map(function(p) {
           return (
-            <div key={p.id} style={{ fontSize: 13, color: "#0369a1", marginBottom: 3 }}>
+            <div key={p.id} style={{ fontSize: 13, color: "#085157", marginBottom: 3 }}>
               <strong>{p.label}</strong> — {p.exemples}
             </div>
           );
@@ -925,21 +929,21 @@ function PhotoModule({ photos, setPhotos, title, subtitle, infoTitle, infoItems,
           <KeepAwakeWarning title="Traitement en cours" wakeLockStatus={wakeLockStatus}>
             Gardez cette page ouverte et le téléphone déverrouillé jusqu'à la fin de l'horodatage et de la compression.
           </KeepAwakeWarning>
-          <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#0369a1", marginBottom: 8 }}>
+          <div style={{ background: "#D8EDF2", border: "1px solid #99dedd", borderRadius: 12, padding: "16px", marginBottom: 16 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#085157", marginBottom: 8 }}>
               Traitement {progress.current} / {progress.total} ({pct}%)
             </div>
-            <div style={{ background: "#e0f2fe", borderRadius: 8, height: 10, overflow: "hidden", marginBottom: 8 }}>
-              <div style={{ background: "#0ea5e9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
+            <div style={{ background: "#D8EDF2", borderRadius: 8, height: 10, overflow: "hidden", marginBottom: 8 }}>
+              <div style={{ background: "#2CA7A9", height: "100%", width: pct + "%", transition: "width 0.2s", borderRadius: 8 }} />
             </div>
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>Ne quittez pas cette page. Ne verrouillez pas l'écran.</div>
+            <div style={{ fontSize: 12, color: "#5b7f84", fontWeight: 700 }}>Ne quittez pas cette page. Ne verrouillez pas l'écran.</div>
           </div>
         </div>
       ) : null}
 
       {photos.length > 0 ? (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#5b7f84", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
             {photos.length} photo(s) prête(s)
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
@@ -948,7 +952,7 @@ function PhotoModule({ photos, setPhotos, title, subtitle, infoTitle, infoItems,
                 <div key={p.id} style={{ position: "relative" }}>
                   <img src={p.preview} alt={p.name} style={{
                     width: "100%", aspectRatio: "1", objectFit: "cover",
-                    borderRadius: 10, border: "2px solid #0ea5e9", display: "block",
+                    borderRadius: 10, border: "2px solid #2CA7A9", display: "block",
                   }} />
                   <button onClick={function() { remove(p.id); }} style={{
                     position: "absolute", top: 4, right: 4,
@@ -967,15 +971,15 @@ function PhotoModule({ photos, setPhotos, title, subtitle, infoTitle, infoItems,
       <div
         onClick={function() { if (!isProcessing && inputRef.current) inputRef.current.click(); }}
         style={{
-          border: "2px dashed " + (isProcessing ? "#e2e8f0" : "#bae6fd"),
+          border: "2px dashed " + (isProcessing ? "#cfe4e9" : "#99dedd"),
           borderRadius: 14, padding: "28px 20px", textAlign: "center",
           cursor: isProcessing ? "not-allowed" : "pointer",
-          background: "#f8fafc", marginBottom: 24, opacity: isProcessing ? 0.5 : 1,
+          background: "#F6FBFC", marginBottom: 24, opacity: isProcessing ? 0.5 : 1,
         }}
       >
         <div style={{ fontSize: 36, marginBottom: 8 }}>📷</div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#0f172a", marginBottom: 4 }}>{btnLabel}</div>
-        <div style={{ fontSize: 13, color: "#64748b" }}>Appuyez pour choisir depuis votre galerie</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#085157", marginBottom: 4 }}>{btnLabel}</div>
+        <div style={{ fontSize: 13, color: "#5b7f84" }}>Appuyez pour choisir depuis votre galerie</div>
         <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
           Sélection multiple · Horodatage automatique · Compression incluse
         </div>
@@ -1003,14 +1007,14 @@ function PhotoWarningModal({ expected, actual, onConfirm, onCancel }) {
         maxWidth: 360, width: "100%",
         boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
       }}>
-        <div style={{ fontSize: 40, textAlign: "center", marginBottom: 12 }}>&#9888;&#65039;</div>
-        <h3 style={{ fontWeight: 800, fontSize: 18, color: "#0f172a", textAlign: "center", margin: "0 0 12px 0" }}>
+        <div style={{ fontSize: 44, textAlign: "center", marginBottom: 12 }}>✋</div>
+        <h3 style={{ fontWeight: 800, fontSize: 18, color: "#085157", textAlign: "center", margin: "0 0 12px 0" }}>
           Photos manquantes
         </h3>
-        <p style={{ fontSize: 14, color: "#64748b", textAlign: "center", margin: "0 0 8px 0", lineHeight: 1.5 }}>
+        <p style={{ fontSize: 14, color: "#5b7f84", textAlign: "center", margin: "0 0 8px 0", lineHeight: 1.5 }}>
           Vous avez uploadé <strong>{actual} photo{actual > 1 ? "s" : ""}</strong> sur <strong>{expected} attendue{expected > 1 ? "s" : ""}</strong>.
         </p>
-        <p style={{ fontSize: 14, color: "#64748b", textAlign: "center", margin: "0 0 24px 0", lineHeight: 1.5 }}>
+        <p style={{ fontSize: 14, color: "#5b7f84", textAlign: "center", margin: "0 0 24px 0", lineHeight: 1.5 }}>
           Il manque <strong style={{ color: "#dc2626" }}>{missing} photo{missing > 1 ? "s" : ""}</strong>. Voulez-vous continuer quand même ?
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -1088,10 +1092,10 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
 
       {Object.keys(groupes).length > 0 ? (
         <div style={{ marginBottom: 28 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, color: "#0f172a", marginBottom: 4 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, color: "#085157", marginBottom: 4 }}>
             Photos de reference
           </div>
-          <div style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: "#5b7f84", marginBottom: 16 }}>
             Reproduisez ces photos pour chaque piece.
           </div>
           {Object.entries(groupes).map(function(entry) {
@@ -1152,45 +1156,45 @@ function Step7Recap({ arrivee, etatLieux, consommables, photosArrivee, photos, o
       <SectionTitle>Récapitulatif</SectionTitle>
       <Subtitle>Vérifiez les informations avant d'envoyer le rapport.</Subtitle>
 
-      <div style={{ background: "#f8fafc", borderRadius: 14, padding: 16, marginBottom: 14 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Intervention</div>
-        <div style={{ fontSize: 14, color: "#1e293b", lineHeight: 1.9 }}>
+      <div style={{ background: "#F6FBFC", borderRadius: 14, padding: 16, marginBottom: 14 }}>
+        <div style={{ fontWeight: 700, fontSize: 12, color: "#5b7f84", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Intervention</div>
+        <div style={{ fontSize: 14, color: "#085157", lineHeight: 1.9 }}>
           <div>{arrivee.nom}</div>
           <div>{arrivee.date} — {duree}</div>
           <div>{arrivee.bien}</div>
         </div>
       </div>
 
-      <div style={{ background: "#f8fafc", borderRadius: 14, padding: 16, marginBottom: 14 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>État des lieux</div>
-        <div style={{ fontSize: 14, color: "#1e293b", lineHeight: 1.9 }}>
+      <div style={{ background: "#F6FBFC", borderRadius: 14, padding: 16, marginBottom: 14 }}>
+        <div style={{ fontWeight: 700, fontSize: 12, color: "#5b7f84", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>État des lieux</div>
+        <div style={{ fontSize: 14, color: "#085157", lineHeight: 1.9 }}>
           <div style={{ color: "#f59e0b", fontSize: 18 }}>{etoiles}</div>
           <div>{etatLieux.observations}</div>
         </div>
       </div>
 
       {selected.length > 0 ? (
-        <div style={{ background: "#f8fafc", borderRadius: 14, padding: 16, marginBottom: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Consommables à réapprovisionner</div>
+        <div style={{ background: "#F6FBFC", borderRadius: 14, padding: 16, marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: "#5b7f84", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Consommables à réapprovisionner</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {selected.map(function(c) {
-              return <span key={c} style={{ background: "#dbeafe", color: "#1d4ed8", borderRadius: 20, padding: "3px 12px", fontSize: 13, fontWeight: 600 }}>{c}</span>;
+              return <span key={c} style={{ background: "#D8EDF2", color: "#085157", borderRadius: 20, padding: "3px 12px", fontSize: 13, fontWeight: 600 }}>{c}</span>;
             })}
           </div>
         </div>
       ) : null}
 
       {consommables.consommablesAPrevoir ? (
-        <div style={{ background: "#f8fafc", borderRadius: 14, padding: 16, marginBottom: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Consommables à prévoir</div>
-          <div style={{ fontSize: 14, color: "#1e293b" }}>{consommables.consommablesAPrevoir}</div>
+        <div style={{ background: "#F6FBFC", borderRadius: 14, padding: 16, marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: "#5b7f84", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Consommables à prévoir</div>
+          <div style={{ fontSize: 14, color: "#085157" }}>{consommables.consommablesAPrevoir}</div>
         </div>
       ) : null}
 
       {consommables.remarques ? (
-        <div style={{ background: "#f8fafc", borderRadius: 14, padding: 16, marginBottom: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Remarques</div>
-          <div style={{ fontSize: 14, color: "#1e293b" }}>{consommables.remarques}</div>
+        <div style={{ background: "#F6FBFC", borderRadius: 14, padding: 16, marginBottom: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: "#5b7f84", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>Remarques</div>
+          <div style={{ fontSize: 14, color: "#085157" }}>{consommables.remarques}</div>
         </div>
       ) : null}
 
@@ -1205,11 +1209,11 @@ function Step7Recap({ arrivee, etatLieux, consommables, photosArrivee, photos, o
           <KeepAwakeWarning title="Envoi en cours" wakeLockStatus={wakeLockStatus}>
             Gardez cette page ouverte et le téléphone déverrouillé jusqu'au message de confirmation.
           </KeepAwakeWarning>
-          <div style={{ fontSize: 13, color: "#0369a1", fontWeight: 600, marginBottom: 8 }}>
+          <div style={{ fontSize: 13, color: "#085157", fontWeight: 600, marginBottom: 8 }}>
             Upload des photos : {sendProgress}%
           </div>
-          <div style={{ background: "#e0f2fe", borderRadius: 8, height: 8, overflow: "hidden" }}>
-            <div style={{ background: "#0ea5e9", height: "100%", width: sendProgress + "%", transition: "width 0.3s", borderRadius: 8 }} />
+          <div style={{ background: "#D8EDF2", borderRadius: 8, height: 8, overflow: "hidden" }}>
+            <div style={{ background: "#2CA7A9", height: "100%", width: sendProgress + "%", transition: "width 0.3s", borderRadius: 8 }} />
           </div>
         </div>
       ) : null}
@@ -1234,8 +1238,8 @@ function StepSuccess({ nom, bien }) {
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 20 }}>
         <IconCheck />
       </div>
-      <h2 style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>Rapport envoyé !</h2>
-      <p style={{ color: "#64748b", fontSize: 15, lineHeight: 1.6 }}>
+      <h2 style={{ fontSize: 24, fontWeight: 800, color: "#085157", marginBottom: 10 }}>Rapport envoyé !</h2>
+      <p style={{ color: "#5b7f84", fontSize: 15, lineHeight: 1.6 }}>
         Merci <strong>{nom}</strong>, votre rapport pour <strong>{bien}</strong> a bien été transmis.
       </p>
       <div style={{ marginTop: 32, padding: "16px 20px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 14, fontSize: 14, color: "#166534" }}>
@@ -1633,7 +1637,7 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#0f172a" }}>Rapport de ménage</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#085157" }}>Rapport de ménage</div>
             <div style={{ fontSize: 12, color: "#94a3b8" }}>Étape {step + 1} sur {TOTAL}</div>
           </div>
         </div>
@@ -1668,7 +1672,7 @@ var wrap = {
   maxWidth: 480,
   margin: "0 auto",
   padding: "24px 20px 60px",
-  fontFamily: "'Segoe UI', system-ui, sans-serif",
+  fontFamily: "'Wix Madefor Text', 'Wix Madefor Display', system-ui, -apple-system, sans-serif",
   minHeight: "100vh",
   background: "#fff",
 };
