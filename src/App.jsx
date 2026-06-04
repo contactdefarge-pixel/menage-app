@@ -1049,9 +1049,9 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
     { key: "entree", label: "ENTREE", aliases: ["entree", "entrée", "couloir", "hall"], order: 1 },
     { key: "salon", label: "SALON", aliases: ["salon", "living", "séjour", "sejour"], order: 2 },
     { key: "cuisine", label: "CUISINE", aliases: ["cuisine"], order: 3 },
+    { key: "salle a manger", label: "SALLE A MANGER", aliases: ["salle à manger"], order: 4 },
     { key: "chambre", label: "CHAMBRE", aliases: ["chambre", "bedroom"], order: 5 },
     { key: "salle de bain", label: "SALLE DE BAIN", aliases: ["salle de bain", "sdb", "salle_de_bain", "bathroom"], order: 6 },
-    { key: "salle a manger", label: "SALLE A MANGER", aliases: ["salle à manger"], order: 4 },
     { key: "wc", label: "WC", aliases: ["wc", "toilette", "toilettes"], order: 90 },
     { key: "exterieur", label: "EXTERIEUR", aliases: ["exterieur", "extérieur", "exter", "dehors", "balcon", "terrasse", "jardin"], order: 91 },
   ];
