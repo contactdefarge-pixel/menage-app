@@ -740,7 +740,7 @@ function Step4EtatLieux({ data, setData, photosArrivee, setPhotosArrivee, onNext
         photos={photosArrivee}
         setPhotos={setPhotosArrivee}
         title="Photos à l'arrivée"
-        subtitle="Ajoutez des photos si le logement a été laissé sale ou dégradé. L'horodatage est gravé automatiquement."
+        subtitle="Ajoutez des photos si le logement a été laissé sale ou dégradé."
         infoTitle="Photos utiles"
         infoItems={[
           { id: "salete", label: "Saleté", exemples: "Sol, évier, sanitaires, linge ou déchets laissés" },
@@ -1126,7 +1126,7 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
         photos={photos}
         setPhotos={setPhotos}
         title="Photos de fin de menage"
-        subtitle="Selectionnez toutes vos photos en une seule fois. L'horodatage est grave automatiquement."
+        subtitle="Selectionnez toutes vos photos en une seule fois."
         infoTitle="Photos attendues"
         infoItems={PIECES}
         emptyLabel="Selectionner les photos"
