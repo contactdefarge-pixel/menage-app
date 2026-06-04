@@ -1056,13 +1056,17 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
     { key: "exterieur", label: "EXTERIEUR", aliases: ["exterieur", "extérieur", "exter", "dehors", "balcon", "terrasse", "jardin"], order: 91 },
   ];
 
+  function normalize(s) {
+    return (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  }
+
   function parseNomPhoto(nom) {
     // ex: "Chambre-1.jpg" => base "chambre", numero 1
     // ex: "Chambre-2(2).jpg" => base "chambre", numero 2 (2e photo)
     var base = (nom || "").replace(/\.[^.]+$/, "");
     var sansSuffixe = base.replace(/\(\d+\)\s*$/, "").trim();
     var match = sansSuffixe.match(/^(.*?)(?:[-_\s]+(\d+))?\s*$/);
-    var nomPiece = (match && match[1] ? match[1] : sansSuffixe).toLowerCase().replace(/_/g, " ").trim();
+    var nomPiece = normalize((match && match[1] ? match[1] : sansSuffixe).replace(/_/g, " "));
     var numero = match && match[2] ? parseInt(match[2], 10) : null;
     return { nomPiece: nomPiece, numero: numero };
   }
@@ -1070,7 +1074,8 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
   function trouverDef(nomPiece) {
     return PIECES_DEFS.find(function(def) {
       return def.aliases.some(function(alias) {
-        return nomPiece === alias.toLowerCase() || nomPiece.startsWith(alias.toLowerCase());
+        var a = normalize(alias);
+        return nomPiece === a || nomPiece.startsWith(a);
       });
     });
   }
@@ -1086,8 +1091,8 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
         label = parsed.numero ? def.label + " " + parsed.numero : def.label;
         order = def.order * 100 + (parsed.numero || 0);
       } else {
-        groupKey = parsed.nomPiece || "Autre";
-        label = (parsed.nomPiece || "Autre").replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+        groupKey = parsed.nomPiece || "autre";
+        label = (parsed.nomPiece || "Autre").toUpperCase();
         if (parsed.numero) { groupKey += "-" + parsed.numero; label += " " + parsed.numero; }
         order = 50 * 100 + (parsed.numero || 0);
       }
