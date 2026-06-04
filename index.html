@@ -4,10 +4,76 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
     <title>Rapport de ménage</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Wix+Madefor+Display:wght@400;500;600;700&family=Wix+Madefor+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
+      /* ============================================================
+         DESIGN SYSTEM — Tokens centralisés
+         Pour changer la palette ou la typographie, modifier UNIQUEMENT
+         les variables ci-dessous.
+         ============================================================ */
+      :root {
+        /* Palette */
+        --color-primary:        #2CA7A9;   /* teal principal */
+        --color-primary-dark:   #085157;   /* teal foncé / texte */
+        --color-primary-soft:   #D8EDF2;   /* fond doux */
+
+        --color-primary-hover:  #259092;
+        --color-primary-ring:   rgba(44, 167, 169, 0.25);
+
+        /* Surfaces & texte */
+        --color-bg:             #F6FBFC;
+        --color-surface:        #FFFFFF;
+        --color-text:           #085157;
+        --color-text-muted:     #5b7f84;
+        --color-border:         #cfe4e9;
+        --color-border-strong:  #2CA7A9;
+
+        /* Typo */
+        --font-heading: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+        --font-body:    'Wix Madefor Text', 'Wix Madefor Display', system-ui, -apple-system, sans-serif;
+
+        /* Rayons & ombres */
+        --radius-sm: 8px;
+        --radius-md: 14px;
+        --radius-lg: 20px;
+        --shadow-sm: 0 1px 2px rgba(8, 81, 87, 0.06);
+        --shadow-md: 0 6px 20px -8px rgba(8, 81, 87, 0.18);
+        --shadow-lg: 0 18px 40px -16px rgba(8, 81, 87, 0.28);
+      }
+
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { background: #fff; }
+
+      html, body {
+        background: var(--color-bg);
+        color: var(--color-text);
+        font-family: var(--font-body);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      h1, h2, h3, h4, h5, h6 {
+        font-family: var(--font-heading);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--color-primary-dark);
+      }
+
+      button, input, textarea, select {
+        font-family: var(--font-body);
+      }
     </style>
+
+    <meta property="og:title" content="Rapport de ménage">
+    <meta name="twitter:title" content="Rapport de ménage">
+    <meta name="description" content="Application de rapport de ménage pour logements locatifs.">
+    <meta property="og:description" content="Application de rapport de ménage pour logements locatifs.">
+    <meta name="twitter:description" content="Application de rapport de ménage pour logements locatifs.">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:type" content="website">
   </head>
   <body>
     <div id="root"></div>

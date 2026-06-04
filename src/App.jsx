@@ -1,68 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 
-// ── IndexedDB pour la persistance des photos ─────────────────────────────────
-var IDB_NAME = "menage_photos";
-var IDB_STORE = "photos";
-var IDB_VERSION = 1;
-
-function openIDB() {
-  return new Promise(function(resolve, reject) {
-    var req = indexedDB.open(IDB_NAME, IDB_VERSION);
-    req.onupgradeneeded = function(e) {
-      e.target.result.createObjectStore(IDB_STORE, { keyPath: "key" });
-    };
-    req.onsuccess = function(e) { resolve(e.target.result); };
-    req.onerror = function() { reject(req.error); };
-  });
-}
-
-function idbSavePhotos(key, photos) {
-  return openIDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var data = photos.map(function(p) {
-        return { id: p.id, name: p.name, file: p.file };
-      });
-      var tx = db.transaction(IDB_STORE, "readwrite");
-      tx.objectStore(IDB_STORE).put({ key: key, data: data });
-      tx.oncomplete = function() { resolve(); };
-      tx.onerror = function() { reject(tx.error); };
-    });
-  }).catch(function() {});
-}
-
-function idbLoadPhotos(key) {
-  return openIDB().then(function(db) {
-    return new Promise(function(resolve, reject) {
-      var tx = db.transaction(IDB_STORE, "readonly");
-      var req = tx.objectStore(IDB_STORE).get(key);
-      req.onsuccess = function() {
-        var record = req.result;
-        if (!record) { resolve([]); return; }
-        var photos = record.data.map(function(p) {
-          return {
-            id: p.id,
-            name: p.name,
-            file: p.file,
-            preview: URL.createObjectURL(p.file),
-          };
-        });
-        resolve(photos);
-      };
-      req.onerror = function() { reject(req.error); };
-    });
-  }).catch(function() { return []; });
-}
-
-function idbDeletePhotos(key) {
-  return openIDB().then(function(db) {
-    return new Promise(function(resolve) {
-      var tx = db.transaction(IDB_STORE, "readwrite");
-      tx.objectStore(IDB_STORE).delete(key);
-      tx.oncomplete = function() { resolve(); };
-    });
-  }).catch(function() {});
-}
-
 const PIECES = [
   { id: "cuisine", label: "Cuisine", exemples: "Vue générale, évier, plaques/micro-ondes" },
   { id: "sdb", label: "Salle de bain", exemples: "Douche, lavabo/miroir, bondes et sol" },
@@ -1324,28 +1261,194 @@ function PageAccueil() {
       .then(function(data) {
         setLogements(data.logements || []);
         setLoading(false);
-      });
+      })
+      .catch(function() { setLoading(false); });
   }, []);
 
-  if (loading) return <div style={{ padding: 32, textAlign: "center" }}>Chargement...</div>;
+  var pageStyle = {
+    minHeight: "100vh",
+    background:
+      "radial-gradient(1200px 600px at -10% -20%, var(--color-primary-soft) 0%, transparent 60%)," +
+      "radial-gradient(900px 500px at 110% 10%, rgba(44,167,169,0.18) 0%, transparent 55%)," +
+      "var(--color-bg)",
+    padding: "32px 20px 64px",
+  };
+
+  var containerStyle = { maxWidth: 560, margin: "0 auto" };
+
+  var heroStyle = {
+    background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)",
+    color: "#fff",
+    borderRadius: "var(--radius-lg)",
+    padding: "28px 24px",
+    boxShadow: "var(--shadow-lg)",
+    marginBottom: 28,
+    position: "relative",
+    overflow: "hidden",
+  };
+
+  var heroEyebrow = {
+    fontFamily: "var(--font-body)",
+    fontSize: 12,
+    fontWeight: 600,
+    letterSpacing: "0.12em",
+    textTransform: "uppercase",
+    opacity: 0.85,
+    marginBottom: 10,
+  };
+
+  var heroTitle = {
+    fontFamily: "var(--font-heading)",
+    fontSize: 28,
+    fontWeight: 700,
+    lineHeight: 1.15,
+    color: "#fff",
+    margin: 0,
+  };
+
+  var heroSubtitle = {
+    fontFamily: "var(--font-body)",
+    fontSize: 14,
+    marginTop: 10,
+    opacity: 0.92,
+    lineHeight: 1.5,
+  };
+
+  var sectionLabel = {
+    fontFamily: "var(--font-heading)",
+    fontSize: 13,
+    fontWeight: 600,
+    color: "var(--color-primary-dark)",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    marginBottom: 12,
+    paddingLeft: 4,
+  };
+
+  var cardStyle = {
+    background: "var(--color-surface)",
+    border: "1px solid var(--color-border)",
+    borderRadius: "var(--radius-md)",
+    padding: "18px 20px",
+    marginBottom: 12,
+    cursor: "pointer",
+    boxShadow: "var(--shadow-sm)",
+    transition: "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
+    display: "flex",
+    alignItems: "center",
+    gap: 16,
+  };
+
+  var iconBubble = {
+    width: 44,
+    height: 44,
+    flexShrink: 0,
+    borderRadius: 12,
+    background: "var(--color-primary-soft)",
+    color: "var(--color-primary-dark)",
+    display: "grid",
+    placeItems: "center",
+    fontSize: 20,
+  };
+
+  var cardTitle = {
+    fontFamily: "var(--font-heading)",
+    fontWeight: 600,
+    fontSize: 16,
+    color: "var(--color-primary-dark)",
+    lineHeight: 1.3,
+  };
+
+  var cardSubtitle = {
+    fontFamily: "var(--font-body)",
+    fontSize: 13,
+    color: "var(--color-text-muted)",
+    marginTop: 4,
+    lineHeight: 1.4,
+  };
+
+  var chevron = {
+    marginLeft: "auto",
+    color: "var(--color-primary)",
+    fontSize: 20,
+    flexShrink: 0,
+  };
+
+  function onCardEnter(e) {
+    e.currentTarget.style.transform = "translateY(-2px)";
+    e.currentTarget.style.boxShadow = "var(--shadow-md)";
+    e.currentTarget.style.borderColor = "var(--color-primary)";
+  }
+  function onCardLeave(e) {
+    e.currentTarget.style.transform = "";
+    e.currentTarget.style.boxShadow = "var(--shadow-sm)";
+    e.currentTarget.style.borderColor = "var(--color-border)";
+  }
+
+  if (loading) {
+    return (
+      <div style={pageStyle}>
+        <div style={containerStyle}>
+          <div style={{
+            fontFamily: "var(--font-body)",
+            color: "var(--color-text-muted)",
+            textAlign: "center",
+            padding: 48,
+          }}>
+            Chargement…
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ maxWidth: 480, margin: "0 auto", padding: 24 }}>
-      <div style={{ fontWeight: 800, fontSize: 22, marginBottom: 8 }}>🏠 Mes logements</div>
-      <div style={{ fontSize: 14, color: "#64748b", marginBottom: 24 }}>Sélectionnez un logement pour commencer</div>
-      {logements.map(function(l) {
-        return (
-          <a key={l.slug} href={"/" + l.slug} style={{ textDecoration: "none" }}>
-            <div style={{
-              background: "#fff", border: "1.5px solid #e2e8f0", borderRadius: 14,
-              padding: "16px 20px", marginBottom: 12, cursor: "pointer",
-            }}>
-              <div style={{ fontWeight: 700, fontSize: 16, color: "#0f172a" }}>{l.nom}</div>
-              <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{l.adresse}</div>
-            </div>
-          </a>
-        );
-      })}
+    <div style={pageStyle}>
+      <div style={containerStyle}>
+        <section style={heroStyle}>
+          <div style={heroEyebrow}>Rapport de ménage</div>
+          <h1 style={heroTitle}>Bonjour 👋</h1>
+          <p style={heroSubtitle}>
+            Sélectionnez le logement sur lequel vous intervenez aujourd'hui pour commencer votre rapport.
+          </p>
+        </section>
+
+        <div style={sectionLabel}>Mes logements</div>
+
+        {logements.length === 0 ? (
+          <div style={{
+            background: "var(--color-surface)",
+            border: "1px dashed var(--color-border)",
+            borderRadius: "var(--radius-md)",
+            padding: 28,
+            textAlign: "center",
+            color: "var(--color-text-muted)",
+            fontFamily: "var(--font-body)",
+            fontSize: 14,
+          }}>
+            Aucun logement disponible pour le moment.
+          </div>
+        ) : (
+          logements.map(function(l) {
+            return (
+              <a key={l.slug} href={"/" + l.slug} style={{ textDecoration: "none" }}>
+                <div
+                  style={cardStyle}
+                  onMouseEnter={onCardEnter}
+                  onMouseLeave={onCardLeave}
+                >
+                  <div style={iconBubble}>🏠</div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={cardTitle}>{l.nom}</div>
+                    {l.adresse ? <div style={cardSubtitle}>{l.adresse}</div> : null}
+                  </div>
+                  <div style={chevron}>›</div>
+                </div>
+              </a>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
@@ -1367,7 +1470,6 @@ export default function App() {
   var [logement, setLogement] = useState(DEFAULT_LOGEMENT);
   var [logementLoading, setLogementLoading] = useState(true);
   var [logementError, setLogementError] = useState("");
-  var [photosLoaded, setPhotosLoaded] = useState(false);
 
   useEffect(function() {
 var pathSlug = window.location.pathname.split("/").filter(Boolean).pop();
@@ -1434,34 +1536,6 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
     } catch(e) {}
   }, [step, arrivee, attention, etatLieux, consommables, done]);
 
-// Charger les photos depuis IndexedDB au montage — en premier
-var [photosLoaded, setPhotosLoaded] = useState(false);
-
-useEffect(function() {
-  Promise.all([
-    idbLoadPhotos("photos_arrivee"),
-    idbLoadPhotos("photos_fin"),
-  ]).then(function(results) {
-    if (results[0].length > 0) setPhotosArrivee(results[0]);
-    if (results[1].length > 0) setPhotos(results[1]);
-    setPhotosLoaded(true);
-  });
-}, []);
-
-// Sauvegarder photos arrivée — seulement après le chargement initial
-useEffect(function() {
-  if (!photosLoaded) return;
-  if (done) { idbDeletePhotos("photos_arrivee"); return; }
-  idbSavePhotos("photos_arrivee", photosArrivee);
-}, [photosArrivee, done, photosLoaded]);
-
-// Sauvegarder photos fin — seulement après le chargement initial
-useEffect(function() {
-  if (!photosLoaded) return;
-  if (done) { idbDeletePhotos("photos_fin"); return; }
-  idbSavePhotos("photos_fin", photos);
-}, [photos, done, photosLoaded]);
-
   useEffect(function() {
     function handleBeforeUnload(e) {
       if (!sending) return;
@@ -1482,13 +1556,9 @@ useEffect(function() {
   }
 
   function handleRestart() {
-  localStorage.removeItem(STORAGE_KEY);
-  idbDeletePhotos("photos_arrivee");
-  idbDeletePhotos("photos_fin");
-  setPhotosArrivee([]);
-  setPhotos([]);
-  setShowResume(false);
-}
+    localStorage.removeItem(STORAGE_KEY);
+    setShowResume(false);
+  }
 
   function next() { setStep(function(s) { return Math.min(s + 1, TOTAL - 1); }); }
   function prev() { setStep(function(s) { return Math.max(s - 1, 0); }); }
@@ -1528,7 +1598,7 @@ useEffect(function() {
         .then(function(res) { return res.json(); })
         .then(function(data) {
           setSending(false);
-          if (data.success) { localStorage.removeItem(STORAGE_KEY); idbDeletePhotos("photos_arrivee"); idbDeletePhotos("photos_fin"); setDone(true); }
+          if (data.success) { localStorage.removeItem(STORAGE_KEY); setDone(true); }
           else setSendError("Erreur lors de l envoi. Réessayez.");
         })
         .catch(function() { setSending(false); setSendError("Erreur réseau. Vérifiez votre connexion."); });
