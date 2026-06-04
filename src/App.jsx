@@ -990,9 +990,76 @@ function PhotoModule({ photos, setPhotos, title, subtitle, infoTitle, infoItems,
   );
 }
 
+function PhotoWarningModal({ expected, actual, onConfirm, onCancel }) {
+  var missing = expected - actual;
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 1000, padding: 24,
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 20, padding: 28,
+        maxWidth: 360, width: "100%",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+      }}>
+        <div style={{ fontSize: 40, textAlign: "center", marginBottom: 12 }}>&#9888;&#65039;</div>
+        <h3 style={{ fontWeight: 800, fontSize: 18, color: "#0f172a", textAlign: "center", margin: "0 0 12px 0" }}>
+          Photos manquantes
+        </h3>
+        <p style={{ fontSize: 14, color: "#64748b", textAlign: "center", margin: "0 0 8px 0", lineHeight: 1.5 }}>
+          Vous avez uploadé <strong>{actual} photo{actual > 1 ? "s" : ""}</strong> sur <strong>{expected} attendue{expected > 1 ? "s" : ""}</strong>.
+        </p>
+        <p style={{ fontSize: 14, color: "#64748b", textAlign: "center", margin: "0 0 24px 0", lineHeight: 1.5 }}>
+          Il manque <strong style={{ color: "#dc2626" }}>{missing} photo{missing > 1 ? "s" : ""}</strong>. Voulez-vous continuer quand même ?
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Btn secondary onClick={onConfirm}>Continuer quand même</Btn>
+          <Btn onClick={onCancel}>Ajouter les photos manquantes</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
   var [isProcessing, setIsProcessing] = useState(false);
+  var [showWarning, setShowWarning] = useState(false);
+
+  var expectedCount = logement && logement.photosReference
+    ? logement.photosReference.length
+    : 0;
+
+  function handleNext() {
+    if (expectedCount > 0 && photos.length < expectedCount) {
+      setShowWarning(true);
+    } else {
+      onNext();
+    }
+  }
+
   var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
+
+  return (
+    <div>
+      {showWarning ? (
+        <PhotoWarningModal
+          expected={expectedCount}
+          actual={photos.length}
+          onConfirm={function() { setShowWarning(false); onNext(); }}
+          onCancel={function() { setShowWarning(false); }}
+        />
+      ) : null}
+
+      {/* ... reste du contenu inchangé ... */}
+
+      <div style={{ display: "flex", gap: 12 }}>
+        <Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn>
+        <Btn onClick={handleNext} disabled={photos.length === 0 || isProcessing}>{suivantLabel}</Btn>
+      </div>
+    </div>
+  );
+}
 
   var PIECES_ALIASES = {
   "cuisine": ["cuisine"],
