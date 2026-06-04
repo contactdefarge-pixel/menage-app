@@ -1040,6 +1040,41 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
 
   var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
 
+  var PIECES_ALIASES = {
+    "cuisine": ["cuisine"],
+    "salle de bain": ["salle de bain", "sdb", "salle_de_bain", "bathroom"],
+    "wc": ["wc", "toilette", "toilettes"],
+    "chambre": ["chambre", "bedroom"],
+    "entree": ["entree", "entrée", "couloir", "hall"],
+    "salon": ["salon", "living", "séjour", "sejour"],
+  };
+
+  var PIECES_LABELS = {
+    "cuisine": "Cuisine",
+    "salle de bain": "Salle de bain",
+    "wc": "WC",
+    "chambre": "Chambre",
+    "entree": "Entree",
+    "salon": "Salon",
+  };
+
+  function grouperParPiece(photosRef) {
+    var groupes = {};
+    (photosRef || []).forEach(function(p) {
+      var nomLower = p.nom.toLowerCase().replace(/_/g, " ").replace(/\.[^.]+$/, "");
+      var pieceKey = Object.keys(PIECES_ALIASES).find(function(key) {
+        return PIECES_ALIASES[key].some(function(alias) {
+          return nomLower.startsWith(alias.toLowerCase());
+        });
+      }) || "autre";
+      if (!groupes[pieceKey]) groupes[pieceKey] = [];
+      groupes[pieceKey].push(p);
+    });
+    return groupes;
+  }
+
+  var groupes = grouperParPiece(logement && logement.photosReference);
+
   return (
     <div>
       {showWarning ? (
@@ -1051,115 +1086,32 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
         />
       ) : null}
 
-      {/* ... reste du contenu inchangé ... */}
-
-      <div style={{ display: "flex", gap: 12 }}>
-        <Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn>
-        <Btn onClick={handleNext} disabled={photos.length === 0 || isProcessing}>{suivantLabel}</Btn>
-      </div>
-    </div>
-  );
-}
-
-  var PIECES_ALIASES = {
-  "cuisine": ["cuisine"],
-  "salle de bain": ["salle de bain", "sdb", "salle_de_bain", "bathroom"],
-  "wc": ["wc", "toilette", "toilettes"],
-  "chambre": ["chambre", "bedroom"],
-  "entree": ["entree", "entrée", "couloir", "hall"],
-  "salon": ["salon", "living", "séjour", "sejour"],
-};
-
-var PIECES_LABELS = {
-  "cuisine": "🍳 Cuisine",
-  "salle de bain": "🚿 Salle de bain",
-  "wc": "🚽 WC",
-  "chambre": "🛏 Chambre",
-  "entree": "🚪 Entrée",
-  "salon": "🛋 Salon",
-};
-
-function grouperParPiece(photosRef) {
-  var groupes = {};
-  var ordre = [];
-
-  (photosRef || []).forEach(function(p) {
-    // Retire l'extension : "Chambre-1(2).webp" → "Chambre-1(2)"
-    var nom = p.nom.replace(/\.[^.]+$/, "");
-
-    // Extrait le numéro de photo entre parenthèses : "(2)" → "2"
-    var photoMatch = nom.match(/\((\d+)\)$/);
-    var base = photoMatch ? nom.slice(0, nom.lastIndexOf("(")).trim() : nom.trim();
-
-    // Extrait le numéro de pièce : "Chambre-1" → { piece: "Chambre", num: "1" }
-    var pieceMatch = base.match(/^(.+?)-(\d+)$/);
-    var groupKey;
-    if (pieceMatch) {
-      // "Chambre-1" → "Chambre 1"
-      groupKey = pieceMatch[1].trim() + " " + pieceMatch[2];
-    } else {
-      // "Chambre" → "Chambre"
-      groupKey = base;
-    }
-
-    if (!groupes[groupKey]) {
-      groupes[groupKey] = [];
-      ordre.push(groupKey);
-    }
-    groupes[groupKey].push(p);
-  });
-
-  // Trie les groupes par nom de pièce puis par numéro
-  ordre.sort(function(a, b) {
-    var matchA = a.match(/^(.+?)\s+(\d+)$/);
-    var matchB = b.match(/^(.+?)\s+(\d+)$/);
-    if (matchA && matchB) {
-      if (matchA[1] === matchB[1]) return parseInt(matchA[2]) - parseInt(matchB[2]);
-      return matchA[1].localeCompare(matchB[1]);
-    }
-    return a.localeCompare(b);
-  });
-
-  var result = {};
-  ordre.forEach(function(k) { result[k] = groupes[k]; });
-  return result;
-}
-
-  var groupes = grouperParPiece(logement && logement.photosReference);
-  console.log("logement:", logement);
-console.log("photosReference:", logement && logement.photosReference);
-console.log("groupes:", groupes);
-
-  return (
-    <div>
       {Object.keys(groupes).length > 0 ? (
         <div style={{ marginBottom: 28 }}>
           <div style={{ fontWeight: 800, fontSize: 15, color: "#0f172a", marginBottom: 4 }}>
-            📋 Photos de référence
+            Photos de reference
           </div>
           <div style={{ fontSize: 13, color: "#64748b", marginBottom: 16 }}>
-            Reproduisez ces photos pour chaque pièce.
+            Reproduisez ces photos pour chaque piece.
           </div>
-          {Object.entries(groupes).map(function([pieceKey, photosGroupe]) {
+          {Object.entries(groupes).map(function(entry) {
+            var pieceKey = entry[0];
+            var photosGroupe = entry[1];
             return (
               <div key={pieceKey} style={{ marginBottom: 16 }}>
-                <div style={{ fontWeight: 700, fontSize: 16, color: "#0369a1", marginBottom: 8 }}>
-                  {pieceKey}
+                <div style={{ fontWeight: 700, fontSize: 16, color: "#085157", marginBottom: 8 }}>
+                  {PIECES_LABELS[pieceKey] || pieceKey}
                 </div>
                 <div style={{ columns: 2, gap: 8 }}>
-  {photosGroupe.map(function(p, i) {
-    return (
-      <img key={i} src={p.url} alt={p.nom} loading="lazy" style={{
-        width: "100%",
-        marginBottom: 8,
-        borderRadius: 10,
-        border: "2px solid #bae6fd",
-        display: "block",
-        breakInside: "avoid",
-      }} />
-    );
-  })}
-</div>
+                  {photosGroupe.map(function(p, i) {
+                    return (
+                      <img key={i} src={p.url} alt={p.nom} loading="lazy" style={{
+                        width: "100%", marginBottom: 8, borderRadius: 10,
+                        border: "2px solid #99dedd", display: "block", breakInside: "avoid",
+                      }} />
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
@@ -1169,18 +1121,19 @@ console.log("groupes:", groupes);
       <PhotoModule
         photos={photos}
         setPhotos={setPhotos}
-        title="Photos de fin de ménage"
-        subtitle="Sélectionnez toutes vos photos en une seule fois. L'horodatage est gravé automatiquement."
+        title="Photos de fin de menage"
+        subtitle="Selectionnez toutes vos photos en une seule fois. L'horodatage est grave automatiquement."
         infoTitle="Photos attendues"
         infoItems={PIECES}
-        emptyLabel="Sélectionner les photos"
+        emptyLabel="Selectionner les photos"
         addLabel="Ajouter d'autres photos"
         required={true}
         onProcessingChange={setIsProcessing}
       />
+
       <div style={{ display: "flex", gap: 12 }}>
         <Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn>
-        <Btn onClick={onNext} disabled={photos.length === 0 || isProcessing}>{suivantLabel}</Btn>
+        <Btn onClick={handleNext} disabled={photos.length === 0 || isProcessing}>{suivantLabel}</Btn>
       </div>
     </div>
   );
