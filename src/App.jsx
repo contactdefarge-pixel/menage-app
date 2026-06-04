@@ -19,7 +19,7 @@ const CONSOMMABLES_LAISSER = [
 
 const CONSOMMABLES_VERIFIER = [
   "Liquide vaisselle", "Gel WC", "Savon main", "Gel douche", "Huile", "Sel", "Poivre",
-  "Sacs poubelles", "Sacs poubelles SdB",
+  "Sacs poubelles", "Sacs poubelles SdB", "Décap' Four", "Cif", "Fongicide",
 ];
 
 const STORAGE_KEY = "menage_draft";
