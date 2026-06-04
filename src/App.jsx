@@ -1047,8 +1047,8 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
   // [aliases reconnus, label affiché, ordre d'affichage]
   var PIECES_DEFS = [
     { key: "entree", label: "ENTREE", aliases: ["entree", "entrée", "couloir", "hall"], order: 1 },
-    { key: "salon", label: "SALON", aliases: ["salon", "living", "séjour", "sejour"], order: 2 },
-    { key: "cuisine", label: "CUISINE", aliases: ["cuisine"], order: 3 },
+    { key: "salon", label: "SALON", aliases: ["salon", "living", "séjour", "sejour"], order: 3 },
+    { key: "cuisine", label: "CUISINE", aliases: ["cuisine"], order: 2 },
     { key: "salle a manger", label: "SALLE A MANGER", aliases: ["salle à manger"], order: 4 },
     { key: "chambre", label: "CHAMBRE", aliases: ["chambre", "bedroom"], order: 5 },
     { key: "salle de bain", label: "SALLE DE BAIN", aliases: ["salle de bain", "sdb", "salle_de_bain", "bathroom"], order: 6 },
