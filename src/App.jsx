@@ -1044,40 +1044,62 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
 
   var suivantLabel = "Suivant (" + photos.length + " photo" + (photos.length > 1 ? "s" : "") + ")";
 
-  var PIECES_ALIASES = {
-    "cuisine": ["cuisine"],
-    "salle de bain": ["salle de bain", "sdb", "salle_de_bain", "bathroom"],
-    "wc": ["wc", "toilette", "toilettes"],
-    "chambre": ["chambre", "bedroom"],
-    "entree": ["entree", "entrée", "couloir", "hall"],
-    "salon": ["salon", "living", "séjour", "sejour"],
-  };
+  // [aliases reconnus, label affiché, ordre d'affichage]
+  var PIECES_DEFS = [
+    { key: "entree", label: "Entrée", aliases: ["entree", "entrée", "couloir", "hall"], order: 1 },
+    { key: "salon", label: "Salon", aliases: ["salon", "living", "séjour", "sejour"], order: 2 },
+    { key: "cuisine", label: "Cuisine", aliases: ["cuisine"], order: 3 },
+    { key: "chambre", label: "Chambre", aliases: ["chambre", "bedroom"], order: 4 },
+    { key: "salle de bain", label: "Salle de bain", aliases: ["salle de bain", "sdb", "salle_de_bain", "bathroom"], order: 5 },
+    { key: "wc", label: "WC", aliases: ["wc", "toilette", "toilettes"], order: 90 },
+    { key: "exterieur", label: "Extérieur", aliases: ["exterieur", "extérieur", "exter", "dehors", "balcon", "terrasse", "jardin"], order: 91 },
+  ];
 
-  var PIECES_LABELS = {
-    "cuisine": "Cuisine",
-    "salle de bain": "Salle de bain",
-    "wc": "WC",
-    "chambre": "Chambre",
-    "entree": "Entree",
-    "salon": "Salon",
-  };
+  function parseNomPhoto(nom) {
+    // ex: "Chambre-1.jpg" => base "chambre", numero 1
+    // ex: "Chambre-2(2).jpg" => base "chambre", numero 2 (2e photo)
+    var base = (nom || "").replace(/\.[^.]+$/, "");
+    var sansSuffixe = base.replace(/\(\d+\)\s*$/, "").trim();
+    var match = sansSuffixe.match(/^(.*?)(?:[-_\s]+(\d+))?\s*$/);
+    var nomPiece = (match && match[1] ? match[1] : sansSuffixe).toLowerCase().replace(/_/g, " ").trim();
+    var numero = match && match[2] ? parseInt(match[2], 10) : null;
+    return { nomPiece: nomPiece, numero: numero };
+  }
+
+  function trouverDef(nomPiece) {
+    return PIECES_DEFS.find(function(def) {
+      return def.aliases.some(function(alias) {
+        return nomPiece === alias.toLowerCase() || nomPiece.startsWith(alias.toLowerCase());
+      });
+    });
+  }
 
   function grouperParPiece(photosRef) {
     var groupes = {};
     (photosRef || []).forEach(function(p) {
-      var nomLower = p.nom.toLowerCase().replace(/_/g, " ").replace(/\.[^.]+$/, "");
-      var pieceKey = Object.keys(PIECES_ALIASES).find(function(key) {
-        return PIECES_ALIASES[key].some(function(alias) {
-          return nomLower.startsWith(alias.toLowerCase());
-        });
-      }) || "autre";
-      if (!groupes[pieceKey]) groupes[pieceKey] = [];
-      groupes[pieceKey].push(p);
+      var parsed = parseNomPhoto(p.nom);
+      var def = trouverDef(parsed.nomPiece);
+      var groupKey, label, order;
+      if (def) {
+        groupKey = parsed.numero ? def.key + "-" + parsed.numero : def.key;
+        label = parsed.numero ? def.label + " " + parsed.numero : def.label;
+        order = def.order * 100 + (parsed.numero || 0);
+      } else {
+        groupKey = parsed.nomPiece || "autre";
+        label = (parsed.nomPiece || "Autre").replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+        if (parsed.numero) { groupKey += "-" + parsed.numero; label += " " + parsed.numero; }
+        order = 50 * 100 + (parsed.numero || 0);
+      }
+      if (!groupes[groupKey]) groupes[groupKey] = { label: label, order: order, photos: [] };
+      groupes[groupKey].photos.push(p);
     });
     return groupes;
   }
 
-  var groupes = grouperParPiece(logement && logement.photosReference);
+  var groupesObj = grouperParPiece(logement && logement.photosReference);
+  var groupes = Object.keys(groupesObj)
+    .map(function(k) { return [k, groupesObj[k]]; })
+    .sort(function(a, b) { return a[1].order - b[1].order; });
 
   return (
     <div>
@@ -1098,16 +1120,16 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
           <div style={{ fontSize: 13, color: "#5b7f84", marginBottom: 16 }}>
             Reproduisez ces photos pour chaque piece.
           </div>
-          {Object.entries(groupes).map(function(entry) {
+          {groupes.map(function(entry) {
             var pieceKey = entry[0];
-            var photosGroupe = entry[1];
+            var groupe = entry[1];
             return (
               <div key={pieceKey} style={{ marginBottom: 16 }}>
                 <div style={{ fontWeight: 700, fontSize: 16, color: "#085157", marginBottom: 8 }}>
-                  {PIECES_LABELS[pieceKey] || pieceKey}
+                  {groupe.label}
                 </div>
                 <div style={{ columns: 2, gap: 8 }}>
-                  {photosGroupe.map(function(p, i) {
+                  {groupe.photos.map(function(p, i) {
                     return (
                       <img key={i} src={p.url} alt={p.nom} loading="lazy" style={{
                         width: "100%", marginBottom: 8, borderRadius: 10,
