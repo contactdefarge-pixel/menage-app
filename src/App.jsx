@@ -1,5 +1,68 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 
+// ── IndexedDB pour la persistance des photos ─────────────────────────────────
+var IDB_NAME = "menage_photos";
+var IDB_STORE = "photos";
+var IDB_VERSION = 1;
+
+function openIDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = function(e) {
+      e.target.result.createObjectStore(IDB_STORE, { keyPath: "key" });
+    };
+    req.onsuccess = function(e) { resolve(e.target.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+
+function idbSavePhotos(key, photos) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var data = photos.map(function(p) {
+        return { id: p.id, name: p.name, file: p.file };
+      });
+      var tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).put({ key: key, data: data });
+      tx.oncomplete = function() { resolve(); };
+      tx.onerror = function() { reject(tx.error); };
+    });
+  }).catch(function() {});
+}
+
+function idbLoadPhotos(key) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(IDB_STORE, "readonly");
+      var req = tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess = function() {
+        var record = req.result;
+        if (!record) { resolve([]); return; }
+        var photos = record.data.map(function(p) {
+          return {
+            id: p.id,
+            name: p.name,
+            file: p.file,
+            preview: URL.createObjectURL(p.file),
+          };
+        });
+        resolve(photos);
+      };
+      req.onerror = function() { reject(req.error); };
+    });
+  }).catch(function() { return []; });
+}
+
+function idbDeletePhotos(key) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve) {
+      var tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).delete(key);
+      tx.oncomplete = function() { resolve(); };
+    });
+  }).catch(function() {});
+}
+
 const PIECES = [
   { id: "cuisine", label: "Cuisine", exemples: "Vue générale, évier, plaques/micro-ondes" },
   { id: "sdb", label: "Salle de bain", exemples: "Douche, lavabo/miroir, bondes et sol" },
@@ -1370,6 +1433,28 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
     } catch(e) {}
   }, [step, arrivee, attention, etatLieux, consommables, done]);
 
+  // Sauvegarder les photos arrivée dans IndexedDB à chaque changement
+useEffect(function() {
+  if (done) { idbDeletePhotos("photos_arrivee"); return; }
+  idbSavePhotos("photos_arrivee", photosArrivee);
+}, [photosArrivee, done]);
+
+// Sauvegarder les photos fin de ménage dans IndexedDB à chaque changement
+useEffect(function() {
+  if (done) { idbDeletePhotos("photos_fin"); return; }
+  idbSavePhotos("photos_fin", photos);
+}, [photos, done]);
+
+// Charger les photos depuis IndexedDB au montage
+useEffect(function() {
+  idbLoadPhotos("photos_arrivee").then(function(saved) {
+    if (saved.length > 0) setPhotosArrivee(saved);
+  });
+  idbLoadPhotos("photos_fin").then(function(saved) {
+    if (saved.length > 0) setPhotos(saved);
+  });
+}, []);
+
   useEffect(function() {
     function handleBeforeUnload(e) {
       if (!sending) return;
@@ -1390,9 +1475,13 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
   }
 
   function handleRestart() {
-    localStorage.removeItem(STORAGE_KEY);
-    setShowResume(false);
-  }
+  localStorage.removeItem(STORAGE_KEY);
+  idbDeletePhotos("photos_arrivee");
+  idbDeletePhotos("photos_fin");
+  setPhotosArrivee([]);
+  setPhotos([]);
+  setShowResume(false);
+}
 
   function next() { setStep(function(s) { return Math.min(s + 1, TOTAL - 1); }); }
   function prev() { setStep(function(s) { return Math.max(s - 1, 0); }); }
@@ -1432,7 +1521,7 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
         .then(function(res) { return res.json(); })
         .then(function(data) {
           setSending(false);
-          if (data.success) { localStorage.removeItem(STORAGE_KEY); setDone(true); }
+          if (data.success) { localStorage.removeItem(STORAGE_KEY); idbDeletePhotos("photos_arrivee"); idbDeletePhotos("photos_fin"); setDone(true); }
           else setSendError("Erreur lors de l envoi. Réessayez.");
         })
         .catch(function() { setSending(false); setSendError("Erreur réseau. Vérifiez votre connexion."); });
