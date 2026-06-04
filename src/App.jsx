@@ -1367,6 +1367,7 @@ export default function App() {
   var [logement, setLogement] = useState(DEFAULT_LOGEMENT);
   var [logementLoading, setLogementLoading] = useState(true);
   var [logementError, setLogementError] = useState("");
+  var [photosLoaded, setPhotosLoaded] = useState(false);
 
   useEffect(function() {
 var pathSlug = window.location.pathname.split("/").filter(Boolean).pop();
@@ -1433,27 +1434,33 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
     } catch(e) {}
   }, [step, arrivee, attention, etatLieux, consommables, done]);
 
-  // Sauvegarder les photos arrivée dans IndexedDB à chaque changement
-useEffect(function() {
-  if (done) { idbDeletePhotos("photos_arrivee"); return; }
-  idbSavePhotos("photos_arrivee", photosArrivee);
-}, [photosArrivee, done]);
+// Charger les photos depuis IndexedDB au montage — en premier
+var [photosLoaded, setPhotosLoaded] = useState(false);
 
-// Sauvegarder les photos fin de ménage dans IndexedDB à chaque changement
 useEffect(function() {
-  if (done) { idbDeletePhotos("photos_fin"); return; }
-  idbSavePhotos("photos_fin", photos);
-}, [photos, done]);
-
-// Charger les photos depuis IndexedDB au montage
-useEffect(function() {
-  idbLoadPhotos("photos_arrivee").then(function(saved) {
-    if (saved.length > 0) setPhotosArrivee(saved);
-  });
-  idbLoadPhotos("photos_fin").then(function(saved) {
-    if (saved.length > 0) setPhotos(saved);
+  Promise.all([
+    idbLoadPhotos("photos_arrivee"),
+    idbLoadPhotos("photos_fin"),
+  ]).then(function(results) {
+    if (results[0].length > 0) setPhotosArrivee(results[0]);
+    if (results[1].length > 0) setPhotos(results[1]);
+    setPhotosLoaded(true);
   });
 }, []);
+
+// Sauvegarder photos arrivée — seulement après le chargement initial
+useEffect(function() {
+  if (!photosLoaded) return;
+  if (done) { idbDeletePhotos("photos_arrivee"); return; }
+  idbSavePhotos("photos_arrivee", photosArrivee);
+}, [photosArrivee, done, photosLoaded]);
+
+// Sauvegarder photos fin — seulement après le chargement initial
+useEffect(function() {
+  if (!photosLoaded) return;
+  if (done) { idbDeletePhotos("photos_fin"); return; }
+  idbSavePhotos("photos_fin", photos);
+}, [photos, done, photosLoaded]);
 
   useEffect(function() {
     function handleBeforeUnload(e) {
