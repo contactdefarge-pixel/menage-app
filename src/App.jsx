@@ -1026,84 +1026,8 @@ function PhotoWarningModal({ expected, actual, onConfirm, onCancel }) {
   );
 }
 
-var PHOTO_ANALYSES_KEY = "photo_analyses";
-
-function getPhotoAnalysisCache() {
-  try { return JSON.parse(localStorage.getItem(PHOTO_ANALYSES_KEY) || "{}"); }
-  catch(e) { return {}; }
-}
-
-function savePhotoAnalysis(photoId, piece) {
-  try {
-    var cache = getPhotoAnalysisCache();
-    cache[photoId] = piece;
-    localStorage.setItem(PHOTO_ANALYSES_KEY, JSON.stringify(cache));
-  } catch(e) {}
-}
-
-async function analyzePhoto(photo, piecesAttendues) {
-  // Vérifie le cache d'abord
-  var cache = getPhotoAnalysisCache();
-  if (cache[photo.id]) return cache[photo.id];
-
-  // Convertit le blob en base64
-  var base64 = await new Promise(function(resolve) {
-    var reader = new FileReader();
-    reader.onload = function() { resolve(reader.result.split(",")[1]); };
-    reader.readAsDataURL(photo.file);
-  });
-
-  // Appelle l'API
-  var res = await fetch("/api/analyze-photo", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      imageBase64: base64,
-      mediaType: "image/jpeg",
-      piecesAttendues: piecesAttendues,
-    })
-  });
-
-  var data = await res.json();
-  var piece = data.piece || "autre";
-
-  // Sauvegarde dans le cache
-  savePhotoAnalysis(photo.id, piece);
-  return piece;
-}
-
 function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
   var [isProcessing, setIsProcessing] = useState(false);
-  var [analysisResult, setAnalysisResult] = useState({});
-var [isAnalyzing, setIsAnalyzing] = useState(false);
-
-useEffect(function() {
-  if (!photos || photos.length === 0) return;
-  var piecesAttendues = Object.keys(groupes);
-  if (piecesAttendues.length === 0) return;
-
-  setIsAnalyzing(true);
-  var cache = getPhotoAnalysisCache();
-
-  // Sépare les photos déjà analysées des nouvelles
-  var aAnalyser = photos.filter(function(p) { return !cache[p.id]; });
-  var dejaAnalysees = photos.filter(function(p) { return cache[p.id]; });
-
-  // Applique le cache immédiatement
-  var result = {};
-  dejaAnalysees.forEach(function(p) { result[p.id] = cache[p.id]; });
-  setAnalysisResult(Object.assign({}, result));
-
-  if (aAnalyser.length === 0) { setIsAnalyzing(false); return; }
-
-  // Analyse les nouvelles photos
-  Promise.all(aAnalyser.map(function(p) {
-    return analyzePhoto(p, piecesAttendues).then(function(piece) {
-      result[p.id] = piece;
-      setAnalysisResult(Object.assign({}, result));
-    });
-  })).finally(function() { setIsAnalyzing(false); });
-}, [photos]);
   var [showWarning, setShowWarning] = useState(false);
 
   var expectedCount = logement && logement.photosReference
@@ -1174,38 +1098,27 @@ useEffect(function() {
           <div style={{ fontSize: 13, color: "#5b7f84", marginBottom: 16 }}>
             Reproduisez ces photos pour chaque piece.
           </div>
-          {Object.entries(groupes).map(function([pieceKey, photosGroupe]) {
-  // Vérifie si cette pièce a au moins une photo uploadée
-  var photosPourCettePiece = photos.filter(function(p) {
-    return analysisResult[p.id] === pieceKey.toLowerCase();
-  });
-  var manque = Object.keys(analysisResult).length === photos.length && photosPourCettePiece.length === 0;
-
-  return (
-    <div key={pieceKey} style={{ marginBottom: 16 }}>
-      <div style={{
-        fontWeight: 700, fontSize: 18, marginBottom: 8,
-        color: manque ? "#dc2626" : COLORS.primaryDark,
-        display: "flex", alignItems: "center", gap: 8,
-      }}>
-        {pieceKey}
-        {manque ? <span style={{ fontSize: 13, fontWeight: 600, color: "#dc2626" }}>⚠ Photo manquante</span> : null}
-        {isAnalyzing ? <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 400 }}>Analyse...</span> : null}
-      </div>
-      <div style={{ columns: 2, gap: 8 }}>
-        {photosGroupe.map(function(p, i) {
-          return (
-            <img key={i} src={p.url} alt={p.nom} loading="lazy" style={{
-              width: "100%", marginBottom: 8, borderRadius: 10,
-              border: "2px solid " + COLORS.primaryBorder, display: "block",
-              breakInside: "avoid",
-            }} />
-          );
-        })}
-      </div>
-    </div>
-  );
-})}
+          {Object.entries(groupes).map(function(entry) {
+            var pieceKey = entry[0];
+            var photosGroupe = entry[1];
+            return (
+              <div key={pieceKey} style={{ marginBottom: 16 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "#085157", marginBottom: 8 }}>
+                  {PIECES_LABELS[pieceKey] || pieceKey}
+                </div>
+                <div style={{ columns: 2, gap: 8 }}>
+                  {photosGroupe.map(function(p, i) {
+                    return (
+                      <img key={i} src={p.url} alt={p.nom} loading="lazy" style={{
+                        width: "100%", marginBottom: 8, borderRadius: 10,
+                        border: "2px solid #99dedd", display: "block", breakInside: "avoid",
+                      }} />
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : null}
 
@@ -1658,11 +1571,6 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
     setSending(true);
     setSendError("");
     setSendProgress(0);
-    if (data.success) {
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(PHOTO_ANALYSES_KEY); // ← ajouter cette ligne
-  setDone(true);
-}
 
     function uploadOne(p) {
       var formData = new FormData();
