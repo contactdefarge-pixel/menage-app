@@ -1086,7 +1086,7 @@ function Step6Photos({ photos, setPhotos, logement, onNext, onPrev }) {
         label = parsed.numero ? def.label + " " + parsed.numero : def.label;
         order = def.order * 100 + (parsed.numero || 0);
       } else {
-        groupKey = parsed.nomPiece || "autre";
+        groupKey = parsed.nomPiece || "Autre";
         label = (parsed.nomPiece || "Autre").replace(/\b\w/g, function(c) { return c.toUpperCase(); });
         if (parsed.numero) { groupKey += "-" + parsed.numero; label += " " + parsed.numero; }
         order = 50 * 100 + (parsed.numero || 0);
