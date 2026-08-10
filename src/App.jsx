@@ -80,6 +80,7 @@ function normalizeLogement(raw) {
     photosReference: raw.photosReference || [],
     pointsAttention: raw.pointsAttention || "",
     proprietaire: raw.proprietaire || "",
+    forfaitMenage: raw.forfaitMenage || "",
   };
 }
 
@@ -627,6 +628,7 @@ function Step1Infos({ logement, loading, error, onNext, onModeVisite }) {
       <SectionTitle>{logement.nom}</SectionTitle>
       <CopyAdresse adresse={logement.adresse} />
       <InfoCardWithCopy icon={<IconReceipt />} title="Facturation à adresser à" text={logement.proprietaire} />
+      <InfoCardWithCopy icon={<IconReceipt />} title="Forfait ménage" text={logement.forfaitMenage} />
       <InfoCardWithCopy icon={<IconWifi />} title="WiFi" text={logement.wifi} />
       <InfoCardWithCopy icon={<IconUsers />} title="Voyageurs" text={voyageursText} />
       <InfoCardWithCopy icon={<IconTrash />} title="Poubelles" text={logement.poubelles} />
@@ -1388,6 +1390,8 @@ function ModeVisite({ logement, onQuitter }) {
         <div>
           <SectionTitle>{logement.nom}</SectionTitle>
           <CopyAdresse adresse={logement.adresse} />
+          <InfoCardWithCopy icon={<IconReceipt />} title="Facturation à adresser à" text={logement.proprietaire} />
+          <InfoCardWithCopy icon={<IconReceipt />} title="Forfait ménage" text={logement.forfaitMenage} />
           <InfoCardWithCopy icon={<IconWifi />} title="WiFi" text={logement.wifi} />
           <InfoCardWithCopy icon={<IconUsers />} title="Voyageurs" text={[logement.voyageurs ? logement.voyageurs+" max" : "", cleanNotionText(logement.lits)].filter(Boolean).join("\n")} />
           <InfoCardWithCopy icon={<IconTrash />} title="Poubelles" text={logement.poubelles} />
