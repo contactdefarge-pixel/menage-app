@@ -615,7 +615,7 @@ function ResumeModal({ saved, onResume, onRestart }) {
   );
 }
 
-function Step1Infos({ logement, loading, error, onNext }) {
+function Step1Infos({ logement, loading, error, onNext, onModeVisite }) {
   var voyageurs = logement.voyageurs ? logement.voyageurs + " max" : "";
   var voyageursText = [voyageurs, cleanNotionText(logement.lits)].filter(Boolean).join("\n");
   var accesText = cleanNotionText(logement.acces);
@@ -632,7 +632,14 @@ function Step1Infos({ logement, loading, error, onNext }) {
       <InfoCardWithCopy icon={<IconTrash />} title="Poubelles" text={logement.poubelles} />
       <InfoCardWithCopy icon={<IconBox />} title="Consommables" text={logement.consommables} />
       <InfoCardWithCopy icon={<IconKey />} title="Accès logement" text={accesText} />
-      <Btn onClick={onNext}>Suivant</Btn>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <Btn onClick={onNext}>Commencer le rapport</Btn>
+        <button onClick={onModeVisite} style={{
+          padding: "13px 20px", borderRadius: 12, border: "2px solid #cfe4e9",
+          cursor: "pointer", background: "#fff", color: "#085157",
+          fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 8,
+        }}>👁 Mode visite</button>
+      </div>
     </div>
   );
 }
@@ -1283,6 +1290,211 @@ var INIT_ATTENTION = { lu: false };
 var INIT_ETAT = { note: 0, observations: "" };
 var INIT_CONSO = { consommablesAPrevoir: "", remarques: "", heureFin: "", consommablesSelectionnes: [] };
 
+var VISITE_STEPS = ["infos", "attention", "consommables", "photos"];
+var VISITE_LABELS = { infos: "Infos", attention: "Points d'attention", consommables: "Consommables", photos: "Photos de référence" };
+
+function ModeVisite({ logement, onQuitter }) {
+  var [stepIndex, setStepIndex] = useState(0);
+  var step = VISITE_STEPS[stepIndex];
+
+  var points = parsePointsAttention(logement && logement.pointsAttention);
+  var itemsALaisser = parseConsommablesALaisser(logement && logement.consommablesALaisser);
+  if (itemsALaisser.length === 0) itemsALaisser = CONSOMMABLES_LAISSER;
+
+  // Grouper les photos (même logique que Step6Photos)
+  var PIECES_DEFS = [
+    { key: "entree", label: "ENTREE", aliases: ["entree", "entrée", "couloir", "hall"], order: 1 },
+    { key: "salon", label: "SALON", aliases: ["salon", "living", "séjour", "sejour"], order: 3 },
+    { key: "cuisine", label: "CUISINE", aliases: ["cuisine"], order: 2 },
+    { key: "salle a manger", label: "SALLE A MANGER", aliases: ["salle à manger"], order: 4 },
+    { key: "chambre", label: "CHAMBRE", aliases: ["chambre", "bedroom"], order: 5 },
+    { key: "salle de bain", label: "SALLE DE BAIN", aliases: ["salle de bain", "sdb", "salle_de_bain", "bathroom"], order: 6 },
+    { key: "wc", label: "WC", aliases: ["wc", "toilette", "toilettes"], order: 90 },
+    { key: "exterieur", label: "EXTERIEUR", aliases: ["exterieur", "extérieur", "exter", "dehors", "balcon", "terrasse", "jardin"], order: 91 },
+  ];
+  function normalize(s) { return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim(); }
+  function parseNomPhoto(nom) {
+    var base = (nom||"").replace(/\.[^.]+$/,"");
+    var sansSuffixe = base.replace(/\(\d+\)\s*$/,"").trim();
+    var match = sansSuffixe.match(/^(.*?)(?:[-_\s]+(\d+))?\s*$/);
+    var nomPiece = normalize((match&&match[1]?match[1]:sansSuffixe).replace(/_/g," "));
+    var numero = match&&match[2]?parseInt(match[2],10):null;
+    return { nomPiece, numero };
+  }
+  function trouverDef(nomPiece) {
+    return PIECES_DEFS.find(function(def) {
+      return def.aliases.some(function(alias) { var a=normalize(alias); return nomPiece===a||nomPiece.startsWith(a); });
+    });
+  }
+  function grouperParPiece(photosRef) {
+    var groupes = {};
+    (photosRef||[]).forEach(function(p) {
+      var parsed = parseNomPhoto(p.nom);
+      var def = trouverDef(parsed.nomPiece);
+      var groupKey, label, order;
+      if (def) {
+        groupKey = parsed.numero ? def.key+"-"+parsed.numero : def.key;
+        label = parsed.numero ? def.label+" "+parsed.numero : def.label;
+        order = def.order*100+(parsed.numero||0);
+      } else {
+        groupKey = parsed.nomPiece||"autre";
+        label = (parsed.nomPiece||"Autre").toUpperCase();
+        if (parsed.numero) { groupKey+="-"+parsed.numero; label+=" "+parsed.numero; }
+        order = 50*100+(parsed.numero||0);
+      }
+      if (!groupes[groupKey]) groupes[groupKey] = { label, order, photos: [] };
+      groupes[groupKey].photos.push(p);
+    });
+    return groupes;
+  }
+  var groupesObj = grouperParPiece(logement && logement.photosReference);
+  var groupes = Object.keys(groupesObj).map(function(k) { return [k, groupesObj[k]]; }).sort(function(a,b) { return a[1].order-b[1].order; });
+
+  return (
+    <div style={wrap}>
+      {/* Bandeau mode visite */}
+      <div style={{
+        background: "#085157", color: "#fff", borderRadius: 12,
+        padding: "10px 16px", marginBottom: 20,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 16 }}>👁</span>
+          <span style={{ fontWeight: 700, fontSize: 14 }}>Mode visite</span>
+          <span style={{ fontSize: 12, opacity: 0.75 }}>— lecture seule</span>
+        </div>
+        <button onClick={onQuitter} style={{
+          background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 8,
+          color: "#fff", fontWeight: 600, fontSize: 13, padding: "5px 12px", cursor: "pointer",
+        }}>Quitter</button>
+      </div>
+
+      {/* Navigation par onglets */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 24, overflowX: "auto" }}>
+        {VISITE_STEPS.map(function(s, i) {
+          return (
+            <button key={s} onClick={function() { setStepIndex(i); }} style={{
+              padding: "8px 14px", borderRadius: 20, border: "none", cursor: "pointer",
+              fontWeight: 600, fontSize: 13, whiteSpace: "nowrap",
+              background: stepIndex === i ? "#2CA7A9" : "#eaf4f6",
+              color: stepIndex === i ? "#fff" : "#5b7f84",
+            }}>{VISITE_LABELS[s]}</button>
+          );
+        })}
+      </div>
+
+      {/* Contenu selon l'onglet */}
+      {step === "infos" && (
+        <div>
+          <SectionTitle>{logement.nom}</SectionTitle>
+          <CopyAdresse adresse={logement.adresse} />
+          <InfoCardWithCopy icon={<IconWifi />} title="WiFi" text={logement.wifi} />
+          <InfoCardWithCopy icon={<IconUsers />} title="Voyageurs" text={[logement.voyageurs ? logement.voyageurs+" max" : "", cleanNotionText(logement.lits)].filter(Boolean).join("\n")} />
+          <InfoCardWithCopy icon={<IconTrash />} title="Poubelles" text={logement.poubelles} />
+          <InfoCardWithCopy icon={<IconBox />} title="Consommables" text={logement.consommables} />
+          <InfoCardWithCopy icon={<IconKey />} title="Accès logement" text={cleanNotionText(logement.acces) + (logement.boiteCle ? "\n**Code boîte à clé : " + logement.boiteCle + "**" : "")} />
+        </div>
+      )}
+
+      {step === "attention" && (
+        <div>
+          <SectionTitle>Points d'attention</SectionTitle>
+          <Subtitle>Consignes à respecter pendant l'intervention.</Subtitle>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {points.map(function(pt, i) {
+              return (
+                <div key={i} style={{
+                  display: "flex", gap: 14, padding: "14px 16px",
+                  background: "#fff", borderRadius: 14,
+                  fontSize: 14, color: "#085157", lineHeight: 1.5,
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px #cfe4e9",
+                }}>
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>{pt.emoji}</span>
+                  <span>{pt.text}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {step === "consommables" && (
+        <div>
+          <SectionTitle>Consommables</SectionTitle>
+          {logement.consommables ? <Subtitle><FormattedText>{logement.consommables}</FormattedText></Subtitle> : null}
+          <div style={{ fontWeight: 700, fontSize: 12, color: "#085157", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            À laisser (compléter pour atteindre la quantité)
+          </div>
+          {itemsALaisser.map(function(c, i) {
+            return (
+              <div key={i} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "9px 13px", background: "#F6FBFC", borderRadius: 8,
+                fontSize: 14, marginBottom: 6,
+              }}>
+                <span style={{ flex: 1 }}>
+                  {c.label}
+                  {c.comment ? <span style={{ color: "#94a3b8", fontSize: 12, marginLeft: 6 }}>({c.comment})</span> : null}
+                </span>
+                {c.qt ? <span style={{ background: "#D8EDF2", color: "#085157", fontWeight: 700, borderRadius: 6, padding: "2px 10px", fontSize: 13, flexShrink: 0 }}>{c.qt}</span> : null}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {step === "photos" && (
+        <div>
+          <SectionTitle>Photos de référence</SectionTitle>
+          <Subtitle>Photos à reproduire lors de l'intervention.</Subtitle>
+          {groupes.length === 0 ? (
+            <div style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: 32 }}>Aucune photo de référence disponible.</div>
+          ) : groupes.map(function(entry) {
+            var pieceKey = entry[0];
+            var groupe = entry[1];
+            return (
+              <div key={pieceKey} style={{ marginBottom: 20 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: "#085157", marginBottom: 8 }}>{groupe.label}</div>
+                <div style={{ columns: 2, gap: 8 }}>
+                  {groupe.photos.map(function(p, i) {
+                    return (
+                      <img key={i} src={p.url} alt={p.nom} loading="lazy" style={{
+                        width: "100%", marginBottom: 8, borderRadius: 10,
+                        border: "2px solid #99dedd", display: "block", breakInside: "avoid",
+                      }} />
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Navigation bas de page */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 32 }}>
+        <button onClick={function() { setStepIndex(function(i) { return Math.max(0, i-1); }); }}
+          disabled={stepIndex === 0}
+          style={{
+            padding: "11px 20px", borderRadius: 12, border: "2px solid #cfe4e9",
+            cursor: stepIndex === 0 ? "not-allowed" : "pointer",
+            background: "#fff", color: stepIndex === 0 ? "#94a3b8" : "#085157",
+            fontWeight: 600, fontSize: 14,
+          }}>← Précédent</button>
+        <button onClick={function() { setStepIndex(function(i) { return Math.min(VISITE_STEPS.length-1, i+1); }); }}
+          disabled={stepIndex === VISITE_STEPS.length-1}
+          style={{
+            padding: "11px 20px", borderRadius: 12, border: "none",
+            cursor: stepIndex === VISITE_STEPS.length-1 ? "not-allowed" : "pointer",
+            background: stepIndex === VISITE_STEPS.length-1 ? "#cfe4e9" : "linear-gradient(135deg,#2CA7A9,#085157)",
+            color: stepIndex === VISITE_STEPS.length-1 ? "#94a3b8" : "#fff",
+            fontWeight: 700, fontSize: 14,
+          }}>Suivant →</button>
+      </div>
+    </div>
+  );
+}
+
 function PageAccueil() {
   var [logements, setLogements] = useState([]);
   var [loading, setLoading] = useState(true);
@@ -1502,6 +1714,7 @@ export default function App() {
   var [logement, setLogement] = useState(DEFAULT_LOGEMENT);
   var [logementLoading, setLogementLoading] = useState(true);
   var [logementError, setLogementError] = useState("");
+  var [modeVisite, setModeVisite] = useState(false);
 
   useEffect(function() {
 var pathSlug = window.location.pathname.split("/").filter(Boolean).pop();
@@ -1655,7 +1868,11 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
     return <div style={wrap}><StepSuccess nom={arrivee.nom} bien={arrivee.bien} /></div>;
   }
 
-    var pathSlug = window.location.pathname.split("/").filter(Boolean).pop();
+  if (modeVisite) {
+    return <ModeVisite logement={logement} onQuitter={function() { setModeVisite(false); }} />;
+  }
+
+  var pathSlug = window.location.pathname.split("/").filter(Boolean).pop();
   if (!pathSlug) return <PageAccueil />;
   
   return (
@@ -1672,7 +1889,7 @@ var slug = slugify(pathSlug || DEFAULT_LOGEMENT.slug);
         <ProgressBar current={step} total={TOTAL} />
       </div>
 
-      {step === 0 && <Step1Infos logement={logement} loading={logementLoading} error={logementError} onNext={next} />}
+      {step === 0 && <Step1Infos logement={logement} loading={logementLoading} error={logementError} onNext={next} onModeVisite={function() { setModeVisite(true); }} />}
       {step === 1 && <Step2Arrivee data={arrivee} setData={setArrivee} onNext={next} onPrev={prev} />}
       {step === 2 && <Step3Attention data={attention} setData={setAttention} logement={logement} onNext={next} onPrev={prev} />}
       {step === 3 && <Step4EtatLieux data={etatLieux} setData={setEtatLieux} photosArrivee={photosArrivee} setPhotosArrivee={setPhotosArrivee} onNext={next} onPrev={prev} />}
