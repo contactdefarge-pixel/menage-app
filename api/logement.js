@@ -42,6 +42,7 @@ function mapPage(page) {
     photosReference, // ← MANQUANT, ajouter cette ligne
     pointsAttention: plainText(props["Points d'attention"]),
     proprietaire: plainText(props["Propriétaire"]),
+    forfaitMenage: props["Forfait ménage"]?.number != null ? props["Forfait ménage"].number + " €" : "",
   };
 }
 
