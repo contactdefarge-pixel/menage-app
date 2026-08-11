@@ -243,7 +243,15 @@ function IconTrash()   { return <Ico points="3 6 5 6 21 6" extra={["M19 6l-1 14a
 function IconBox()     { return <Ico d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" extra={["M3.27 6.96 12 12.01 20.73 6.96"]} x1={12} y1={22.08} x2={12} y2={12}/>; }
 function IconKey()     { return <Ico d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>; }
 function IconReceipt() { return <Ico d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z" extra={["M8 8h8","M8 12h8","M8 16h5"]}/>; }
-function IconEuro()    { return <Ico d="M7 9a5 5 0 1 0 0 6" extra={["M5 12h8"]}/>; }
+function IconEuro() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={DS.color.primaryDark} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 10h12"/>
+      <path d="M4 14h12"/>
+      <path d="M19 6a7 7 0 1 0 0 12"/>
+    </svg>
+  );
+}
 function IconCheck(){ return <svg width="72" height="72" viewBox="0 0 72 72" fill="none"><rect x="8" y="8" width="56" height="56" rx="18" fill="#dcfce7"/><rect x="8" y="8" width="56" height="56" rx="18" stroke="#86efac" strokeWidth="2"/><path d="M24 36.5L32.2 44L49 28" stroke="#16a34a" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/></svg>; }
 function IconCheckSmall(){ return <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.4L8.1 14L15.8 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>; }
 function IconCircleCheck(){ return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={DS.color.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l3 3 5-5.5"/></svg>; }
