@@ -118,12 +118,35 @@ function parseConsommablesALaisser(text) {
   }).filter(Boolean);
 }
 
+var POINTS_EMOJI_MAP = [
+  { keys: ["fenêtre","fenetre","aération","aerer","humidité","humidite","ventil"], emoji: "🪟" },
+  { keys: ["douche","bonde","bondes","cheveux","siphon","évacuation","evacuation"], emoji: "🚿" },
+  { keys: ["vmc","ventilation","toilette","wc","extraction"], emoji: "💨" },
+  { keys: ["poubelle","déchet","dechet","tri","sac"], emoji: "🗑️" },
+  { keys: ["lit","parure","drap","coussin","oreiller","couette"], emoji: "🛏️" },
+  { keys: ["porte","clé","cle","code","boite","boîte","accès","acces","fermer"], emoji: "🔑" },
+  { keys: ["cuisine","four","plaque","micro","frigo","réfrigérateur","vaisselle"], emoji: "🍳" },
+  { keys: ["lumière","lumiere","lampe","éclairage","electricite"], emoji: "💡" },
+  { keys: ["chauffage","thermostat","température","climatisation"], emoji: "🌡️" },
+  { keys: ["wifi","internet","box","routeur"], emoji: "📶" },
+  { keys: ["photo","image","appareil"], emoji: "📷" },
+  { keys: ["canapé","canape","salon","meuble"], emoji: "🛋️" },
+  { keys: ["bain","baignoire","lavabo","robinet"], emoji: "🛁" },
+  { keys: ["araignée","araigne","insecte"], emoji: "🕷️" },
+];
+
 function parsePointsAttention(text) {
-  if(!text) return [];
+  if (!text) return [];
   return text.split("\n")
-    .map(function(l){ return l.trim().replace(/^[•\-\*]\s*/,""); })
+    .map(function(l) { return l.trim().replace(/^[•\-\*]\s*/, ""); })
     .filter(Boolean)
-    .map(function(l){ return {text:l, emoji:""}; });
+    .map(function(line) {
+      var lower = line.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      var found = POINTS_EMOJI_MAP.find(function(entry) {
+        return entry.keys.some(function(k) { return lower.includes(k); });
+      });
+      return { text: line, emoji: found ? found.emoji : "✅" };
+    });
 }
 
 /* photo grouping (shared) */
