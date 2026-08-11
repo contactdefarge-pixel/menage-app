@@ -133,6 +133,8 @@ var POINTS_EMOJI_MAP = [
   { keys: ["canapé","canape","salon","meuble"], emoji: "🛋️" },
   { keys: ["bain","baignoire","lavabo","robinet"], emoji: "🛁" },
   { keys: ["araignée","araigne","insecte"], emoji: "🕷️" },
+  { keys: ["balais"], emoji: "🧹" },
+  { keys: ["barbecue", "bbq", "poele", "poêle"], emoji: "🔥" },
 ];
 
 function parsePointsAttention(text) {
