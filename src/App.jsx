@@ -135,6 +135,7 @@ var POINTS_EMOJI_MAP = [
   { keys: ["araignée","araigne","insecte"], emoji: "🕷️" },
   { keys: ["balais", "balai"], emoji: "🧹" },
   { keys: ["barbecue", "bbq", "poele", "poêle"], emoji: "🔥" },
+  { keys: ["jardin"], emoji: "🏡" },
 ];
 
 function parsePointsAttention(text) {
