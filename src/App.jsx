@@ -63,8 +63,36 @@ const CONSOMMABLES_VERIFIER = [
   "Sacs poubelles","Sacs poubelles SdB","Décap' Four","Cif","Fongicide",
 ];
 
-const STORAGE_KEY       = "menage_draft";
+const STORAGE_KEY        = "menage_draft";
 const PHOTO_ANALYSES_KEY = "photo_analyses";
+const HASHES_KEY         = "menage_hashes";
+
+/* CHAMPS SURVEILLES ET ETAPES ASSOCIEES */
+var WATCHED_FIELDS = [
+  { key:"proprietaire",        label:"Facturation",               step:0 },
+  { key:"adresse",             label:"Adresse",                   step:0 },
+  { key:"chambres",            label:"Nombre de chambres",        step:0 },
+  { key:"voyageurs",           label:"Nombre de voyageurs",       step:0 },
+  { key:"lits",                label:"Types de lits",             step:0 },
+  { key:"wifi",                label:"WiFi",                      step:0 },
+  { key:"acces",               label:"Acces logement",            step:0 },
+  { key:"boiteCle",            label:"Boite a cle",               step:0 },
+  { key:"poubelles",           label:"Poubelles",                 step:0 },
+  { key:"forfaitMenage",       label:"Forfait menage",            step:0 },
+  { key:"pointsAttention",     label:"Points d attention",        step:2 },
+  { key:"consommables",        label:"Consommables",              step:4 },
+  { key:"consommablesALaisser",label:"Consommables a laisser",    step:4 },
+  { key:"photosReference",     label:"Photos de reference",       step:5 },
+];
+
+var STEP_LABELS = { 0:"Informations du logement", 2:"Points d attention", 4:"Consommables", 5:"Photos de fin de menage" };
+
+function hashString(str){ var s=String(str||""),h=0; for(var i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;} return h.toString(36); }
+function hashField(val){ if(Array.isArray(val)) return hashString(val.map(function(v){return JSON.stringify(v);}).join("|")); return hashString(val); }
+function buildHashes(logement){ var r={}; WATCHED_FIELDS.forEach(function(f){r[f.key]=hashField(logement[f.key]);}); return r; }
+function getStoredHashes(slug){ try{var a=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}");return a[slug]||null;}catch(e){return null;} }
+function saveHashes(slug,hashes){ try{var a=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}");a[slug]=hashes;localStorage.setItem(HASHES_KEY,JSON.stringify(a));}catch(e){} }
+function detectChanges(slug,logement){ var stored=getStoredHashes(slug); if(!stored) return []; var current=buildHashes(logement); var changed=[]; WATCHED_FIELDS.forEach(function(f){ if(stored[f.key]!==undefined&&stored[f.key]!==current[f.key]) changed.push({key:f.key,label:f.label,step:f.step}); }); return changed; }
 
 const DEFAULT_LOGEMENT = {
   nom:"",slug:"",adresse:"",wifi:"",voyageurs:"",lits:"",acces:"",boiteCle:"",
@@ -550,8 +578,31 @@ function PhotoWarningModal({expected,actual,onConfirm,onCancel}){
   );
 }
 
+/* BANDEAU MODIFICATION */
+function ChangeBanner({changes,stepIndex,onAcknowledge,acknowledged}){
+  var stepChanges=changes.filter(function(c){return c.step===stepIndex;});
+  if(stepChanges.length===0||acknowledged) return null;
+  return (
+    <div style={{background:"#fffbeb",border:"2px solid #f59e0b",borderRadius:DS.radius.md,padding:"14px 16px",marginBottom:20}}>
+      <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+        <span style={{fontSize:20,flexShrink:0}}>🔔</span>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:DS.font.heading,fontSize:13,fontWeight:700,color:"#92400e",marginBottom:6}}>Mise à jour depuis votre dernière visite</div>
+          <div style={{fontFamily:DS.font.body,fontSize:13,color:"#92400e",marginBottom:10,lineHeight:1.5}}>
+            Les informations suivantes ont été modifiées :
+            <ul style={{margin:"6px 0 0 16px",padding:0}}>
+              {stepChanges.map(function(c,i){return <li key={i} style={{marginBottom:2}}>{c.label}</li>;})}
+            </ul>
+          </div>
+          <button onClick={onAcknowledge} style={{background:"#f59e0b",border:"none",borderRadius:DS.radius.sm,color:"#fff",fontWeight:700,fontSize:13,padding:"8px 16px",cursor:"pointer",fontFamily:DS.font.heading,width:"100%"}}>J'ai pris connaissance des modifications</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── STEP COMPONENTS ────────────────────────────────────────────────── */
-function Step1Infos({logement,loading,error,onNext,onModeVisite}){
+function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowledged,onAcknowledge}){
   var voyageurs=logement.voyageurs?logement.voyageurs+" max":"";
   var voyageursText=[voyageurs,cleanNotionText(logement.lits)].filter(Boolean).join("\n");
   var accesText=cleanNotionText(logement.acces);
@@ -567,15 +618,10 @@ function Step1Infos({logement,loading,error,onNext,onModeVisite}){
       <InfoCardWithCopy icon={<IconTrash/>} title="Poubelles" text={logement.poubelles}/>
       <InfoCardWithCopy icon={<IconBox/>} title="Consommables" text={logement.consommables}/>
       <InfoCardWithCopy icon={<IconKey/>} title="Accès logement" text={accesText}/>
+      <ChangeBanner changes={changes||[]} stepIndex={0} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
-        <Btn fullWidth onClick={onNext}>Commencer le rapport</Btn>
-        <button onClick={onModeVisite} style={{
-          width:"100%",padding:"13px",borderRadius:DS.radius.md,
-          border:"1.5px solid "+DS.color.primaryBorder,
-          background:DS.color.surface,color:DS.color.primaryDark,
-          fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer",
-          display:"flex",alignItems:"center",justifyContent:"center",gap:8,
-        }}>👁 Mode visite</button>
+        <Btn fullWidth onClick={onNext} disabled={!!(changes&&changes.some(function(c){return c.step===0;})&&!acknowledged)}>Commencer le rapport</Btn>
+        <button onClick={onModeVisite} style={{width:"100%",padding:"13px",borderRadius:DS.radius.md,border:"1.5px solid "+DS.color.primaryBorder,background:DS.color.surface,color:DS.color.primaryDark,fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>👁 Mode visite</button>
       </div>
     </div>
   );
@@ -596,7 +642,7 @@ function Step2Arrivee({data,setData,onNext,onPrev}){
   );
 }
 
-function Step3Attention({data,setData,logement,onNext,onPrev}){
+function Step3Attention({data,setData,logement,onNext,onPrev,changes,acknowledged,onAcknowledge}){
   var points=parsePointsAttention(logement&&logement.pointsAttention);
   if(points.length===0) points=[{emoji:"",text:""},{emoji:"",text:""},{emoji:"",text:""}];
   return (
@@ -623,7 +669,8 @@ function Step3Attention({data,setData,logement,onNext,onPrev}){
         <span style={{fontSize:20,lineHeight:1,flexShrink:0,filter:data.lu?"none":"grayscale(1) opacity(0.4)"}}>✅</span>
         <span style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark,fontWeight:600}}>J'ai pris connaissance des points d'attention</span>
       </div>
-      <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev}>Retour</Btn><Btn onClick={onNext} disabled={!data.lu}>Suivant</Btn></div>
+      <ChangeBanner changes={changes||[]} stepIndex={2} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
+      <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev}>Retour</Btn><Btn onClick={onNext} disabled={!data.lu||!!(changes&&changes.some(function(c){return c.step===2;})&&!acknowledged)}>Suivant</Btn></div>
     </div>
   );
 }
@@ -643,7 +690,7 @@ function Step4EtatLieux({data,setData,photosArrivee,setPhotosArrivee,onNext,onPr
   );
 }
 
-function Step5Consommables({data,setData,logement,onNext,onPrev}){
+function Step5Consommables({data,setData,logement,onNext,onPrev,changes,acknowledged,onAcknowledge}){
   var ok=data.consommablesAPrevoir!==undefined&&data.remarques!==undefined&&data.heureFin;
   var selected=data.consommablesSelectionnes||[];
   function toggleConso(c){ var next=selected.includes(c)?selected.filter(function(x){return x!==c;}):selected.concat([c]); setData(Object.assign({},data,{consommablesSelectionnes:next,consommablesAPrevoir:next.join(", ")})); }
@@ -682,7 +729,8 @@ function Step5Consommables({data,setData,logement,onNext,onPrev}){
       <Field label="Consommables à prévoir" required><Textarea value={data.consommablesAPrevoir||""} onChange={function(v){setData(Object.assign({},data,{consommablesAPrevoir:v}));}} placeholder="Notez les consommables manquants à réapprovisionner." rows={3}/></Field>
       <Field label="Remarques sur le logement" required><Textarea value={data.remarques||""} onChange={function(v){setData(Object.assign({},data,{remarques:v}));}} placeholder="Interventions à prévoir, anomalies constatées…" rows={3}/></Field>
       <Field label="Heure de fin d'intervention" required><Input type="time" value={data.heureFin||""} onChange={function(v){setData(Object.assign({},data,{heureFin:v}));}}/></Field>
-      <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev}>Retour</Btn><Btn onClick={onNext} disabled={!ok}>Suivant</Btn></div>
+      <ChangeBanner changes={changes||[]} stepIndex={4} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
+      <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev}>Retour</Btn><Btn onClick={onNext} disabled={!ok||!!(changes&&changes.some(function(c){return c.step===4;})&&!acknowledged)}>Suivant</Btn></div>
     </div>
   );
 }
@@ -757,7 +805,7 @@ function PhotoModule({photos,setPhotos,title,subtitle,infoTitle,infoItems,emptyL
   );
 }
 
-function Step6Photos({photos,setPhotos,logement,onNext,onPrev}){
+function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledged,onAcknowledge}){
   var [isProcessing,setIsProcessing]=useState(false);
   var [showWarning,setShowWarning]=useState(false);
   var expectedCount=logement&&logement.photosReference?logement.photosReference.length:0;
@@ -785,7 +833,8 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev}){
         </div>
       ):null}
       <PhotoModule photos={photos} setPhotos={setPhotos} title="Photos de fin de ménage" subtitle="Sélectionnez toutes vos photos en une seule fois." infoTitle="Photos attendues" infoItems={PIECES} emptyLabel="Sélectionner les photos" addLabel="Ajouter d'autres photos" required={true} onProcessingChange={setIsProcessing}/>
-      <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn><Btn onClick={handleNext} disabled={photos.length===0||isProcessing}>{suivantLabel}</Btn></div>
+      <ChangeBanner changes={changes||[]} stepIndex={5} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
+      <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn><Btn onClick={handleNext} disabled={photos.length===0||isProcessing||!!(changes&&changes.some(function(c){return c.step===5;})&&!acknowledged)}>{suivantLabel}</Btn></div>
     </div>
   );
 }
@@ -953,6 +1002,8 @@ export default function App(){
   var [logementLoading,setLogementLoading]=useState(true);
   var [logementError,setLogementError]=useState("");
   var [modeVisite,setModeVisite]=useState(false);
+  var [changes,setChanges]=useState([]);
+  var [acknowledgedSteps,setAcknowledgedSteps]=useState({});
 
   useEffect(function(){
     var pathSlug=window.location.pathname.split("/").filter(Boolean).pop();
@@ -962,7 +1013,7 @@ export default function App(){
     setLogementLoading(true); setLogementError("");
     fetch("/api/logement?slug="+encodeURIComponent(slug))
       .then(function(res){return res.json().then(function(data){if(!res.ok)throw new Error(data.error||"Logement introuvable");return data;});})
-      .then(function(data){if(cancelled||!data.logement)return;var nl=normalizeLogement(data.logement);setLogement(nl);setArrivee(function(prev){if(prev.bien&&prev.bien!==INIT_ARRIVEE.bien)return prev;return Object.assign({},prev,{bien:nl.nom||""});});})
+      .then(function(data){if(cancelled||!data.logement)return;var nl=normalizeLogement(data.logement);setLogement(nl);setArrivee(function(prev){if(prev.bien&&prev.bien!==INIT_ARRIVEE.bien)return prev;return Object.assign({},prev,{bien:nl.nom||""});});var slug=slugify(nl.slug||nl.nom);var detected=detectChanges(slug,nl);setChanges(detected);saveHashes(slug,buildHashes(nl));})
       .catch(function(e){if(!cancelled)setLogementError(e.message||"Impossible de charger le logement.");})
       .finally(function(){if(!cancelled)setLogementLoading(false);});
     return function(){cancelled=true;};
@@ -1027,12 +1078,12 @@ export default function App(){
       {showResume?<ResumeModal saved={savedDraft} onResume={handleResume} onRestart={handleRestart}/>:null}
       <AppHeader nom={logement.nom} step={step} total={TOTAL}/>
       <ProgressBar current={step} total={TOTAL}/>
-      {step===0&&<Step1Infos logement={logement} loading={logementLoading} error={logementError} onNext={next} onModeVisite={function(){setModeVisite(true);}}/>}
+      {step===0&&<Step1Infos logement={logement} loading={logementLoading} error={logementError} onNext={next} onModeVisite={function(){setModeVisite(true);}} changes={changes} acknowledged={acknowledgedSteps[0]} onAcknowledge={function(){setAcknowledgedSteps(function(p){return Object.assign({},p,{0:true});});}}/>}
       {step===1&&<Step2Arrivee data={arrivee} setData={setArrivee} onNext={next} onPrev={prev}/>}
-      {step===2&&<Step3Attention data={attention} setData={setAttention} logement={logement} onNext={next} onPrev={prev}/>}
+      {step===2&&<Step3Attention data={attention} setData={setAttention} logement={logement} onNext={next} onPrev={prev} changes={changes} acknowledged={acknowledgedSteps[2]} onAcknowledge={function(){setAcknowledgedSteps(function(p){return Object.assign({},p,{2:true});});}}/>}
       {step===3&&<Step4EtatLieux data={etatLieux} setData={setEtatLieux} photosArrivee={photosArrivee} setPhotosArrivee={setPhotosArrivee} onNext={next} onPrev={prev}/>}
-      {step===4&&<Step5Consommables data={consommables} setData={setConsommables} logement={logement} onNext={next} onPrev={prev}/>}
-      {step===5&&<Step6Photos photos={photos} setPhotos={setPhotos} logement={logement} onNext={next} onPrev={prev}/>}
+      {step===4&&<Step5Consommables data={consommables} setData={setConsommables} logement={logement} onNext={next} onPrev={prev} changes={changes} acknowledged={acknowledgedSteps[4]} onAcknowledge={function(){setAcknowledgedSteps(function(p){return Object.assign({},p,{4:true});});}}/>}
+      {step===5&&<Step6Photos photos={photos} setPhotos={setPhotos} logement={logement} onNext={next} onPrev={prev} changes={changes} acknowledged={acknowledgedSteps[5]} onAcknowledge={function(){setAcknowledgedSteps(function(p){return Object.assign({},p,{5:true});});}}/>}
       {step===6&&<Step7Recap arrivee={arrivee} etatLieux={etatLieux} consommables={consommables} photosArrivee={photosArrivee} photos={photos} onPrev={prev} onSubmit={handleSubmit} sending={sending} sendError={sendError} sendProgress={sendProgress}/>}
     </div>
   );
