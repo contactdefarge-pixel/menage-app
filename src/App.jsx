@@ -95,27 +95,47 @@ function saveHashes(slug,hashes,logement){
   try{
     var a=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}");
     a[slug]=hashes;
-    // Also store photo names for per-piece change detection
+    // Store photo names for per-piece change detection
     if(logement&&logement.photosReference){
       var names={};
       (logement.photosReference||[]).forEach(function(p){names[p.nom]=1;});
       a[slug]._photoNames=names;
     }
+    // Store text field lengths to detect additions vs deletions
+    if(logement){
+      WATCHED_FIELDS.forEach(function(f){
+        if(f.key!=="photosReference"){
+          a[slug]["_len_"+f.key]=rtLength(logement[f.key]);
+        }
+      });
+    }
     localStorage.setItem(HASHES_KEY,JSON.stringify(a));
   }catch(e){}
 }
+function rtLength(val){
+  // Returns character count of a field (rich text array or plain string)
+  if(!val) return 0;
+  if(Array.isArray(val)) return val.map(function(t){return (t.text||"").length;}).reduce(function(a,b){return a+b;},0);
+  return String(val).length;
+}
+
 function detectChanges(slug,logement){
   var stored=getStoredHashes(slug);
   if(!stored) return [];
   var current=buildHashes(logement);
+  var storedAll;
+  try{ storedAll=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}")[slug]||{}; }catch(e){ storedAll={}; }
   var changed=[];
+
   WATCHED_FIELDS.forEach(function(f){
+    // Skip if hash unchanged
+    if(stored[f.key]===undefined||stored[f.key]===current[f.key]) return;
+
     if(f.key==="photosReference"){
-      if(stored[f.key]===undefined||stored[f.key]===current[f.key]) return;
-      // Detect which pieces have new photos
-      var storedNames={};
-      try{ var sp=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}"); var spn=sp[slug]&&sp[slug]._photoNames; if(spn) storedNames=spn; }catch(e){}
-      var newPhotos=(logement.photosReference||[]).filter(function(p){ return !storedNames[p.nom]; });
+      // Only notify if new photos were ADDED
+      var storedNames=storedAll._photoNames||{};
+      var newPhotos=(logement.photosReference||[]).filter(function(p){return !storedNames[p.nom];});
+      if(newPhotos.length===0) return; // only deletions — silent
       var newPieces={};
       newPhotos.forEach(function(p){
         var parsed=parseNomPhoto(p.nom);
@@ -125,9 +145,19 @@ function detectChanges(slug,logement){
         newPieces[label].push(p.nom);
       });
       var pieceDetails=Object.keys(newPieces).map(function(k){return k+" ("+newPieces[k].length+" photo"+(newPieces[k].length>1?"s":"")+")";}).join(", ");
-      changed.push({key:f.key,label:pieceDetails?"Photos de référence — "+pieceDetails:"Photos de référence",step:f.step,newPhotos:newPhotos.map(function(p){return p.nom;})});
+      changed.push({key:f.key,label:"Photos de référence — "+pieceDetails,step:f.step,newPhotos:newPhotos.map(function(p){return p.nom;})});
+
     } else {
-      if(stored[f.key]!==undefined&&stored[f.key]!==current[f.key]) changed.push({key:f.key,label:f.label,step:f.step});
+      // For text fields: only notify if content was ADDED or MODIFIED (not just deleted)
+      var storedLen=storedAll["_len_"+f.key]||0;
+      var currentLen=rtLength(logement[f.key]);
+      if(currentLen===0) return; // field is now empty — silent
+      if(currentLen<storedLen&&hashField(logement[f.key])!==stored[f.key]) {
+        // Content got shorter — only notify if it changed meaningfully (not just trimmed)
+        // We consider a reduction of more than 20% as a real change
+        if(currentLen/Math.max(storedLen,1) > 0.8) return;
+      }
+      changed.push({key:f.key,label:f.label,step:f.step});
     }
   });
   return changed;
@@ -267,19 +297,32 @@ var POINTS_EMOJI_MAP = [
   { keys: ["jacuzzi", "baignoire balnéo"], emoji: "🫧" },
 ];
 
-function parsePointsAttention(text) {
-  if (!text) return [];
-  var str = Array.isArray(text) ? text.map(function(t){return t.text||"";}).join("") : String(text||"");
-  return str.split("\n")
-    .map(function(l) { return l.trim().replace(/^[•\-\*]\s*/, ""); })
-    .filter(Boolean)
-    .map(function(line) {
-      var lower = line.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      var found = POINTS_EMOJI_MAP.find(function(entry) {
-        return entry.keys.some(function(k) { return lower.includes(k); });
-      });
-      return { text: line, emoji: found ? found.emoji : "\u2705" };
+function parsePointsAttention(rtArray) {
+  if (!rtArray) return [];
+  // Split rich text array into lines, preserving formatting per segment
+  var lines = [];
+  var currentLine = [];
+  (Array.isArray(rtArray) ? rtArray : [{text:String(rtArray),bold:false,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null}]).forEach(function(seg) {
+    var parts = (seg.text||"").split("\n");
+    parts.forEach(function(part, pi) {
+      // Remove bullet characters from first segment of each line
+      var cleanPart = currentLine.length===0 ? part.replace(/^[\u2022\-\*]\s*/, "") : part;
+      if(cleanPart || seg.bold || seg.italic || seg.color) {
+        currentLine.push(Object.assign({}, seg, {text: cleanPart}));
+      }
+      if (pi < parts.length - 1) {
+        if (currentLine.some(function(s){return (s.text||"").trim();})) lines.push(currentLine);
+        currentLine = [];
+      }
     });
+  });
+  if (currentLine.some(function(s){return (s.text||"").trim();})) lines.push(currentLine);
+  return lines.filter(function(line){return line.some(function(s){return (s.text||"").trim();});}).map(function(segments) {
+    var plainLine = segments.map(function(s){return s.text||"";}).join("");
+    var lower = plainLine.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    var found = POINTS_EMOJI_MAP.find(function(entry){return entry.keys.some(function(k){return lower.includes(k);});});
+    return { segments: segments, emoji: found ? found.emoji : "\u2705" };
+  });
 }
 
 /* photo grouping (shared) */
@@ -713,6 +756,7 @@ function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowle
   if(logement.boiteCle) accesText+=(accesText?"\n":"")+"**Code boîte à clé : "+logement.boiteCle+"**";
   return (
     <div>
+      <ChangeBanner changes={changes||[]} stepIndex={0} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       {loading||error?<LogementLoading error={error}/>:null}
       <CopyAdresse adresse={logement.adresse}/>
       <InfoCardWithCopy icon={<IconReceipt/>} title="Facturation à adresser à" text={logement.proprietaire}/>
@@ -722,7 +766,6 @@ function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowle
       <InfoCardWithCopy icon={<IconTrash/>} title="Poubelles" text={logement.poubelles}/>
       <InfoCardWithCopy icon={<IconBox/>} title="Consommables" text={logement.consommables}/>
       <InfoCardWithCopy icon={<IconKey/>} title="Accès logement" text={accesText}/>
-      <ChangeBanner changes={changes||[]} stepIndex={0} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
         <Btn fullWidth onClick={onNext} disabled={!!(changes&&changes.some(function(c){return c.step===0;})&&!acknowledged)}>Commencer le rapport</Btn>
         <button onClick={onModeVisite} style={{width:"100%",padding:"13px",borderRadius:DS.radius.md,border:"1.5px solid "+DS.color.primaryBorder,background:DS.color.surface,color:DS.color.primaryDark,fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>👁 Mode visite</button>
@@ -748,9 +791,10 @@ function Step2Arrivee({data,setData,onNext,onPrev}){
 
 function Step3Attention({data,setData,logement,onNext,onPrev,changes,acknowledged,onAcknowledge}){
   var points=parsePointsAttention(logement&&logement.pointsAttention);
-  if(points.length===0) points=[{emoji:"",text:""},{emoji:"",text:""},{emoji:"",text:""}];
+  if(points.length===0) points=[{emoji:"",segments:[{text:""}]},{emoji:"",segments:[{text:""}]},{emoji:"",segments:[{text:""}]}];
   return (
     <div>
+      <ChangeBanner changes={changes||[]} stepIndex={2} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <SectionTitle>Points d'attention</SectionTitle>
       <Subtitle>Merci de prendre connaissance de ces consignes avant de commencer.</Subtitle>
       <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
@@ -758,7 +802,7 @@ function Step3Attention({data,setData,logement,onNext,onPrev,changes,acknowledge
           return (
             <div key={i} style={{display:"flex",gap:14,padding:"14px 16px",background:DS.color.surface,borderRadius:DS.radius.md,fontSize:14,color:DS.color.primaryDark,lineHeight:1.5,border:"1px solid "+DS.color.border}}>
               <span style={{fontSize:20,flexShrink:0}}>{pt.emoji}</span>
-              <span style={{fontFamily:DS.font.body}}>{pt.text}</span>
+              <span style={{fontFamily:DS.font.body}}><RichLine segments={pt.segments}/></span>
             </div>
           );
         })}
@@ -773,7 +817,6 @@ function Step3Attention({data,setData,logement,onNext,onPrev,changes,acknowledge
         <span style={{fontSize:20,lineHeight:1,flexShrink:0,filter:data.lu?"none":"grayscale(1) opacity(0.4)"}}>✅</span>
         <span style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark,fontWeight:600}}>J'ai pris connaissance des points d'attention</span>
       </div>
-      <ChangeBanner changes={changes||[]} stepIndex={2} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev}>Retour</Btn><Btn onClick={onNext} disabled={!data.lu||!!(changes&&changes.some(function(c){return c.step===2;})&&!acknowledged)}>Suivant</Btn></div>
     </div>
   );
@@ -802,6 +845,7 @@ function Step5Consommables({data,setData,logement,onNext,onPrev,changes,acknowle
   if(itemsALaisser.length===0) itemsALaisser=CONSOMMABLES_LAISSER;
   return (
     <div>
+      <ChangeBanner changes={changes||[]} stepIndex={4} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <SectionTitle>Consommables</SectionTitle>
       {logement.consommables&&logement.consommables.length>0?<Subtitle><RichText value={logement.consommables}/></Subtitle>:null}
       <div style={{marginBottom:18}}>
@@ -833,7 +877,6 @@ function Step5Consommables({data,setData,logement,onNext,onPrev,changes,acknowle
       <Field label="Consommables à prévoir" required><Textarea value={data.consommablesAPrevoir||""} onChange={function(v){setData(Object.assign({},data,{consommablesAPrevoir:v}));}} placeholder="Notez les consommables manquants à réapprovisionner." rows={3}/></Field>
       <Field label="Remarques sur le logement" required><Textarea value={data.remarques||""} onChange={function(v){setData(Object.assign({},data,{remarques:v}));}} placeholder="Interventions à prévoir, anomalies constatées…" rows={3}/></Field>
       <Field label="Heure de fin d'intervention" required><Input type="time" value={data.heureFin||""} onChange={function(v){setData(Object.assign({},data,{heureFin:v}));}}/></Field>
-      <ChangeBanner changes={changes||[]} stepIndex={4} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev}>Retour</Btn><Btn onClick={onNext} disabled={!ok||!!(changes&&changes.some(function(c){return c.step===4;})&&!acknowledged)}>Suivant</Btn></div>
     </div>
   );
@@ -918,6 +961,7 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
   var groupes=grouperPhotos(logement&&logement.photosReference);
   return (
     <div>
+      <ChangeBanner changes={changes||[]} stepIndex={5} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       {showWarning?<PhotoWarningModal expected={expectedCount} actual={photos.length} onConfirm={function(){setShowWarning(false);onNext();}} onCancel={function(){setShowWarning(false);}}/>:null}
       {groupes.length>0?(
         <div style={{marginBottom:28}}>
@@ -945,7 +989,6 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
         </div>
       ):null}
       <PhotoModule photos={photos} setPhotos={setPhotos} title="Photos de fin de ménage" subtitle="Sélectionnez toutes vos photos en une seule fois." infoTitle="Photos attendues" infoItems={PIECES} emptyLabel="Sélectionner les photos" addLabel="Ajouter d'autres photos" required={true} onProcessingChange={setIsProcessing}/>
-      <ChangeBanner changes={changes||[]} stepIndex={5} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn><Btn onClick={handleNext} disabled={photos.length===0||isProcessing||!!(changes&&changes.some(function(c){return c.step===5;})&&!acknowledged)}>{suivantLabel}</Btn></div>
     </div>
   );
@@ -1033,7 +1076,7 @@ function ModeVisite({logement,onQuitter}){
           <SectionTitle>Points d'attention</SectionTitle>
           <Subtitle>Consignes à respecter pendant l'intervention.</Subtitle>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {points.map(function(pt,i){return <div key={i} style={{display:"flex",gap:14,padding:"14px 16px",background:DS.color.surface,borderRadius:DS.radius.md,fontSize:14,color:DS.color.primaryDark,lineHeight:1.5,border:"1px solid "+DS.color.border,fontFamily:DS.font.body}}><span style={{fontSize:20,flexShrink:0}}>{pt.emoji}</span><span>{pt.text}</span></div>;})}
+            {points.map(function(pt,i){return <div key={i} style={{display:"flex",gap:14,padding:"14px 16px",background:DS.color.surface,borderRadius:DS.radius.md,fontSize:14,color:DS.color.primaryDark,lineHeight:1.5,border:"1px solid "+DS.color.border,fontFamily:DS.font.body}}><span style={{fontSize:20,flexShrink:0}}>{pt.emoji}</span><span><RichLine segments={pt.segments}/></span></div>;})}
           </div>
         </div>
       )}
