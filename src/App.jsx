@@ -164,6 +164,7 @@ var POINTS_EMOJI_MAP = [
   { keys: ["balais", "balai"], emoji: "🧹" },
   { keys: ["barbecue", "bbq", "poele", "poêle"], emoji: "🔥" },
   { keys: ["jardin"], emoji: "🏡" },
+  { keys: ["jacuzzi", "baignoire balnéo"], emoji: "🫧" },
 ];
 
 function parsePointsAttention(text) {
