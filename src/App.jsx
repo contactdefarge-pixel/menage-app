@@ -91,8 +91,47 @@ function hashString(str){ var s=String(str||""),h=0; for(var i=0;i<s.length;i++)
 function hashField(val){ if(Array.isArray(val)) return hashString(val.map(function(v){return JSON.stringify(v);}).join("|")); return hashString(val); }
 function buildHashes(logement){ var r={}; WATCHED_FIELDS.forEach(function(f){r[f.key]=hashField(logement[f.key]);}); return r; }
 function getStoredHashes(slug){ try{var a=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}");return a[slug]||null;}catch(e){return null;} }
-function saveHashes(slug,hashes){ try{var a=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}");a[slug]=hashes;localStorage.setItem(HASHES_KEY,JSON.stringify(a));}catch(e){} }
-function detectChanges(slug,logement){ var stored=getStoredHashes(slug); if(!stored) return []; var current=buildHashes(logement); var changed=[]; WATCHED_FIELDS.forEach(function(f){ if(stored[f.key]!==undefined&&stored[f.key]!==current[f.key]) changed.push({key:f.key,label:f.label,step:f.step}); }); return changed; }
+function saveHashes(slug,hashes,logement){
+  try{
+    var a=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}");
+    a[slug]=hashes;
+    // Also store photo names for per-piece change detection
+    if(logement&&logement.photosReference){
+      var names={};
+      (logement.photosReference||[]).forEach(function(p){names[p.nom]=1;});
+      a[slug]._photoNames=names;
+    }
+    localStorage.setItem(HASHES_KEY,JSON.stringify(a));
+  }catch(e){}
+}
+function detectChanges(slug,logement){
+  var stored=getStoredHashes(slug);
+  if(!stored) return [];
+  var current=buildHashes(logement);
+  var changed=[];
+  WATCHED_FIELDS.forEach(function(f){
+    if(f.key==="photosReference"){
+      if(stored[f.key]===undefined||stored[f.key]===current[f.key]) return;
+      // Detect which pieces have new photos
+      var storedNames={};
+      try{ var sp=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}"); var spn=sp[slug]&&sp[slug]._photoNames; if(spn) storedNames=spn; }catch(e){}
+      var newPhotos=(logement.photosReference||[]).filter(function(p){ return !storedNames[p.nom]; });
+      var newPieces={};
+      newPhotos.forEach(function(p){
+        var parsed=parseNomPhoto(p.nom);
+        var def=trouverDef(parsed.nomPiece);
+        var label=def?(parsed.numero?def.label+" "+parsed.numero:def.label):(parsed.nomPiece||"Autre");
+        if(!newPieces[label]) newPieces[label]=[];
+        newPieces[label].push(p.nom);
+      });
+      var pieceDetails=Object.keys(newPieces).map(function(k){return k+" ("+newPieces[k].length+" photo"+(newPieces[k].length>1?"s":"")+")";}).join(", ");
+      changed.push({key:f.key,label:pieceDetails?"Photos de référence — "+pieceDetails:"Photos de référence",step:f.step,newPhotos:newPhotos.map(function(p){return p.nom;})});
+    } else {
+      if(stored[f.key]!==undefined&&stored[f.key]!==current[f.key]) changed.push({key:f.key,label:f.label,step:f.step});
+    }
+  });
+  return changed;
+}
 
 const DEFAULT_LOGEMENT = {
   nom:"",slug:"",adresse:"",wifi:"",voyageurs:"",lits:"",acces:"",boiteCle:"",
@@ -123,20 +162,81 @@ function cleanNotionText(v) { return String(v||"").replace(/<br\s*\/?>/gi,"\n").
 
 function normalizeLogement(raw) {
   raw=raw||{};
+  // rt() ensures a field is always a rich text array
+  function rt(v){ if(Array.isArray(v)) return v; if(typeof v==="string"&&v) return [{text:v,bold:false,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null}]; return []; }
   return {
     id:raw.id||"", slug:raw.slug||slugify(raw.nom), nom:raw.nom||"",
-    adresse:raw.adresse||"", wifi:raw.wifi||"", voyageurs:raw.voyageurs||"",
-    chambres:raw.chambres||"", lits:raw.lits||"", acces:raw.acces||"",
-    boiteCle:raw.boiteCle||"", poubelles:raw.poubelles||"",
-    consommables:raw.consommables||"", consommablesALaisser:raw.consommablesALaisser||"",
-    photosReference:raw.photosReference||[], pointsAttention:raw.pointsAttention||"",
+    adresse:raw.adresse||"", wifi:rt(raw.wifi), voyageurs:raw.voyageurs||"",
+    chambres:raw.chambres||"", lits:rt(raw.lits), acces:rt(raw.acces),
+    boiteCle:raw.boiteCle||"", poubelles:rt(raw.poubelles),
+    consommables:rt(raw.consommables), consommablesALaisser:rt(raw.consommablesALaisser),
+    photosReference:raw.photosReference||[], pointsAttention:rt(raw.pointsAttention),
     proprietaire:raw.proprietaire||"", forfaitMenage:raw.forfaitMenage||"",
   };
 }
 
+/* Rich text plain text extraction */
+function rtPlain(rt){ if(!rt) return ""; if(typeof rt==="string") return rt; if(Array.isArray(rt)) return rt.map(function(t){return t.text||"";}).join(""); return ""; }
+
+/* ─── RICH TEXT RENDERER ─────────────────────────────────────────────── */
+var NOTION_COLOR_MAP = {
+  "red":          "#e03e3e", "red_background":    "#fbe4e4",
+  "orange":       "#d9730d", "orange_background": "#f8eccc",
+  "yellow":       "#dfab01", "yellow_background": "#fef3c7",
+  "green":        "#0f7b6c", "green_background":  "#ddedea",
+  "blue":         "#0b6e99", "blue_background":   "#ddebf1",
+  "purple":       "#6940a5", "purple_background": "#eae4f2",
+  "pink":         "#ad1a72", "pink_background":   "#f4dfeb",
+  "gray":         "#9b9a97", "gray_background":   "#ebeced",
+  "brown":        "#64473a", "brown_background":  "#e9e5e3",
+};
+
+function RichSpan({seg}){
+  var style={};
+  if(seg.bold)          style.fontWeight="700";
+  if(seg.italic)        style.fontStyle="italic";
+  if(seg.underline)     style.textDecoration="underline";
+  if(seg.strikethrough) style.textDecoration="line-through";
+  if(seg.code)          { style.fontFamily="monospace"; style.background="#f0f0f0"; style.padding="1px 4px"; style.borderRadius=4; style.fontSize="0.9em"; }
+  if(seg.color&&NOTION_COLOR_MAP[seg.color]){
+    if(seg.color.endsWith("_background")) style.background=NOTION_COLOR_MAP[seg.color];
+    else style.color=NOTION_COLOR_MAP[seg.color];
+  }
+  if(seg.href) return <a href={seg.href} target="_blank" rel="noopener noreferrer" style={Object.assign({color:DS.color.primary,textDecoration:"underline"},style)}>{seg.text}</a>;
+  return <span style={style}>{seg.text}</span>;
+}
+
+function RichLine({segments}){
+  if(!segments||segments.length===0) return null;
+  return <span>{segments.map(function(seg,i){return <RichSpan key={i} seg={seg}/>;})}</span>;
+}
+
+function RichText({value}){
+  if(!value) return null;
+  // value is array of rich text segments — split by newline characters in text
+  var lines = [];
+  var currentLine = [];
+  (Array.isArray(value)?value:[]).forEach(function(seg){
+    var parts = (seg.text||"").split("\n");
+    parts.forEach(function(part, pi){
+      currentLine.push(Object.assign({},seg,{text:part}));
+      if(pi < parts.length-1){ lines.push(currentLine); currentLine=[]; }
+    });
+  });
+  lines.push(currentLine);
+  return (
+    <span>
+      {lines.map(function(line,i){
+        return <span key={i}><RichLine segments={line}/>{i<lines.length-1?<br/>:null}</span>;
+      })}
+    </span>
+  );
+}
+
 function parseConsommablesALaisser(text) {
   if(!text) return [];
-  return text.split("\n").map(function(line){
+  var str = Array.isArray(text) ? text.map(function(t){return t.text||"";}).join("") : String(text||"");
+  return str.split("\n").map(function(line){
     line=line.trim(); if(!line) return null;
     var qtMatch=line.match(/x(\d+)/i), qt=qtMatch?"x"+qtMatch[1]:"";
     var commentMatch=line.match(/\(([^)]+)\)/), comment=commentMatch?commentMatch[1]:"";
@@ -169,7 +269,8 @@ var POINTS_EMOJI_MAP = [
 
 function parsePointsAttention(text) {
   if (!text) return [];
-  return text.split("\n")
+  var str = Array.isArray(text) ? text.map(function(t){return t.text||"";}).join("") : String(text||"");
+  return str.split("\n")
     .map(function(l) { return l.trim().replace(/^[•\-\*]\s*/, ""); })
     .filter(Boolean)
     .map(function(line) {
@@ -177,7 +278,7 @@ function parsePointsAttention(text) {
       var found = POINTS_EMOJI_MAP.find(function(entry) {
         return entry.keys.some(function(k) { return lower.includes(k); });
       });
-      return { text: line, emoji: found ? found.emoji : "✅" };
+      return { text: line, emoji: found ? found.emoji : "\u2705" };
     });
 }
 
@@ -378,17 +479,19 @@ function InfoCard({icon,title,children}){
 }
 
 function InfoCardWithCopy({icon,title,text}){
-  if(!cleanNotionText(text)) return null;
+  var isEmpty = Array.isArray(text) ? text.every(function(t){return !(t.text||"").trim();}) : !cleanNotionText(text);
+  if(isEmpty) return null;
   return (
     <InfoCard icon={icon} title={title}>
-      <FormattedText>{text}</FormattedText>
+      {Array.isArray(text) ? <RichText value={text}/> : <FormattedText>{text}</FormattedText>}
     </InfoCard>
   );
 }
 
 function WifiCard({text}){
-  if(!cleanNotionText(text)) return null;
-  var lines=cleanNotionText(text).split("\n").filter(Boolean);
+  var plain = Array.isArray(text) ? text.map(function(t){return t.text||"";}).join("") : cleanNotionText(text);
+  if(!plain) return null;
+  var lines=plain.split("\n").filter(Boolean);
   return (
     <InfoCard icon={<IconWifi/>} title="WiFi">
       {lines.map(function(line,i){
@@ -700,7 +803,7 @@ function Step5Consommables({data,setData,logement,onNext,onPrev,changes,acknowle
   return (
     <div>
       <SectionTitle>Consommables</SectionTitle>
-      {logement.consommables?<Subtitle><FormattedText>{logement.consommables}</FormattedText></Subtitle>:null}
+      {logement.consommables&&logement.consommables.length>0?<Subtitle><RichText value={logement.consommables}/></Subtitle>:null}
       <div style={{marginBottom:18}}>
         <div style={{fontFamily:DS.font.heading,fontWeight:600,fontSize:11,color:DS.color.primary,marginBottom:10,textTransform:"uppercase",letterSpacing:"0.06em"}}>À laisser</div>
         {itemsALaisser.map(function(c,i){
@@ -826,7 +929,15 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
               <div key={pieceKey} style={{marginBottom:16}}>
                 <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:15,color:DS.color.primaryDark,marginBottom:8}}>{groupe.label}</div>
                 <div style={{columns:2,gap:8}}>
-                  {groupe.photos.map(function(p,i){return <img key={i} src={p.url} alt={p.nom} loading="lazy" style={{width:"100%",marginBottom:8,borderRadius:DS.radius.sm,border:"1.5px solid "+DS.color.primaryBorder,display:"block",breakInside:"avoid"}}/>;  })}
+                  {groupe.photos.map(function(p,i){
+                    var isNew=changes&&changes.some(function(c){return c.newPhotos&&c.newPhotos.indexOf(p.nom)!==-1;});
+                    return (
+                      <div key={i} style={{position:"relative",breakInside:"avoid",marginBottom:8}}>
+                        <img src={p.url} alt={p.nom} loading="lazy" style={{width:"100%",borderRadius:DS.radius.sm,border:isNew?"2px solid #f59e0b":"1.5px solid "+DS.color.primaryBorder,display:"block"}}/>
+                        {isNew?<div style={{position:"absolute",top:6,left:6,background:"#f59e0b",color:"#fff",fontFamily:DS.font.heading,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:DS.radius.pill}}>Nouveau</div>:null}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -929,7 +1040,7 @@ function ModeVisite({logement,onQuitter}){
       {step==="consommables"&&(
         <div>
           <SectionTitle>Consommables</SectionTitle>
-          {logement.consommables?<Subtitle><FormattedText>{logement.consommables}</FormattedText></Subtitle>:null}
+          {logement.consommables&&logement.consommables.length>0?<Subtitle><RichText value={logement.consommables}/></Subtitle>:null}
           <div style={{fontFamily:DS.font.heading,fontWeight:600,fontSize:11,color:DS.color.primary,marginBottom:10,textTransform:"uppercase",letterSpacing:"0.06em"}}>À laisser</div>
           {itemsALaisser.map(function(c,i){return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 13px",background:DS.color.primaryBg,borderRadius:DS.radius.sm,fontSize:14,marginBottom:6,fontFamily:DS.font.body,color:DS.color.primaryDark}}><span style={{flex:1}}>{c.label}{c.comment?<span style={{color:DS.color.textFaint,fontSize:12,marginLeft:6}}>({c.comment})</span>:null}</span>{c.qt?<span style={{background:DS.color.primarySoft,color:DS.color.primaryDark,fontWeight:700,borderRadius:DS.radius.sm,padding:"2px 10px",fontSize:12,flexShrink:0}}>{c.qt}</span>:null}</div>;})}
         </div>
@@ -1014,7 +1125,7 @@ export default function App(){
     setLogementLoading(true); setLogementError("");
     fetch("/api/logement?slug="+encodeURIComponent(slug))
       .then(function(res){return res.json().then(function(data){if(!res.ok)throw new Error(data.error||"Logement introuvable");return data;});})
-      .then(function(data){if(cancelled||!data.logement)return;var nl=normalizeLogement(data.logement);setLogement(nl);setArrivee(function(prev){if(prev.bien&&prev.bien!==INIT_ARRIVEE.bien)return prev;return Object.assign({},prev,{bien:nl.nom||""});});var slug=slugify(nl.slug||nl.nom);var detected=detectChanges(slug,nl);setChanges(detected);saveHashes(slug,buildHashes(nl));})
+      .then(function(data){if(cancelled||!data.logement)return;var nl=normalizeLogement(data.logement);setLogement(nl);setArrivee(function(prev){if(prev.bien&&prev.bien!==INIT_ARRIVEE.bien)return prev;return Object.assign({},prev,{bien:nl.nom||""});});var slug=slugify(nl.slug||nl.nom);var detected=detectChanges(slug,nl);setChanges(detected);saveHashes(slug,buildHashes(nl),nl);})
       .catch(function(e){if(!cancelled)setLogementError(e.message||"Impossible de charger le logement.");})
       .finally(function(){if(!cancelled)setLogementLoading(false);});
     return function(){cancelled=true;};
