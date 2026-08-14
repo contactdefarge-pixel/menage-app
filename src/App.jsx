@@ -101,11 +101,13 @@ function saveHashes(slug,hashes,logement){
       (logement.photosReference||[]).forEach(function(p){names[p.nom]=1;});
       a[slug]._photoNames=names;
     }
-    // Store text field lengths to detect additions vs deletions
+    // Store text field lengths and bullet counts to detect additions vs deletions
     if(logement){
       WATCHED_FIELDS.forEach(function(f){
         if(f.key!=="photosReference"){
           a[slug]["_len_"+f.key]=rtLength(logement[f.key]);
+          var str=Array.isArray(logement[f.key])?logement[f.key].map(function(t){return t.text||"";}).join(""):String(logement[f.key]||"");
+          a[slug]["_bullets_"+f.key]=str.split("\n").filter(function(l){return /^[\u2022\-\*•]/.test(l.trim());}).length;
         }
       });
     }
@@ -151,11 +153,18 @@ function detectChanges(slug,logement){
       // For text fields: only notify if content was ADDED or MODIFIED (not just deleted)
       var storedLen=storedAll["_len_"+f.key]||0;
       var currentLen=rtLength(logement[f.key]);
-      if(currentLen===0) return; // field is now empty — silent
-      if(currentLen<storedLen&&hashField(logement[f.key])!==stored[f.key]) {
-        // Content got shorter — only notify if it changed meaningfully (not just trimmed)
-        // We consider a reduction of more than 20% as a real change
-        if(currentLen/Math.max(storedLen,1) > 0.8) return;
+      if(currentLen===0) return; // field now empty — silent
+
+      // Count bullet points (lines starting with • - *) in stored vs current
+      var storedBullets=storedAll["_bullets_"+f.key]||0;
+      var currentStr=Array.isArray(logement[f.key])?logement[f.key].map(function(t){return t.text||"";}).join(""):String(logement[f.key]||"");
+      var currentBullets=currentStr.split("\n").filter(function(l){return /^[\u2022\-\*•]/.test(l.trim());}).length;
+      // If only bullet points were removed (count decreased, nothing added) → silent
+      if(currentBullets<storedBullets&&currentLen<=storedLen) return;
+
+      if(currentLen<storedLen) {
+        // Content got shorter — silent if reduction < 20%
+        if(currentLen/Math.max(storedLen,1)>0.8) return;
       }
       changed.push({key:f.key,label:f.label,step:f.step});
     }
@@ -751,9 +760,14 @@ function ChangeBanner({changes,stepIndex,onAcknowledge,acknowledged}){
 /* ─── STEP COMPONENTS ────────────────────────────────────────────────── */
 function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowledged,onAcknowledge}){
   var voyageurs=logement.voyageurs?logement.voyageurs+" max":"";
-  var voyageursText=[voyageurs,cleanNotionText(logement.lits)].filter(Boolean).join("\n");
-  var accesText=cleanNotionText(logement.acces);
-  if(logement.boiteCle) accesText+=(accesText?"\n":"")+"**Code boîte à clé : "+logement.boiteCle+"**";
+  // Build acces rich text + boiteCle appended as plain bold segment
+  var accesRt=Array.isArray(logement.acces)?logement.acces:[];
+  var accesWithCle=logement.boiteCle
+    ? accesRt.concat([
+        {text:"\n",bold:false,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
+        {text:"Code boîte à clé : "+logement.boiteCle,bold:true,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
+      ])
+    : accesRt;
   return (
     <div>
       <ChangeBanner changes={changes||[]} stepIndex={0} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
@@ -762,10 +776,20 @@ function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowle
       <InfoCardWithCopy icon={<IconReceipt/>} title="Facturation à adresser à" text={logement.proprietaire}/>
       <InfoCardWithCopy icon={<IconEuro/>} title="Forfait ménage" text={logement.forfaitMenage}/>
       <WifiCard text={logement.wifi}/>
-      <InfoCardWithCopy icon={<IconUsers/>} title="Voyageurs" text={voyageursText}/>
+      {(voyageurs||logement.lits)&&(
+        <InfoCard icon={<IconUsers/>} title="Voyageurs">
+          {voyageurs?<span>{voyageurs}</span>:null}
+          {voyageurs&&logement.lits&&logement.lits.length>0?<br/>:null}
+          {Array.isArray(logement.lits)&&logement.lits.length>0?<RichText value={logement.lits}/>:null}
+        </InfoCard>
+      )}
       <InfoCardWithCopy icon={<IconTrash/>} title="Poubelles" text={logement.poubelles}/>
       <InfoCardWithCopy icon={<IconBox/>} title="Consommables" text={logement.consommables}/>
-      <InfoCardWithCopy icon={<IconKey/>} title="Accès logement" text={accesText}/>
+      {(accesWithCle.length>0)&&(
+        <InfoCard icon={<IconKey/>} title="Accès logement">
+          <RichText value={accesWithCle}/>
+        </InfoCard>
+      )}
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
         <Btn fullWidth onClick={onNext} disabled={!!(changes&&changes.some(function(c){return c.step===0;})&&!acknowledged)}>Commencer le rapport</Btn>
         <button onClick={onModeVisite} style={{width:"100%",padding:"13px",borderRadius:DS.radius.md,border:"1.5px solid "+DS.color.primaryBorder,background:DS.color.surface,color:DS.color.primaryDark,fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>👁 Mode visite</button>
