@@ -1065,8 +1065,14 @@ function ModeVisite({logement,onQuitter}){
   var itemsALaisser=parseConsommablesALaisser(logement&&logement.consommablesALaisser);
   if(itemsALaisser.length===0) itemsALaisser=CONSOMMABLES_LAISSER;
   var groupes=grouperPhotos(logement&&logement.photosReference);
-  var voyageursText=[logement.voyageurs?logement.voyageurs+" max":"",cleanNotionText(logement.lits)].filter(Boolean).join("\n");
-  var accesText=cleanNotionText(logement.acces)+(logement.boiteCle?"\n**Code boîte à clé : "+logement.boiteCle+"**":"");
+  var accesRt=Array.isArray(logement.acces)?logement.acces:[];
+  var accesWithCle=logement.boiteCle
+    ? accesRt.concat([
+        {text:"\n",bold:false,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
+        {text:"Code boîte à clé : "+logement.boiteCle,bold:true,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
+      ])
+    : accesRt;
+  var voyageurs=logement.voyageurs?logement.voyageurs+" max":"";
   return (
     <div style={wrap}>
       <div style={{background:DS.color.primaryDark,color:"#fff",borderRadius:DS.radius.md,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1089,10 +1095,20 @@ function ModeVisite({logement,onQuitter}){
           <InfoCardWithCopy icon={<IconReceipt/>} title="Facturation à adresser à" text={logement.proprietaire}/>
           <InfoCardWithCopy icon={<IconEuro/>} title="Forfait ménage" text={logement.forfaitMenage}/>
           <WifiCard text={logement.wifi}/>
-          <InfoCardWithCopy icon={<IconUsers/>} title="Voyageurs" text={voyageursText}/>
+          {(voyageurs||logement.lits)&&(
+            <InfoCard icon={<IconUsers/>} title="Voyageurs">
+              {voyageurs?<span>{voyageurs}</span>:null}
+              {voyageurs&&logement.lits&&logement.lits.length>0?<br/>:null}
+              {Array.isArray(logement.lits)&&logement.lits.length>0?<RichText value={logement.lits}/>:null}
+            </InfoCard>
+          )}
           <InfoCardWithCopy icon={<IconTrash/>} title="Poubelles" text={logement.poubelles}/>
           <InfoCardWithCopy icon={<IconBox/>} title="Consommables" text={logement.consommables}/>
-          <InfoCardWithCopy icon={<IconKey/>} title="Accès logement" text={accesText}/>
+          {(accesWithCle.length>0)&&(
+            <InfoCard icon={<IconKey/>} title="Accès logement">
+              <RichText value={accesWithCle}/>
+            </InfoCard>
+          )}
         </div>
       )}
       {step==="attention"&&(
