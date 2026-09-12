@@ -95,49 +95,27 @@ function saveHashes(slug,hashes,logement){
   try{
     var a=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}");
     a[slug]=hashes;
-    // Store photo names for per-piece change detection
+    // Also store photo names for per-piece change detection
     if(logement&&logement.photosReference){
       var names={};
       (logement.photosReference||[]).forEach(function(p){names[p.nom]=1;});
       a[slug]._photoNames=names;
     }
-    // Store text field lengths and bullet counts to detect additions vs deletions
-    if(logement){
-      WATCHED_FIELDS.forEach(function(f){
-        if(f.key!=="photosReference"){
-          a[slug]["_len_"+f.key]=rtLength(logement[f.key]);
-          var str=Array.isArray(logement[f.key])?logement[f.key].map(function(t){return t.text||"";}).join(""):String(logement[f.key]||"");
-          a[slug]["_bullets_"+f.key]=str.split("\n").filter(function(l){return /^[\u2022\-\*•]/.test(l.trim());}).length;
-        }
-      });
-    }
     localStorage.setItem(HASHES_KEY,JSON.stringify(a));
   }catch(e){}
 }
-function rtLength(val){
-  // Returns character count of a field (rich text array or plain string)
-  if(!val) return 0;
-  if(Array.isArray(val)) return val.map(function(t){return (t.text||"").length;}).reduce(function(a,b){return a+b;},0);
-  return String(val).length;
-}
-
 function detectChanges(slug,logement){
   var stored=getStoredHashes(slug);
   if(!stored) return [];
   var current=buildHashes(logement);
-  var storedAll;
-  try{ storedAll=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}")[slug]||{}; }catch(e){ storedAll={}; }
   var changed=[];
-
   WATCHED_FIELDS.forEach(function(f){
-    // Skip if hash unchanged
-    if(stored[f.key]===undefined||stored[f.key]===current[f.key]) return;
-
     if(f.key==="photosReference"){
-      // Only notify if new photos were ADDED
-      var storedNames=storedAll._photoNames||{};
-      var newPhotos=(logement.photosReference||[]).filter(function(p){return !storedNames[p.nom];});
-      if(newPhotos.length===0) return; // only deletions — silent
+      if(stored[f.key]===undefined||stored[f.key]===current[f.key]) return;
+      // Detect which pieces have new photos
+      var storedNames={};
+      try{ var sp=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}"); var spn=sp[slug]&&sp[slug]._photoNames; if(spn) storedNames=spn; }catch(e){}
+      var newPhotos=(logement.photosReference||[]).filter(function(p){ return !storedNames[p.nom]; });
       var newPieces={};
       newPhotos.forEach(function(p){
         var parsed=parseNomPhoto(p.nom);
@@ -147,26 +125,9 @@ function detectChanges(slug,logement){
         newPieces[label].push(p.nom);
       });
       var pieceDetails=Object.keys(newPieces).map(function(k){return k+" ("+newPieces[k].length+" photo"+(newPieces[k].length>1?"s":"")+")";}).join(", ");
-      changed.push({key:f.key,label:"Photos de référence — "+pieceDetails,step:f.step,newPhotos:newPhotos.map(function(p){return p.nom;})});
-
+      changed.push({key:f.key,label:pieceDetails?"Photos de référence — "+pieceDetails:"Photos de référence",step:f.step,newPhotos:newPhotos.map(function(p){return p.nom;})});
     } else {
-      // For text fields: only notify if content was ADDED or MODIFIED (not just deleted)
-      var storedLen=storedAll["_len_"+f.key]||0;
-      var currentLen=rtLength(logement[f.key]);
-      if(currentLen===0) return; // field now empty — silent
-
-      // Count bullet points (lines starting with • - *) in stored vs current
-      var storedBullets=storedAll["_bullets_"+f.key]||0;
-      var currentStr=Array.isArray(logement[f.key])?logement[f.key].map(function(t){return t.text||"";}).join(""):String(logement[f.key]||"");
-      var currentBullets=currentStr.split("\n").filter(function(l){return /^[\u2022\-\*•]/.test(l.trim());}).length;
-      // If only bullet points were removed (count decreased, nothing added) → silent
-      if(currentBullets<storedBullets&&currentLen<=storedLen) return;
-
-      if(currentLen<storedLen) {
-        // Content got shorter — silent if reduction < 20%
-        if(currentLen/Math.max(storedLen,1)>0.8) return;
-      }
-      changed.push({key:f.key,label:f.label,step:f.step});
+      if(stored[f.key]!==undefined&&stored[f.key]!==current[f.key]) changed.push({key:f.key,label:f.label,step:f.step});
     }
   });
   return changed;
@@ -304,35 +265,21 @@ var POINTS_EMOJI_MAP = [
   { keys: ["barbecue", "bbq", "poele", "poêle"], emoji: "🔥" },
   { keys: ["jardin"], emoji: "🏡" },
   { keys: ["jacuzzi", "baignoire balnéo"], emoji: "🫧" },
-  { keys: ["parfait"], emoji: "✨" },
 ];
 
-function parsePointsAttention(rtArray) {
-  if (!rtArray) return [];
-  // Split rich text array into lines, preserving formatting per segment
-  var lines = [];
-  var currentLine = [];
-  (Array.isArray(rtArray) ? rtArray : [{text:String(rtArray),bold:false,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null}]).forEach(function(seg) {
-    var parts = (seg.text||"").split("\n");
-    parts.forEach(function(part, pi) {
-      // Remove bullet characters from first segment of each line
-      var cleanPart = currentLine.length===0 ? part.replace(/^[\u2022\-\*]\s*/, "") : part;
-      if(cleanPart || seg.bold || seg.italic || seg.color) {
-        currentLine.push(Object.assign({}, seg, {text: cleanPart}));
-      }
-      if (pi < parts.length - 1) {
-        if (currentLine.some(function(s){return (s.text||"").trim();})) lines.push(currentLine);
-        currentLine = [];
-      }
+function parsePointsAttention(text) {
+  if (!text) return [];
+  var str = Array.isArray(text) ? text.map(function(t){return t.text||"";}).join("") : String(text||"");
+  return str.split("\n")
+    .map(function(l) { return l.trim().replace(/^[•\-\*]\s*/, ""); })
+    .filter(Boolean)
+    .map(function(line) {
+      var lower = line.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      var found = POINTS_EMOJI_MAP.find(function(entry) {
+        return entry.keys.some(function(k) { return lower.includes(k); });
+      });
+      return { text: line, emoji: found ? found.emoji : "\u2705" };
     });
-  });
-  if (currentLine.some(function(s){return (s.text||"").trim();})) lines.push(currentLine);
-  return lines.filter(function(line){return line.some(function(s){return (s.text||"").trim();});}).map(function(segments) {
-    var plainLine = segments.map(function(s){return s.text||"";}).join("");
-    var lower = plainLine.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-    var found = POINTS_EMOJI_MAP.find(function(entry){return entry.keys.some(function(k){return lower.includes(k);});});
-    return { segments: segments, emoji: found ? found.emoji : "\u2705" };
-  });
 }
 
 /* photo grouping (shared) */
@@ -761,36 +708,21 @@ function ChangeBanner({changes,stepIndex,onAcknowledge,acknowledged}){
 /* ─── STEP COMPONENTS ────────────────────────────────────────────────── */
 function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowledged,onAcknowledge}){
   var voyageurs=logement.voyageurs?logement.voyageurs+" max":"";
-  // Build acces rich text + boiteCle appended as plain bold segment
-  var accesRt=Array.isArray(logement.acces)?logement.acces:[];
-  var accesWithCle=logement.boiteCle
-    ? accesRt.concat([
-        {text:"\n",bold:false,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
-        {text:"Code boîte à clé : "+logement.boiteCle,bold:true,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
-      ])
-    : accesRt;
+  var voyageursText=[voyageurs,cleanNotionText(logement.lits)].filter(Boolean).join("\n");
+  var accesText=cleanNotionText(logement.acces);
+  if(logement.boiteCle) accesText+=(accesText?"\n":"")+"**Code boîte à clé : "+logement.boiteCle+"**";
   return (
     <div>
-      <ChangeBanner changes={changes||[]} stepIndex={0} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       {loading||error?<LogementLoading error={error}/>:null}
       <CopyAdresse adresse={logement.adresse}/>
       <InfoCardWithCopy icon={<IconReceipt/>} title="Facturation à adresser à" text={logement.proprietaire}/>
       <InfoCardWithCopy icon={<IconEuro/>} title="Forfait ménage" text={logement.forfaitMenage}/>
       <WifiCard text={logement.wifi}/>
-      {(voyageurs||logement.lits)&&(
-        <InfoCard icon={<IconUsers/>} title="Voyageurs">
-          {voyageurs?<span>{voyageurs}</span>:null}
-          {voyageurs&&logement.lits&&logement.lits.length>0?<br/>:null}
-          {Array.isArray(logement.lits)&&logement.lits.length>0?<RichText value={logement.lits}/>:null}
-        </InfoCard>
-      )}
+      <InfoCardWithCopy icon={<IconUsers/>} title="Voyageurs" text={voyageursText}/>
       <InfoCardWithCopy icon={<IconTrash/>} title="Poubelles" text={logement.poubelles}/>
       <InfoCardWithCopy icon={<IconBox/>} title="Consommables" text={logement.consommables}/>
-      {(accesWithCle.length>0)&&(
-        <InfoCard icon={<IconKey/>} title="Accès logement">
-          <RichText value={accesWithCle}/>
-        </InfoCard>
-      )}
+      <InfoCardWithCopy icon={<IconKey/>} title="Accès logement" text={accesText}/>
+      <ChangeBanner changes={changes||[]} stepIndex={0} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
         <Btn fullWidth onClick={onNext} disabled={!!(changes&&changes.some(function(c){return c.step===0;})&&!acknowledged)}>Commencer le rapport</Btn>
         <button onClick={onModeVisite} style={{width:"100%",padding:"13px",borderRadius:DS.radius.md,border:"1.5px solid "+DS.color.primaryBorder,background:DS.color.surface,color:DS.color.primaryDark,fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>👁 Mode visite</button>
@@ -816,10 +748,9 @@ function Step2Arrivee({data,setData,onNext,onPrev}){
 
 function Step3Attention({data,setData,logement,onNext,onPrev,changes,acknowledged,onAcknowledge}){
   var points=parsePointsAttention(logement&&logement.pointsAttention);
-  if(points.length===0) points=[{emoji:"",segments:[{text:""}]},{emoji:"",segments:[{text:""}]},{emoji:"",segments:[{text:""}]}];
+  if(points.length===0) points=[{emoji:"",text:""},{emoji:"",text:""},{emoji:"",text:""}];
   return (
     <div>
-      <ChangeBanner changes={changes||[]} stepIndex={2} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <SectionTitle>Points d'attention</SectionTitle>
       <Subtitle>Merci de prendre connaissance de ces consignes avant de commencer.</Subtitle>
       <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
@@ -827,7 +758,7 @@ function Step3Attention({data,setData,logement,onNext,onPrev,changes,acknowledge
           return (
             <div key={i} style={{display:"flex",gap:14,padding:"14px 16px",background:DS.color.surface,borderRadius:DS.radius.md,fontSize:14,color:DS.color.primaryDark,lineHeight:1.5,border:"1px solid "+DS.color.border}}>
               <span style={{fontSize:20,flexShrink:0}}>{pt.emoji}</span>
-              <span style={{fontFamily:DS.font.body}}><RichLine segments={pt.segments}/></span>
+              <span style={{fontFamily:DS.font.body}}>{pt.text}</span>
             </div>
           );
         })}
@@ -842,6 +773,7 @@ function Step3Attention({data,setData,logement,onNext,onPrev,changes,acknowledge
         <span style={{fontSize:20,lineHeight:1,flexShrink:0,filter:data.lu?"none":"grayscale(1) opacity(0.4)"}}>✅</span>
         <span style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark,fontWeight:600}}>J'ai pris connaissance des points d'attention</span>
       </div>
+      <ChangeBanner changes={changes||[]} stepIndex={2} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev}>Retour</Btn><Btn onClick={onNext} disabled={!data.lu||!!(changes&&changes.some(function(c){return c.step===2;})&&!acknowledged)}>Suivant</Btn></div>
     </div>
   );
@@ -870,7 +802,6 @@ function Step5Consommables({data,setData,logement,onNext,onPrev,changes,acknowle
   if(itemsALaisser.length===0) itemsALaisser=CONSOMMABLES_LAISSER;
   return (
     <div>
-      <ChangeBanner changes={changes||[]} stepIndex={4} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <SectionTitle>Consommables</SectionTitle>
       {logement.consommables&&logement.consommables.length>0?<Subtitle><RichText value={logement.consommables}/></Subtitle>:null}
       <div style={{marginBottom:18}}>
@@ -902,6 +833,7 @@ function Step5Consommables({data,setData,logement,onNext,onPrev,changes,acknowle
       <Field label="Consommables à prévoir" required><Textarea value={data.consommablesAPrevoir||""} onChange={function(v){setData(Object.assign({},data,{consommablesAPrevoir:v}));}} placeholder="Notez les consommables manquants à réapprovisionner." rows={3}/></Field>
       <Field label="Remarques sur le logement" required><Textarea value={data.remarques||""} onChange={function(v){setData(Object.assign({},data,{remarques:v}));}} placeholder="Interventions à prévoir, anomalies constatées…" rows={3}/></Field>
       <Field label="Heure de fin d'intervention" required><Input type="time" value={data.heureFin||""} onChange={function(v){setData(Object.assign({},data,{heureFin:v}));}}/></Field>
+      <ChangeBanner changes={changes||[]} stepIndex={4} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev}>Retour</Btn><Btn onClick={onNext} disabled={!ok||!!(changes&&changes.some(function(c){return c.step===4;})&&!acknowledged)}>Suivant</Btn></div>
     </div>
   );
@@ -986,7 +918,6 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
   var groupes=grouperPhotos(logement&&logement.photosReference);
   return (
     <div>
-      <ChangeBanner changes={changes||[]} stepIndex={5} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       {showWarning?<PhotoWarningModal expected={expectedCount} actual={photos.length} onConfirm={function(){setShowWarning(false);onNext();}} onCancel={function(){setShowWarning(false);}}/>:null}
       {groupes.length>0?(
         <div style={{marginBottom:28}}>
@@ -1014,6 +945,7 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
         </div>
       ):null}
       <PhotoModule photos={photos} setPhotos={setPhotos} title="Photos de fin de ménage" subtitle="Sélectionnez toutes vos photos en une seule fois." infoTitle="Photos attendues" infoItems={PIECES} emptyLabel="Sélectionner les photos" addLabel="Ajouter d'autres photos" required={true} onProcessingChange={setIsProcessing}/>
+      <ChangeBanner changes={changes||[]} stepIndex={5} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn><Btn onClick={handleNext} disabled={photos.length===0||isProcessing||!!(changes&&changes.some(function(c){return c.step===5;})&&!acknowledged)}>{suivantLabel}</Btn></div>
     </div>
   );
@@ -1066,14 +998,8 @@ function ModeVisite({logement,onQuitter}){
   var itemsALaisser=parseConsommablesALaisser(logement&&logement.consommablesALaisser);
   if(itemsALaisser.length===0) itemsALaisser=CONSOMMABLES_LAISSER;
   var groupes=grouperPhotos(logement&&logement.photosReference);
-  var accesRt=Array.isArray(logement.acces)?logement.acces:[];
-  var accesWithCle=logement.boiteCle
-    ? accesRt.concat([
-        {text:"\n",bold:false,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
-        {text:"Code boîte à clé : "+logement.boiteCle,bold:true,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
-      ])
-    : accesRt;
-  var voyageurs=logement.voyageurs?logement.voyageurs+" max":"";
+  var voyageursText=[logement.voyageurs?logement.voyageurs+" max":"",cleanNotionText(logement.lits)].filter(Boolean).join("\n");
+  var accesText=cleanNotionText(logement.acces)+(logement.boiteCle?"\n**Code boîte à clé : "+logement.boiteCle+"**":"");
   return (
     <div style={wrap}>
       <div style={{background:DS.color.primaryDark,color:"#fff",borderRadius:DS.radius.md,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1096,20 +1022,10 @@ function ModeVisite({logement,onQuitter}){
           <InfoCardWithCopy icon={<IconReceipt/>} title="Facturation à adresser à" text={logement.proprietaire}/>
           <InfoCardWithCopy icon={<IconEuro/>} title="Forfait ménage" text={logement.forfaitMenage}/>
           <WifiCard text={logement.wifi}/>
-          {(voyageurs||logement.lits)&&(
-            <InfoCard icon={<IconUsers/>} title="Voyageurs">
-              {voyageurs?<span>{voyageurs}</span>:null}
-              {voyageurs&&logement.lits&&logement.lits.length>0?<br/>:null}
-              {Array.isArray(logement.lits)&&logement.lits.length>0?<RichText value={logement.lits}/>:null}
-            </InfoCard>
-          )}
+          <InfoCardWithCopy icon={<IconUsers/>} title="Voyageurs" text={voyageursText}/>
           <InfoCardWithCopy icon={<IconTrash/>} title="Poubelles" text={logement.poubelles}/>
           <InfoCardWithCopy icon={<IconBox/>} title="Consommables" text={logement.consommables}/>
-          {(accesWithCle.length>0)&&(
-            <InfoCard icon={<IconKey/>} title="Accès logement">
-              <RichText value={accesWithCle}/>
-            </InfoCard>
-          )}
+          <InfoCardWithCopy icon={<IconKey/>} title="Accès logement" text={accesText}/>
         </div>
       )}
       {step==="attention"&&(
@@ -1117,7 +1033,7 @@ function ModeVisite({logement,onQuitter}){
           <SectionTitle>Points d'attention</SectionTitle>
           <Subtitle>Consignes à respecter pendant l'intervention.</Subtitle>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {points.map(function(pt,i){return <div key={i} style={{display:"flex",gap:14,padding:"14px 16px",background:DS.color.surface,borderRadius:DS.radius.md,fontSize:14,color:DS.color.primaryDark,lineHeight:1.5,border:"1px solid "+DS.color.border,fontFamily:DS.font.body}}><span style={{fontSize:20,flexShrink:0}}>{pt.emoji}</span><span><RichLine segments={pt.segments}/></span></div>;})}
+            {points.map(function(pt,i){return <div key={i} style={{display:"flex",gap:14,padding:"14px 16px",background:DS.color.surface,borderRadius:DS.radius.md,fontSize:14,color:DS.color.primaryDark,lineHeight:1.5,border:"1px solid "+DS.color.border,fontFamily:DS.font.body}}><span style={{fontSize:20,flexShrink:0}}>{pt.emoji}</span><span>{pt.text}</span></div>;})}
           </div>
         </div>
       )}
@@ -1145,6 +1061,191 @@ function ModeVisite({logement,onQuitter}){
 }
 
 /* ─── PAGE ACCUEIL ───────────────────────────────────────────────────── */
+/* ─── ESPACE PRESTATAIRE ─────────────────────────────────────────────── */
+var PRESTA_KEY = "prestataire_session";
+
+function getSession(){ try{ return JSON.parse(localStorage.getItem(PRESTA_KEY)||"null"); }catch(e){ return null; } }
+function saveSession(p){ try{ localStorage.setItem(PRESTA_KEY, JSON.stringify(p)); }catch(e){} }
+function clearSession(){ try{ localStorage.removeItem(PRESTA_KEY); }catch(e){} }
+
+function formatDateFr(str){
+  if(!str) return "";
+  var d=new Date(str);
+  return d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+}
+
+function MissionCard({mission, onAccepter, onRefuser, mode}){
+  var [loading, setLoading] = useState(false);
+  var isPast = mission.date && new Date(mission.date) < new Date();
+  var statusColor = mission.etat==="Acceptée" ? DS.color.success : mission.etat==="Disponible" ? DS.color.primary : DS.color.textMuted;
+
+  return (
+    <div style={{background:DS.color.surface,border:"1px solid "+DS.color.border,borderRadius:DS.radius.md,padding:"16px",marginBottom:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+        <div>
+          <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:15,color:DS.color.primaryDark}}>{mission.nom}</div>
+          <div style={{fontFamily:DS.font.body,fontSize:13,color:DS.color.textMuted,marginTop:2}}>{formatDateFr(mission.date)}</div>
+        </div>
+        <span style={{background:statusColor+"22",color:statusColor,fontFamily:DS.font.heading,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:DS.radius.pill,textTransform:"uppercase",letterSpacing:"0.05em"}}>{mission.etat}</span>
+      </div>
+      {mode==="disponible" && (
+        <div style={{display:"flex",gap:8,marginTop:12}}>
+          <button onClick={function(){setLoading(true);onAccepter(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:2,padding:"10px",borderRadius:DS.radius.sm,border:"none",background:DS.color.primaryDark,color:"#fff",fontWeight:700,fontSize:13,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
+            {loading?"…":"✅ Accepter"}
+          </button>
+          <button onClick={function(){setLoading(true);onRefuser(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:1,padding:"10px",borderRadius:DS.radius.sm,border:"1.5px solid "+DS.color.border,background:DS.color.surface,color:DS.color.textMuted,fontWeight:600,fontSize:13,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
+            Refuser
+          </button>
+        </div>
+      )}
+      {mode==="mesmissions" && mission.slug && !isPast && (
+        <a href={"/"+mission.slug} style={{display:"block",marginTop:10,padding:"10px",borderRadius:DS.radius.sm,background:DS.color.primaryBg,color:DS.color.primaryDark,fontWeight:700,fontSize:13,fontFamily:DS.font.heading,textDecoration:"none",textAlign:"center",border:"1px solid "+DS.color.primaryBorder}}>
+          Ouvrir le formulaire →
+        </a>
+      )}
+      {mode==="mesmissions" && isPast && (
+        <div style={{marginTop:8,fontSize:12,color:DS.color.textFaint,fontFamily:DS.font.body}}>Mission passée</div>
+      )}
+    </div>
+  );
+}
+
+function LoginPrestataire({onLogin}){
+  var [username, setUsername] = useState("");
+  var [password, setPassword] = useState("");
+  var [error, setError] = useState("");
+  var [loading, setLoading] = useState(false);
+
+  function handleSubmit(){
+    if(!username||!password) return;
+    setLoading(true); setError("");
+    fetch("/api/auth-prestataire",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password})})
+      .then(function(r){return r.json();})
+      .then(function(data){
+        if(data.success){ saveSession(data.prestataire); onLogin(data.prestataire); }
+        else setError(data.error||"Identifiants incorrects");
+      })
+      .catch(function(){ setError("Erreur réseau"); })
+      .finally(function(){ setLoading(false); });
+  }
+
+  return (
+    <div style={{minHeight:"100vh",background:DS.color.surface,fontFamily:DS.font.body}}>
+      <div style={{background:DS.color.primaryDark,padding:"28px 24px 24px",fontFamily:DS.font.heading}}>
+        <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.5)",marginBottom:6}}>izinest</div>
+        <div style={{fontSize:24,fontWeight:700,color:"#fff"}}>Espace prestataire</div>
+        <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",marginTop:4}}>Connectez-vous pour voir vos missions</div>
+      </div>
+      <div style={{maxWidth:400,margin:"0 auto",padding:"32px 20px"}}>
+        {error?<div style={{background:DS.color.dangerBg,border:"1px solid "+DS.color.dangerBorder,borderRadius:DS.radius.md,padding:"12px 16px",marginBottom:16,fontSize:14,color:DS.color.danger,fontFamily:DS.font.body}}>{error}</div>:null}
+        <Field label="Nom d'utilisateur"><Input value={username} onChange={setUsername} placeholder="simondefarge"/></Field>
+        <Field label="Mot de passe"><Input type="password" value={password} onChange={setPassword} placeholder="••••••••"/></Field>
+        <Btn fullWidth onClick={handleSubmit} disabled={loading||!username||!password}>{loading?"Connexion…":"Se connecter"}</Btn>
+      </div>
+    </div>
+  );
+}
+
+function AgendaPrestataire({prestataire, onLogout}){
+  var [tab, setTab] = useState("disponibles");
+  var [disponibles, setDisponibles] = useState([]);
+  var [mesMissions, setMesMissions] = useState([]);
+  var [loading, setLoading] = useState(true);
+  var [toast, setToast] = useState("");
+
+  function showToast(msg){ setToast(msg); setTimeout(function(){setToast("");},3000); }
+
+  function loadMissions(){
+    setLoading(true);
+    fetch("/api/missions?prestataireId="+encodeURIComponent(prestataire.id))
+      .then(function(r){return r.json();})
+      .then(function(data){
+        setDisponibles(data.disponibles||[]);
+        setMesMissions(data.mesMissions||[]);
+      })
+      .finally(function(){setLoading(false);});
+  }
+
+  useEffect(loadMissions,[]);
+
+  function handleAction(mission, action){
+    return fetch("/api/mission-action",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        missionId:mission.id,
+        action:action,
+        prestataireId:prestataire.id,
+        prestataireNom:prestataire.nom,
+        missionNom:mission.nom,
+      })
+    }).then(function(){
+      showToast(action==="accepter"?"Mission acceptée ✅":"Mission refusée");
+      loadMissions();
+    });
+  }
+
+  var missionsFutures = mesMissions.filter(function(m){ return !m.date||new Date(m.date)>=new Date(); });
+  var missionsPassees = mesMissions.filter(function(m){ return m.date&&new Date(m.date)<new Date(); });
+
+  return (
+    <div style={{minHeight:"100vh",background:DS.color.surface,fontFamily:DS.font.body}}>
+      {toast?<div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:DS.color.primaryDark,color:"#fff",padding:"10px 20px",borderRadius:DS.radius.md,fontFamily:DS.font.heading,fontWeight:600,fontSize:14,zIndex:9999}}>{toast}</div>:null}
+      <div style={{background:DS.color.primaryDark,padding:"20px 20px 16px",fontFamily:DS.font.heading}}>
+        <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.5)",marginBottom:4}}>izinest · Espace prestataire</div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div style={{fontSize:20,fontWeight:700,color:"#fff"}}>Bonjour {prestataire.nom} 👋</div>
+          <button onClick={function(){clearSession();onLogout();}} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:DS.radius.sm,color:"#fff",fontSize:12,fontWeight:600,padding:"5px 12px",cursor:"pointer",fontFamily:DS.font.heading}}>Déconnexion</button>
+        </div>
+      </div>
+
+      <div style={{display:"flex",gap:0,borderBottom:"1px solid "+DS.color.border,background:DS.color.surface}}>
+        {[
+          {key:"disponibles",label:"Disponibles",count:disponibles.length},
+          {key:"agenda",label:"Mon agenda",count:missionsFutures.length},
+          {key:"historique",label:"Historique"},
+        ].map(function(t){
+          return (
+            <button key={t.key} onClick={function(){setTab(t.key);}} style={{flex:1,padding:"12px 8px",border:"none",borderBottom:tab===t.key?"2.5px solid "+DS.color.primary:"2.5px solid transparent",background:"none",fontFamily:DS.font.heading,fontWeight:tab===t.key?700:500,fontSize:13,color:tab===t.key?DS.color.primary:DS.color.textMuted,cursor:"pointer"}}>
+              {t.label}{t.count>0?<span style={{marginLeft:5,background:DS.color.primarySoft,color:DS.color.primary,borderRadius:DS.radius.pill,padding:"1px 7px",fontSize:11,fontWeight:700}}>{t.count}</span>:null}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{maxWidth:480,margin:"0 auto",padding:"20px 20px 60px"}}>
+        {loading?<div style={{textAlign:"center",padding:32,color:DS.color.textMuted}}>Chargement…</div>:null}
+
+        {!loading&&tab==="disponibles"&&(
+          disponibles.length===0
+            ?<div style={{textAlign:"center",padding:32,color:DS.color.textMuted,fontFamily:DS.font.body}}>Aucune mission disponible pour le moment.</div>
+            :disponibles.map(function(m){return <MissionCard key={m.id} mission={m} mode="disponible" onAccepter={function(m){return handleAction(m,"accepter");}} onRefuser={function(m){return handleAction(m,"refuser");}}/>;})
+        )}
+
+        {!loading&&tab==="agenda"&&(
+          missionsFutures.length===0
+            ?<div style={{textAlign:"center",padding:32,color:DS.color.textMuted,fontFamily:DS.font.body}}>Aucune mission à venir.</div>
+            :missionsFutures.map(function(m){return <MissionCard key={m.id} mission={m} mode="mesmissions" onAccepter={function(){}} onRefuser={function(){}}/>;})
+        )}
+
+        {!loading&&tab==="historique"&&(
+          missionsPassees.length===0
+            ?<div style={{textAlign:"center",padding:32,color:DS.color.textMuted,fontFamily:DS.font.body}}>Aucune mission passée.</div>
+            :missionsPassees.map(function(m){return <MissionCard key={m.id} mission={m} mode="mesmissions" onAccepter={function(){}} onRefuser={function(){}}/>;})
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PagePrestataire(){
+  var [prestataire, setPrestataire] = useState(function(){ return getSession(); });
+
+  if(!prestataire) return <LoginPrestataire onLogin={function(p){ setPrestataire(p); }}/>;
+  return <AgendaPrestataire prestataire={prestataire} onLogout={function(){ setPrestataire(null); }}/>;
+}
+
+
 function PageAccueil(){
   var [logements,setLogements]=useState([]);
   var [loading,setLoading]=useState(true);
@@ -1266,8 +1367,10 @@ export default function App(){
   if(done) return <div style={wrap}><StepSuccess nom={arrivee.nom} bien={arrivee.bien}/></div>;
   if(modeVisite) return <ModeVisite logement={logement} onQuitter={function(){setModeVisite(false);}}/>;
 
-  var pathSlug=window.location.pathname.split("/").filter(Boolean).pop();
+  var pathParts=window.location.pathname.split("/").filter(Boolean);
+  var pathSlug=pathParts[pathParts.length-1]||"";
   if(!pathSlug) return <PageAccueil/>;
+  if(pathSlug==="prestataire") return <PagePrestataire/>;
 
   return (
     <div style={wrap}>
