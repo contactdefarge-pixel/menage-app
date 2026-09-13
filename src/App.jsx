@@ -1180,8 +1180,14 @@ function AgendaPrestataire({prestataire, onLogout}){
         missionNom:mission.nom,
       })
     }).then(function(){
-      showToast(action==="accepter"?"Mission acceptée ✅":"Mission refusée");
-      loadMissions();
+      if(action==="accepter"){
+        setDisponibles(function(prev){ return prev.filter(function(m){ return m.id!==mission.id; }); });
+        setMesMissions(function(prev){ return prev.concat([Object.assign({},mission,{etat:"Acceptée",prestataire:prestataire.id})]); });
+        showToast("Mission acceptée ✅");
+      } else {
+        setDisponibles(function(prev){ return prev.filter(function(m){ return m.id!==mission.id; }); });
+        showToast("Mission refusée");
+      }
     });
   }
 
