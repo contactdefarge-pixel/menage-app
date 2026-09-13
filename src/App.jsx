@@ -1157,7 +1157,7 @@ function AgendaPrestataire({prestataire, onLogout}){
 
   function loadMissions(){
     setLoading(true);
-    fetch("/api/missions?prestataireId="+encodeURIComponent(prestataire.id))
+    fetch("/api/missions?prestataireId="+encodeURIComponent(prestataire.id)+"&prestataireNom="+encodeURIComponent(prestataire.nom))
       .then(function(r){return r.json();})
       .then(function(data){
         setDisponibles(data.disponibles||[]);
