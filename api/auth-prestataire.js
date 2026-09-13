@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
     const props = page.properties || {};
     const storedPassword = (props["Mot de passe"]?.rich_text || []).map(t => t.plain_text).join("");
-    const nom = (props["Nom"]?.title || []).map(t => t.plain_text).join("");
+    const nomProp = props["Prénom/Nom"] || props["Nom"];
     const nom = (nomProp?.title || []).map(t => t.plain_text).join("");
     const email = props["Email"]?.email || "";
 
