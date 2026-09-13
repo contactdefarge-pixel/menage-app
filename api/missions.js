@@ -51,6 +51,7 @@ export default async function handler(req, res) {
 
   const NOTION_TOKEN   = process.env.NOTION_TOKEN;
   const prestataireId  = req.query.prestataireId || "";
+  const prestataireNom = req.query.prestataireNom || "";
 
   try {
     const r = await fetch(`https://api.notion.com/v1/databases/${MISSIONS_DB}/query`, {
@@ -73,6 +74,7 @@ export default async function handler(req, res) {
     const disponibles = all.filter(m =>
       m.etat === "Disponible" &&
       !m.prestataire &&
+      !m.refus.includes(prestataireNom) &&
       !m.refus.includes(prestataireId)
     );
 
