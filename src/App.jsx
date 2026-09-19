@@ -263,8 +263,9 @@ var POINTS_EMOJI_MAP = [
   { keys: ["araignée","araigne","insecte"], emoji: "🕷️" },
   { keys: ["balais", "balai"], emoji: "🧹" },
   { keys: ["barbecue", "bbq", "poele", "poêle"], emoji: "🔥" },
-  { keys: ["jardin"], emoji: "🏡" },
+  { keys: ["jardin", "mobilier extérieur"], emoji: "🏡" },
   { keys: ["jacuzzi", "baignoire balnéo"], emoji: "🫧" },
+  { keys: ["TV", "télévision", "télé"], emoji: "📺" },
 ];
 
 function parsePointsAttention(text) {
