@@ -687,42 +687,64 @@ function ChangeBanner({changes,stepIndex,onAcknowledge,acknowledged}){
   var stepChanges=changes.filter(function(c){return c.step===stepIndex;});
   if(stepChanges.length===0||acknowledged) return null;
   return (
-    <div style={{background:"#fffbeb",border:"2px solid #f59e0b",borderRadius:DS.radius.md,padding:"14px 16px",marginBottom:20}}>
-      <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+    <div style={{
+      position:"fixed",top:0,left:0,right:0,zIndex:500,
+      background:"#fffbeb",borderBottom:"2px solid #f59e0b",
+      padding:"12px 20px",boxShadow:"0 2px 8px rgba(245,158,11,0.2)",
+    }}>
+      <div style={{maxWidth:480,margin:"0 auto",display:"flex",gap:10,alignItems:"flex-start"}}>
         <span style={{fontSize:20,flexShrink:0}}>🔔</span>
         <div style={{flex:1}}>
-          <div style={{fontFamily:DS.font.heading,fontSize:13,fontWeight:700,color:"#92400e",marginBottom:6}}>Mise à jour depuis votre dernière visite</div>
-          <div style={{fontFamily:DS.font.body,fontSize:13,color:"#92400e",marginBottom:10,lineHeight:1.5}}>
-            Les informations suivantes ont été modifiées :
-            <ul style={{margin:"6px 0 0 16px",padding:0}}>
-              {stepChanges.map(function(c,i){return <li key={i} style={{marginBottom:2}}>{c.label}</li>;})}
-            </ul>
+          <div style={{fontFamily:DS.font.heading,fontSize:13,fontWeight:700,color:"#92400e",marginBottom:4}}>Mise à jour depuis votre dernière visite</div>
+          <div style={{fontFamily:DS.font.body,fontSize:12,color:"#92400e",marginBottom:8,lineHeight:1.4}}>
+            {stepChanges.map(function(c,i){return <span key={i}>{i>0?" · ":""}{c.label}</span>;})}
           </div>
-          <button onClick={onAcknowledge} style={{background:"#f59e0b",border:"none",borderRadius:DS.radius.sm,color:"#fff",fontWeight:700,fontSize:13,padding:"8px 16px",cursor:"pointer",fontFamily:DS.font.heading,width:"100%"}}>J'ai pris connaissance des modifications</button>
+          <button onClick={onAcknowledge} style={{background:"#f59e0b",border:"none",borderRadius:DS.radius.sm,color:"#fff",fontWeight:700,fontSize:12,padding:"6px 14px",cursor:"pointer",fontFamily:DS.font.heading}}>J'ai pris connaissance</button>
         </div>
       </div>
     </div>
   );
 }
 
+function ChangeBannerSpacer({changes,stepIndex,acknowledged}){
+  var stepChanges=changes.filter(function(c){return c.step===stepIndex;});
+  if(stepChanges.length===0||acknowledged) return null;
+  return <div style={{height:110,marginBottom:8}}/>;
+}
+
 /* ─── STEP COMPONENTS ────────────────────────────────────────────────── */
 function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowledged,onAcknowledge}){
   var voyageurs=logement.voyageurs?logement.voyageurs+" max":"";
-  var voyageursText=[voyageurs,cleanNotionText(logement.lits)].filter(Boolean).join("\n");
-  var accesText=cleanNotionText(logement.acces);
-  if(logement.boiteCle) accesText+=(accesText?"\n":"")+"**Code boîte à clé : "+logement.boiteCle+"**";
+  var accesRt=Array.isArray(logement.acces)?logement.acces:[];
+  var accesWithCle=logement.boiteCle
+    ? accesRt.concat([
+        {text:"\n",bold:false,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
+        {text:"Code boîte à clé : "+logement.boiteCle,bold:true,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
+      ])
+    : accesRt;
   return (
     <div>
+      <ChangeBanner changes={changes||[]} stepIndex={0} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
+      <ChangeBannerSpacer changes={changes||[]} stepIndex={0} acknowledged={acknowledged}/>
       {loading||error?<LogementLoading error={error}/>:null}
       <CopyAdresse adresse={logement.adresse}/>
       <InfoCardWithCopy icon={<IconReceipt/>} title="Facturation à adresser à" text={logement.proprietaire}/>
       <InfoCardWithCopy icon={<IconEuro/>} title="Forfait ménage" text={logement.forfaitMenage}/>
       <WifiCard text={logement.wifi}/>
-      <InfoCardWithCopy icon={<IconUsers/>} title="Voyageurs" text={voyageursText}/>
+      {(voyageurs||logement.lits)&&(
+        <InfoCard icon={<IconUsers/>} title="Voyageurs">
+          {voyageurs?<span>{voyageurs}</span>:null}
+          {voyageurs&&Array.isArray(logement.lits)&&logement.lits.length>0?<br/>:null}
+          {Array.isArray(logement.lits)&&logement.lits.length>0?<RichText value={logement.lits}/>:null}
+        </InfoCard>
+      )}
       <InfoCardWithCopy icon={<IconTrash/>} title="Poubelles" text={logement.poubelles}/>
       <InfoCardWithCopy icon={<IconBox/>} title="Consommables" text={logement.consommables}/>
-      <InfoCardWithCopy icon={<IconKey/>} title="Accès logement" text={accesText}/>
-      <ChangeBanner changes={changes||[]} stepIndex={0} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
+      {accesWithCle.length>0&&(
+        <InfoCard icon={<IconKey/>} title="Accès logement">
+          <RichText value={accesWithCle}/>
+        </InfoCard>
+      )}
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
         <Btn fullWidth onClick={onNext} disabled={!!(changes&&changes.some(function(c){return c.step===0;})&&!acknowledged)}>Commencer le rapport</Btn>
         <button onClick={onModeVisite} style={{width:"100%",padding:"13px",borderRadius:DS.radius.md,border:"1.5px solid "+DS.color.primaryBorder,background:DS.color.surface,color:DS.color.primaryDark,fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>👁 Mode visite</button>
@@ -751,6 +773,8 @@ function Step3Attention({data,setData,logement,onNext,onPrev,changes,acknowledge
   if(points.length===0) points=[{emoji:"",text:""},{emoji:"",text:""},{emoji:"",text:""}];
   return (
     <div>
+      <ChangeBanner changes={changes||[]} stepIndex={2} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
+      <ChangeBannerSpacer changes={changes||[]} stepIndex={2} acknowledged={acknowledged}/>
       <SectionTitle>Points d'attention</SectionTitle>
       <Subtitle>Merci de prendre connaissance de ces consignes avant de commencer.</Subtitle>
       <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
@@ -773,7 +797,6 @@ function Step3Attention({data,setData,logement,onNext,onPrev,changes,acknowledge
         <span style={{fontSize:20,lineHeight:1,flexShrink:0,filter:data.lu?"none":"grayscale(1) opacity(0.4)"}}>✅</span>
         <span style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark,fontWeight:600}}>J'ai pris connaissance des points d'attention</span>
       </div>
-      <ChangeBanner changes={changes||[]} stepIndex={2} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev}>Retour</Btn><Btn onClick={onNext} disabled={!data.lu||!!(changes&&changes.some(function(c){return c.step===2;})&&!acknowledged)}>Suivant</Btn></div>
     </div>
   );
@@ -802,6 +825,8 @@ function Step5Consommables({data,setData,logement,onNext,onPrev,changes,acknowle
   if(itemsALaisser.length===0) itemsALaisser=CONSOMMABLES_LAISSER;
   return (
     <div>
+      <ChangeBanner changes={changes||[]} stepIndex={4} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
+      <ChangeBannerSpacer changes={changes||[]} stepIndex={4} acknowledged={acknowledged}/>
       <SectionTitle>Consommables</SectionTitle>
       {logement.consommables&&logement.consommables.length>0?<Subtitle><RichText value={logement.consommables}/></Subtitle>:null}
       <div style={{marginBottom:18}}>
@@ -833,7 +858,6 @@ function Step5Consommables({data,setData,logement,onNext,onPrev,changes,acknowle
       <Field label="Consommables à prévoir" required><Textarea value={data.consommablesAPrevoir||""} onChange={function(v){setData(Object.assign({},data,{consommablesAPrevoir:v}));}} placeholder="Notez les consommables manquants à réapprovisionner." rows={3}/></Field>
       <Field label="Remarques sur le logement" required><Textarea value={data.remarques||""} onChange={function(v){setData(Object.assign({},data,{remarques:v}));}} placeholder="Interventions à prévoir, anomalies constatées…" rows={3}/></Field>
       <Field label="Heure de fin d'intervention" required><Input type="time" value={data.heureFin||""} onChange={function(v){setData(Object.assign({},data,{heureFin:v}));}}/></Field>
-      <ChangeBanner changes={changes||[]} stepIndex={4} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev}>Retour</Btn><Btn onClick={onNext} disabled={!ok||!!(changes&&changes.some(function(c){return c.step===4;})&&!acknowledged)}>Suivant</Btn></div>
     </div>
   );
@@ -946,6 +970,7 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
       ):null}
       <PhotoModule photos={photos} setPhotos={setPhotos} title="Photos de fin de ménage" subtitle="Sélectionnez toutes vos photos en une seule fois." infoTitle="Photos attendues" infoItems={PIECES} emptyLabel="Sélectionner les photos" addLabel="Ajouter d'autres photos" required={true} onProcessingChange={setIsProcessing}/>
       <ChangeBanner changes={changes||[]} stepIndex={5} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
+      <ChangeBannerSpacer changes={changes||[]} stepIndex={5} acknowledged={acknowledged}/>
       <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn><Btn onClick={handleNext} disabled={photos.length===0||isProcessing||!!(changes&&changes.some(function(c){return c.step===5;})&&!acknowledged)}>{suivantLabel}</Btn></div>
     </div>
   );
@@ -998,8 +1023,14 @@ function ModeVisite({logement,onQuitter}){
   var itemsALaisser=parseConsommablesALaisser(logement&&logement.consommablesALaisser);
   if(itemsALaisser.length===0) itemsALaisser=CONSOMMABLES_LAISSER;
   var groupes=grouperPhotos(logement&&logement.photosReference);
-  var voyageursText=[logement.voyageurs?logement.voyageurs+" max":"",cleanNotionText(logement.lits)].filter(Boolean).join("\n");
-  var accesText=cleanNotionText(logement.acces)+(logement.boiteCle?"\n**Code boîte à clé : "+logement.boiteCle+"**":"");
+  var voyageursVisite=logement.voyageurs?logement.voyageurs+" max":"";
+  var accesRtVisite=Array.isArray(logement.acces)?logement.acces:[];
+  var accesVisiteWithCle=logement.boiteCle
+    ? accesRtVisite.concat([
+        {text:"\n",bold:false,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
+        {text:"Code boîte à clé : "+logement.boiteCle,bold:true,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
+      ])
+    : accesRtVisite;
   return (
     <div style={wrap}>
       <div style={{background:DS.color.primaryDark,color:"#fff",borderRadius:DS.radius.md,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -1022,10 +1053,20 @@ function ModeVisite({logement,onQuitter}){
           <InfoCardWithCopy icon={<IconReceipt/>} title="Facturation à adresser à" text={logement.proprietaire}/>
           <InfoCardWithCopy icon={<IconEuro/>} title="Forfait ménage" text={logement.forfaitMenage}/>
           <WifiCard text={logement.wifi}/>
-          <InfoCardWithCopy icon={<IconUsers/>} title="Voyageurs" text={voyageursText}/>
+          {(voyageursVisite||logement.lits)&&(
+            <InfoCard icon={<IconUsers/>} title="Voyageurs">
+              {voyageursVisite?<span>{voyageursVisite}</span>:null}
+              {voyageursVisite&&Array.isArray(logement.lits)&&logement.lits.length>0?<br/>:null}
+              {Array.isArray(logement.lits)&&logement.lits.length>0?<RichText value={logement.lits}/>:null}
+            </InfoCard>
+          )}
           <InfoCardWithCopy icon={<IconTrash/>} title="Poubelles" text={logement.poubelles}/>
           <InfoCardWithCopy icon={<IconBox/>} title="Consommables" text={logement.consommables}/>
-          <InfoCardWithCopy icon={<IconKey/>} title="Accès logement" text={accesText}/>
+          {accesVisiteWithCle.length>0&&(
+            <InfoCard icon={<IconKey/>} title="Accès logement">
+              <RichText value={accesVisiteWithCle}/>
+            </InfoCard>
+          )}
         </div>
       )}
       {step==="attention"&&(
