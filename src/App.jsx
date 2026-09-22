@@ -689,12 +689,11 @@ function ChangeBanner({changes,stepIndex,onAcknowledge,acknowledged}){
   if(stepChanges.length===0||acknowledged) return null;
   return (
     <div style={{
-      position:"fixed",top:0,left:0,right:0,zIndex:500,
-      background:"#fffbeb",borderBottom:"2px solid #f59e0b",
-      padding:"12px 20px",boxShadow:"0 2px 8px rgba(245,158,11,0.2)",
+      background:"#fffbeb",border:"1.5px solid #f59e0b",borderRadius:DS.radius.md,
+      padding:"12px 16px",marginBottom:16,
     }}>
-      <div style={{maxWidth:480,margin:"0 auto",display:"flex",gap:10,alignItems:"flex-start"}}>
-        <span style={{fontSize:20,flexShrink:0}}>🔔</span>
+      <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+        <span style={{fontSize:18,flexShrink:0}}>🔔</span>
         <div style={{flex:1}}>
           <div style={{fontFamily:DS.font.heading,fontSize:13,fontWeight:700,color:"#92400e",marginBottom:4}}>Mise à jour depuis votre dernière visite</div>
           <div style={{fontFamily:DS.font.body,fontSize:12,color:"#92400e",marginBottom:8,lineHeight:1.4}}>
@@ -707,10 +706,8 @@ function ChangeBanner({changes,stepIndex,onAcknowledge,acknowledged}){
   );
 }
 
-function ChangeBannerSpacer({changes,stepIndex,acknowledged}){
-  var stepChanges=changes.filter(function(c){return c.step===stepIndex;});
-  if(stepChanges.length===0||acknowledged) return null;
-  return <div style={{height:110,marginBottom:8}}/>;
+function ChangeBannerSpacer(){
+  return null;
 }
 
 /* ─── STEP COMPONENTS ────────────────────────────────────────────────── */
