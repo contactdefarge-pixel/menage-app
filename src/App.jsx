@@ -265,7 +265,7 @@ var POINTS_EMOJI_MAP = [
   { keys: ["barbecue", "bbq", "poele", "poêle"], emoji: "🔥" },
   { keys: ["jardin", "mobilier exterieur"], emoji: "🏡" },
   { keys: ["jacuzzi", "baignoire balneo"], emoji: "🫧" },
-  { keys: ["TV", "television", "tele"], emoji: "📺" },
+  { keys: ["tv", "television", "tele"], emoji: "📺" },
 ];
 
 function parsePointsAttention(text) {
