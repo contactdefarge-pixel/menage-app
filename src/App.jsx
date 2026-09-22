@@ -255,7 +255,7 @@ var POINTS_EMOJI_MAP = [
   { keys: ["porte","clé","cle","code","boite","boîte","accès","acces","fermer"], emoji: "🔑" },
   { keys: ["cuisine","four","plaque","micro","frigo","réfrigérateur","vaisselle"], emoji: "🍳" },
   { keys: ["lumière","lumiere","lampe","éclairage","electricite"], emoji: "💡" },
-  { keys: ["chauffage","thermostat","température","climatisation"], emoji: "🌡️" },
+  { keys: ["chauffage","thermostat","temperature","climatisation"], emoji: "🌡️" },
   { keys: ["wifi","internet","box","routeur"], emoji: "📶" },
   { keys: ["photo","image","appareil"], emoji: "📷" },
   { keys: ["canapé","canape","salon","meuble"], emoji: "🛋️" },
@@ -263,9 +263,9 @@ var POINTS_EMOJI_MAP = [
   { keys: ["araignée","araigne","insecte"], emoji: "🕷️" },
   { keys: ["balais", "balai"], emoji: "🧹" },
   { keys: ["barbecue", "bbq", "poele", "poêle"], emoji: "🔥" },
-  { keys: ["jardin", "mobilier extérieur"], emoji: "🏡" },
-  { keys: ["jacuzzi", "baignoire balnéo"], emoji: "🫧" },
-  { keys: ["TV", "télévision", "télé"], emoji: "📺" },
+  { keys: ["jardin", "mobilier exterieur"], emoji: "🏡" },
+  { keys: ["jacuzzi", "baignoire balneo"], emoji: "🫧" },
+  { keys: ["TV", "television", "tele"], emoji: "📺" },
 ];
 
 function parsePointsAttention(text) {
