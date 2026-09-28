@@ -689,11 +689,12 @@ function ChangeBanner({changes,stepIndex,onAcknowledge,acknowledged}){
   if(stepChanges.length===0||acknowledged) return null;
   return (
     <div style={{
-      background:"#fffbeb",border:"1.5px solid #f59e0b",borderRadius:DS.radius.md,
-      padding:"12px 16px",marginBottom:16,
+      position:"fixed",top:0,left:0,right:0,zIndex:500,
+      background:"#fffbeb",borderBottom:"2px solid #f59e0b",
+      padding:"12px 20px",boxShadow:"0 2px 8px rgba(245,158,11,0.2)",
     }}>
-      <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
-        <span style={{fontSize:18,flexShrink:0}}>🔔</span>
+      <div style={{maxWidth:480,margin:"0 auto",display:"flex",gap:10,alignItems:"flex-start"}}>
+        <span style={{fontSize:20,flexShrink:0}}>🔔</span>
         <div style={{flex:1}}>
           <div style={{fontFamily:DS.font.heading,fontSize:13,fontWeight:700,color:"#92400e",marginBottom:4}}>Mise à jour depuis votre dernière visite</div>
           <div style={{fontFamily:DS.font.body,fontSize:12,color:"#92400e",marginBottom:8,lineHeight:1.4}}>
@@ -706,8 +707,10 @@ function ChangeBanner({changes,stepIndex,onAcknowledge,acknowledged}){
   );
 }
 
-function ChangeBannerSpacer(){
-  return null;
+function ChangeBannerSpacer({changes,stepIndex,acknowledged}){
+  var stepChanges=changes.filter(function(c){return c.step===stepIndex;});
+  if(stepChanges.length===0||acknowledged) return null;
+  return <div style={{height:110,marginBottom:8}}/>;
 }
 
 /* ─── STEP COMPONENTS ────────────────────────────────────────────────── */
@@ -1113,11 +1116,151 @@ function formatDateFr(str){
   return d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 }
 
+/* Palette de dégradés pour les cartes */
+var CARD_GRADIENTS = [
+  "linear-gradient(135deg,#085157 0%,#00bab3 100%)",
+  "linear-gradient(135deg,#0f4c75 0%,#1b6ca8 100%)",
+  "linear-gradient(135deg,#1a3c4a 0%,#2d7d7a 100%)",
+  "linear-gradient(135deg,#2c3e50 0%,#085157 100%)",
+];
+
+function MissionCardRiche({mission, index, total, onAccepter, onRefuser}){
+  var [loading, setLoading] = useState(false);
+  var gradient = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
+  var jour = "";
+  var dateStr = "";
+  if(mission.date){
+    var d = new Date(mission.date);
+    jour = d.toLocaleDateString("fr-FR",{weekday:"long"});
+    jour = jour.charAt(0).toUpperCase()+jour.slice(1);
+    dateStr = d.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
+  }
+  return (
+    <div style={{
+      background:gradient,
+      borderRadius:20,
+      padding:"28px 24px 24px",
+      color:"#fff",
+      position:"relative",
+      overflow:"hidden",
+      minHeight:280,
+      display:"flex",
+      flexDirection:"column",
+      justifyContent:"space-between",
+    }}>
+      {/* Cercle décoratif */}
+      <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:"rgba(255,255,255,0.06)"}}/>
+      <div style={{position:"absolute",bottom:-60,left:-30,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,0.04)"}}/>
+
+      {/* Header */}
+      <div>
+        <div style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",opacity:0.65,marginBottom:8}}>
+          izinest · Mission disponible
+        </div>
+        <div style={{fontFamily:DS.font.heading,fontSize:26,fontWeight:700,lineHeight:1.1,marginBottom:4}}>
+          {mission.nom}
+        </div>
+        {mission.date&&(
+          <div style={{fontFamily:DS.font.body,fontSize:15,opacity:0.8,marginTop:8}}>
+            <span style={{fontWeight:700}}>{jour}</span>
+            <br/>
+            <span style={{opacity:0.7,fontSize:13}}>{dateStr}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Compteur */}
+      {total>1&&(
+        <div style={{position:"absolute",top:20,right:20,background:"rgba(255,255,255,0.15)",borderRadius:DS.radius.pill,padding:"3px 10px",fontFamily:DS.font.heading,fontSize:12,fontWeight:600}}>
+          {index+1} / {total}
+        </div>
+      )}
+
+      {/* Boutons */}
+      <div style={{display:"flex",gap:10,marginTop:24}}>
+        <button
+          onClick={function(){setLoading(true);onAccepter(mission).finally(function(){setLoading(false);});}}
+          disabled={loading}
+          style={{flex:2,padding:"13px",borderRadius:DS.radius.md,border:"none",background:"#fff",color:DS.color.primaryDark,fontWeight:700,fontSize:14,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}
+        >{loading?"…":"✅ Accepter"}</button>
+        <button
+          onClick={function(){setLoading(true);onRefuser(mission).finally(function(){setLoading(false);});}}
+          disabled={loading}
+          style={{flex:1,padding:"13px",borderRadius:DS.radius.md,border:"1.5px solid rgba(255,255,255,0.35)",background:"transparent",color:"#fff",fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}
+        >Refuser</button>
+      </div>
+    </div>
+  );
+}
+
+function StackedCarousel({missions, onAccepter, onRefuser}){
+  var [activeIndex, setActiveIndex] = useState(0);
+  var total = missions.length;
+  if(total===0) return null;
+
+  function handleAccepter(mission){
+    return onAccepter(mission).then(function(){
+      setActiveIndex(function(i){ return Math.min(i, missions.length-2); });
+    });
+  }
+  function handleRefuser(mission){
+    return onRefuser(mission).then(function(){
+      setActiveIndex(function(i){ return Math.min(i, missions.length-2); });
+    });
+  }
+
+  return (
+    <div style={{position:"relative",width:"100%",paddingBottom:16}}>
+      {/* Cartes empilées derrière */}
+      {missions.slice(activeIndex+1, activeIndex+3).map(function(m, i){
+        var offset = (i+1)*10;
+        var scale = 1 - (i+1)*0.04;
+        return (
+          <div key={m.id} style={{
+            position:"absolute",top:offset,left:offset/2,right:offset/2,
+            transform:"scale("+scale+")",transformOrigin:"top center",
+            borderRadius:20,overflow:"hidden",
+            background:CARD_GRADIENTS[(activeIndex+i+1)%CARD_GRADIENTS.length],
+            height:280,
+            opacity:0.6-i*0.15,
+            zIndex:10-i,
+          }}/>
+        );
+      })}
+
+      {/* Carte active */}
+      <div style={{position:"relative",zIndex:20}}>
+        <MissionCardRiche
+          mission={missions[activeIndex]}
+          index={activeIndex}
+          total={total}
+          onAccepter={handleAccepter}
+          onRefuser={handleRefuser}
+        />
+      </div>
+
+      {/* Dots de navigation */}
+      {total>1&&(
+        <div style={{display:"flex",justifyContent:"center",gap:6,marginTop:16}}>
+          {missions.map(function(_,i){
+            return (
+              <button key={i} onClick={function(){setActiveIndex(i);}} style={{
+                width:i===activeIndex?20:6,height:6,borderRadius:3,border:"none",
+                background:i===activeIndex?DS.color.primary:DS.color.border,
+                cursor:"pointer",padding:0,transition:"all 0.2s",
+              }}/>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MissionCard({mission, onAccepter, onRefuser, mode}){
   var [loading, setLoading] = useState(false);
   var isPast = mission.date && new Date(mission.date) < new Date();
   var statusColor = mission.etat==="Acceptée" ? DS.color.success : mission.etat==="Disponible" ? DS.color.primary : DS.color.textMuted;
-
   return (
     <div style={{background:DS.color.surface,border:"1px solid "+DS.color.border,borderRadius:DS.radius.md,padding:"16px",marginBottom:10}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
@@ -1127,16 +1270,6 @@ function MissionCard({mission, onAccepter, onRefuser, mode}){
         </div>
         <span style={{background:statusColor+"22",color:statusColor,fontFamily:DS.font.heading,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:DS.radius.pill,textTransform:"uppercase",letterSpacing:"0.05em"}}>{mission.etat}</span>
       </div>
-      {mode==="disponible" && (
-        <div style={{display:"flex",gap:8,marginTop:12}}>
-          <button onClick={function(){setLoading(true);onAccepter(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:2,padding:"10px",borderRadius:DS.radius.sm,border:"none",background:DS.color.primaryDark,color:"#fff",fontWeight:700,fontSize:13,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
-            {loading?"…":"✅ Accepter"}
-          </button>
-          <button onClick={function(){setLoading(true);onRefuser(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:1,padding:"10px",borderRadius:DS.radius.sm,border:"1.5px solid "+DS.color.border,background:DS.color.surface,color:DS.color.textMuted,fontWeight:600,fontSize:13,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
-            Refuser
-          </button>
-        </div>
-      )}
       {mode==="mesmissions" && mission.slug && !isPast && (
         <a href={"/"+mission.slug} style={{display:"block",marginTop:10,padding:"10px",borderRadius:DS.radius.sm,background:DS.color.primaryBg,color:DS.color.primaryDark,fontWeight:700,fontSize:13,fontFamily:DS.font.heading,textDecoration:"none",textAlign:"center",border:"1px solid "+DS.color.primaryBorder}}>
           Ouvrir le formulaire →
@@ -1264,7 +1397,11 @@ function AgendaPrestataire({prestataire, onLogout}){
         {!loading&&tab==="disponibles"&&(
           disponibles.length===0
             ?<div style={{textAlign:"center",padding:32,color:DS.color.textMuted,fontFamily:DS.font.body}}>Aucune mission disponible pour le moment.</div>
-            :disponibles.map(function(m){return <MissionCard key={m.id} mission={m} mode="disponible" onAccepter={function(m){return handleAction(m,"accepter");}} onRefuser={function(m){return handleAction(m,"refuser");}}/>;})
+            :<StackedCarousel
+                missions={disponibles}
+                onAccepter={function(m){return handleAction(m,"accepter");}}
+                onRefuser={function(m){return handleAction(m,"refuser");}}
+              />
         )}
 
         {!loading&&tab==="agenda"&&(
