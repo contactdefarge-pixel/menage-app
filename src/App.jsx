@@ -1116,19 +1116,16 @@ function formatDateFr(str){
   return d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 }
 
-/* Palette de dégradés pour les cartes */
 var CARD_GRADIENTS = [
-  "linear-gradient(135deg,#085157 0%,#00bab3 100%)",
-  "linear-gradient(135deg,#0f4c75 0%,#1b6ca8 100%)",
-  "linear-gradient(135deg,#1a3c4a 0%,#2d7d7a 100%)",
-  "linear-gradient(135deg,#2c3e50 0%,#085157 100%)",
+  "linear-gradient(145deg,#085157 0%,#00bab3 100%)",
+  "linear-gradient(145deg,#0f4c75 0%,#1b6ca8 100%)",
+  "linear-gradient(145deg,#1a3c4a 0%,#2d7d7a 100%)",
+  "linear-gradient(145deg,#2c3e50 0%,#085157 100%)",
 ];
 
-function MissionCardRiche({mission, index, total, onAccepter, onRefuser}){
+function MissionCardRiche({mission, gradient, total, currentIdx, onAccepter, onRefuser}){
   var [loading, setLoading] = useState(false);
-  var gradient = CARD_GRADIENTS[index % CARD_GRADIENTS.length];
-  var jour = "";
-  var dateStr = "";
+  var jour = "", dateStr = "";
   if(mission.date){
     var d = new Date(mission.date);
     jour = d.toLocaleDateString("fr-FR",{weekday:"long"});
@@ -1136,58 +1133,50 @@ function MissionCardRiche({mission, index, total, onAccepter, onRefuser}){
     dateStr = d.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
   }
   return (
-    <div style={{
-      background:gradient,
-      borderRadius:20,
-      padding:"28px 24px 24px",
-      color:"#fff",
-      position:"relative",
-      overflow:"hidden",
-      minHeight:280,
-      display:"flex",
-      flexDirection:"column",
-      justifyContent:"space-between",
-    }}>
-      {/* Cercle décoratif */}
-      <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",background:"rgba(255,255,255,0.06)"}}/>
-      <div style={{position:"absolute",bottom:-60,left:-30,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,0.04)"}}/>
-
-      {/* Header */}
-      <div>
-        <div style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",opacity:0.65,marginBottom:8}}>
-          izinest · Mission disponible
-        </div>
-        <div style={{fontFamily:DS.font.heading,fontSize:26,fontWeight:700,lineHeight:1.1,marginBottom:4}}>
-          {mission.nom}
-        </div>
-        {mission.date&&(
-          <div style={{fontFamily:DS.font.body,fontSize:15,opacity:0.8,marginTop:8}}>
-            <span style={{fontWeight:700}}>{jour}</span>
-            <br/>
-            <span style={{opacity:0.7,fontSize:13}}>{dateStr}</span>
-          </div>
-        )}
-      </div>
-
+    <div style={{background:gradient,borderRadius:20,padding:"24px 22px 20px",color:"#fff",position:"relative",overflow:"hidden",minHeight:320,display:"flex",flexDirection:"column",justifyContent:"space-between",userSelect:"none"}}>
+      <div style={{position:"absolute",top:-50,right:-50,width:180,height:180,borderRadius:"50%",background:"rgba(255,255,255,0.06)"}}/>
+      <div style={{position:"absolute",bottom:-70,left:-40,width:220,height:220,borderRadius:"50%",background:"rgba(255,255,255,0.04)"}}/>
       {/* Compteur */}
-      {total>1&&(
-        <div style={{position:"absolute",top:20,right:20,background:"rgba(255,255,255,0.15)",borderRadius:DS.radius.pill,padding:"3px 10px",fontFamily:DS.font.heading,fontSize:12,fontWeight:600}}>
-          {index+1} / {total}
+      {total>1&&<div style={{position:"absolute",top:18,right:18,background:"rgba(255,255,255,0.18)",borderRadius:DS.radius.pill,padding:"3px 10px",fontFamily:DS.font.heading,fontSize:11,fontWeight:600}}>{currentIdx+1} / {total}</div>}
+      {/* Contenu */}
+      <div style={{position:"relative",zIndex:1}}>
+        <div style={{fontFamily:DS.font.heading,fontSize:10,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",opacity:0.6,marginBottom:10}}>izinest · Mission disponible</div>
+        <div style={{fontFamily:DS.font.heading,fontSize:24,fontWeight:700,lineHeight:1.1,marginBottom:6}}>{mission.nom}</div>
+        {mission.adresse&&<div style={{fontFamily:DS.font.body,fontSize:12,opacity:0.65,marginBottom:12,lineHeight:1.4}}>{mission.adresse}</div>}
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:8}}>
+          {mission.date&&(
+            <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,0.12)",borderRadius:DS.radius.sm,padding:"7px 12px"}}>
+              <span style={{fontSize:15}}>📅</span>
+              <div>
+                <div style={{fontFamily:DS.font.heading,fontSize:13,fontWeight:700}}>{jour}</div>
+                <div style={{fontFamily:DS.font.body,fontSize:11,opacity:0.75}}>{dateStr}</div>
+              </div>
+            </div>
+          )}
+          <div style={{display:"flex",gap:6}}>
+            {mission.dureeEstimee&&(
+              <div style={{flex:1,display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:DS.radius.sm,padding:"7px 12px"}}>
+                <span style={{fontSize:14}}>⏱</span>
+                <div style={{fontFamily:DS.font.body,fontSize:12,fontWeight:600}}>{mission.dureeEstimee}</div>
+              </div>
+            )}
+            {mission.forfaitMenage&&(
+              <div style={{flex:1,display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:DS.radius.sm,padding:"7px 12px"}}>
+                <span style={{fontSize:14}}>€</span>
+                <div style={{fontFamily:DS.font.heading,fontSize:14,fontWeight:700}}>{mission.forfaitMenage}</div>
+              </div>
+            )}
+          </div>
         </div>
-      )}
-
+      </div>
       {/* Boutons */}
-      <div style={{display:"flex",gap:10,marginTop:24}}>
-        <button
-          onClick={function(){setLoading(true);onAccepter(mission).finally(function(){setLoading(false);});}}
-          disabled={loading}
-          style={{flex:2,padding:"13px",borderRadius:DS.radius.md,border:"none",background:"#fff",color:DS.color.primaryDark,fontWeight:700,fontSize:14,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}
-        >{loading?"…":"✅ Accepter"}</button>
-        <button
-          onClick={function(){setLoading(true);onRefuser(mission).finally(function(){setLoading(false);});}}
-          disabled={loading}
-          style={{flex:1,padding:"13px",borderRadius:DS.radius.md,border:"1.5px solid rgba(255,255,255,0.35)",background:"transparent",color:"#fff",fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}
-        >Refuser</button>
+      <div style={{display:"flex",gap:8,marginTop:16,position:"relative",zIndex:1}}>
+        <button onClick={function(){setLoading(true);onAccepter(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:2,padding:"12px",borderRadius:DS.radius.md,border:"none",background:"#fff",color:DS.color.primaryDark,fontWeight:700,fontSize:14,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
+          {loading?"…":"✅ Accepter"}
+        </button>
+        <button onClick={function(){setLoading(true);onRefuser(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:1,padding:"12px",borderRadius:DS.radius.md,border:"1.5px solid rgba(255,255,255,0.4)",background:"transparent",color:"#fff",fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
+          Refuser
+        </button>
       </div>
     </div>
   );
@@ -1195,61 +1184,84 @@ function MissionCardRiche({mission, index, total, onAccepter, onRefuser}){
 
 function StackedCarousel({missions, onAccepter, onRefuser}){
   var [activeIndex, setActiveIndex] = useState(0);
+  var [dragX, setDragX] = useState(0);
+  var [isDragging, setIsDragging] = useState(false);
+  var touchStartX = useRef(0);
   var total = missions.length;
   if(total===0) return null;
 
-  function handleAccepter(mission){
-    return onAccepter(mission).then(function(){
-      setActiveIndex(function(i){ return Math.min(i, missions.length-2); });
-    });
+  function goNext(){ setActiveIndex(function(i){ return Math.min(i+1, total-1); }); }
+  function goPrev(){ setActiveIndex(function(i){ return Math.max(i-1, 0); }); }
+
+  function onTouchStart(e){ touchStartX.current = e.touches[0].clientX; setIsDragging(true); setDragX(0); }
+  function onTouchMove(e){ if(!isDragging) return; setDragX(e.touches[0].clientX - touchStartX.current); }
+  function onTouchEnd(){
+    setIsDragging(false);
+    if(dragX < -60 && activeIndex < total-1) goNext();
+    else if(dragX > 60 && activeIndex > 0) goPrev();
+    setDragX(0);
   }
-  function handleRefuser(mission){
-    return onRefuser(mission).then(function(){
-      setActiveIndex(function(i){ return Math.min(i, missions.length-2); });
-    });
+  function onMouseDown(e){ touchStartX.current = e.clientX; setIsDragging(true); setDragX(0); }
+  function onMouseMove(e){ if(!isDragging) return; setDragX(e.clientX - touchStartX.current); }
+  function onMouseUp(){
+    setIsDragging(false);
+    if(dragX < -60 && activeIndex < total-1) goNext();
+    else if(dragX > 60 && activeIndex > 0) goPrev();
+    setDragX(0);
   }
 
+  function handleAccepter(mission){ return onAccepter(mission).then(function(){ setActiveIndex(function(i){ return Math.min(i, missions.length-2); }); }); }
+  function handleRefuser(mission){ return onRefuser(mission).then(function(){ setActiveIndex(function(i){ return Math.min(i, missions.length-2); }); }); }
+
   return (
-    <div style={{position:"relative",width:"100%",paddingBottom:16}}>
+    <div style={{position:"relative",width:"100%",paddingBottom:40,touchAction:"pan-y"}}>
       {/* Cartes empilées derrière */}
-      {missions.slice(activeIndex+1, activeIndex+3).map(function(m, i){
-        var offset = (i+1)*10;
-        var scale = 1 - (i+1)*0.04;
+      {[2,1].map(function(offset){
+        var idx = activeIndex + offset;
+        if(idx >= total) return null;
         return (
-          <div key={m.id} style={{
-            position:"absolute",top:offset,left:offset/2,right:offset/2,
-            transform:"scale("+scale+")",transformOrigin:"top center",
-            borderRadius:20,overflow:"hidden",
-            background:CARD_GRADIENTS[(activeIndex+i+1)%CARD_GRADIENTS.length],
-            height:280,
-            opacity:0.6-i*0.15,
-            zIndex:10-i,
+          <div key={idx} style={{
+            position:"absolute",
+            top:offset*12,
+            left:offset*8,
+            right:offset*8,
+            borderRadius:20,
+            background:CARD_GRADIENTS[idx%CARD_GRADIENTS.length],
+            height:320,
+            opacity:offset===1?0.55:0.3,
+            transform:"scale("+(1-offset*0.03)+")",
+            transformOrigin:"top center",
+            zIndex:10-offset,
           }}/>
         );
       })}
 
-      {/* Carte active */}
-      <div style={{position:"relative",zIndex:20}}>
+      {/* Carte active avec drag */}
+      <div
+        style={{position:"relative",zIndex:20,transform:"translateX("+dragX+"px) rotate("+(dragX*0.02)+"deg)",transition:isDragging?"none":"transform 0.3s ease",cursor:isDragging?"grabbing":"grab"}}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseUp}
+      >
         <MissionCardRiche
           mission={missions[activeIndex]}
-          index={activeIndex}
+          gradient={CARD_GRADIENTS[activeIndex%CARD_GRADIENTS.length]}
           total={total}
+          currentIdx={activeIndex}
           onAccepter={handleAccepter}
           onRefuser={handleRefuser}
         />
       </div>
 
-      {/* Dots de navigation */}
+      {/* Dots */}
       {total>1&&(
-        <div style={{display:"flex",justifyContent:"center",gap:6,marginTop:16}}>
+        <div style={{display:"flex",justifyContent:"center",gap:6,marginTop:16,position:"relative",zIndex:30}}>
           {missions.map(function(_,i){
-            return (
-              <button key={i} onClick={function(){setActiveIndex(i);}} style={{
-                width:i===activeIndex?20:6,height:6,borderRadius:3,border:"none",
-                background:i===activeIndex?DS.color.primary:DS.color.border,
-                cursor:"pointer",padding:0,transition:"all 0.2s",
-              }}/>
-            );
+            return <button key={i} onClick={function(){setActiveIndex(i);}} style={{width:i===activeIndex?20:6,height:6,borderRadius:3,border:"none",background:i===activeIndex?DS.color.primary:DS.color.border,cursor:"pointer",padding:0,transition:"all 0.2s"}}/>;
           })}
         </div>
       )}
