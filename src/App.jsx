@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import exifr from "exifr";
 
 /* ─── DESIGN SYSTEM ─────────────────────────────────────────────────── */
 var DS = {
@@ -341,22 +342,52 @@ function roundRect(ctx,x,y,w,h,r){
   ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
   ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
 }
+function getStampFromDate(d){
+  return padTwo(d.getDate())+"/"+padTwo(d.getMonth()+1)+"/"+d.getFullYear()+"  "+padTwo(d.getHours())+"h"+padTwo(d.getMinutes());
+}
+
+function applyStampToCanvas(img, stampDate){
+  var maxW=2400,scale=img.width>maxW?maxW/img.width:1;
+  var w=Math.round(img.width*scale),h=Math.round(img.height*scale);
+  var canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
+  var ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,w,h);
+  var stamp=getStampFromDate(stampDate);
+  var fontSize=Math.max(18,Math.round(w*0.025));
+  ctx.font="bold "+fontSize+"px monospace";
+  var tw=ctx.measureText(stamp).width,pad=fontSize*0.6,bh=fontSize+pad*2,bw=tw+pad*2,margin=fontSize*0.8;
+  ctx.fillStyle="rgba(0,0,0,0.65)";roundRect(ctx,margin,h-bh-margin,bw,bh,6);ctx.fill();
+  ctx.fillStyle="#ffffff";ctx.fillText(stamp,margin+pad,h-margin-pad);
+  return canvas;
+}
+
 function processPhoto(file){
   return new Promise(function(resolve){
-    var img=new Image(),url=URL.createObjectURL(file);
+    // Lire la date EXIF en parallèle du chargement de l'image
+    var exifPromise = exifr.parse(file, ["DateTimeOriginal","DateTime","CreateDate"])
+      .then(function(exif){
+        if(exif && (exif.DateTimeOriginal || exif.DateTime || exif.CreateDate)){
+          return exif.DateTimeOriginal || exif.DateTime || exif.CreateDate;
+        }
+        return null;
+      })
+      .catch(function(){ return null; });
+
+    var img=new Image();
+    var url=URL.createObjectURL(file);
+
     img.onload=function(){
-      var maxW=2400,scale=img.width>maxW?maxW/img.width:1;
-      var w=Math.round(img.width*scale),h=Math.round(img.height*scale);
-      var canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
-      var ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,w,h);
-      var stamp=getStamp(),fontSize=Math.max(18,Math.round(w*0.025));
-      ctx.font="bold "+fontSize+"px monospace";
-      var tw=ctx.measureText(stamp).width,pad=fontSize*0.6,bh=fontSize+pad*2,bw=tw+pad*2,margin=fontSize*0.8;
-      ctx.fillStyle="rgba(0,0,0,0.65)";roundRect(ctx,margin,h-bh-margin,bw,bh,6);ctx.fill();
-      ctx.fillStyle="#ffffff";ctx.fillText(stamp,margin+pad,h-margin-pad);
-      canvas.toBlob(function(blob){URL.revokeObjectURL(url);resolve(new File([blob],file.name,{type:"image/jpeg"}));
-      },"image/jpeg",0.92);
-    };img.src=url;
+      exifPromise.then(function(exifDate){
+        var stampDate = exifDate ? new Date(exifDate) : new Date();
+        // Fallback si date invalide
+        if(isNaN(stampDate.getTime())) stampDate = new Date();
+        var canvas = applyStampToCanvas(img, stampDate);
+        canvas.toBlob(function(blob){
+          URL.revokeObjectURL(url);
+          resolve(new File([blob],file.name,{type:"image/jpeg"}));
+        },"image/jpeg",0.92);
+      });
+    };
+    img.src=url;
   });
 }
 
