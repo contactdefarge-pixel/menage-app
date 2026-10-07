@@ -1,20 +1,7 @@
 import { getMissionDetails, buildIcs } from "../lib/mail.js";
+import { niveauNum, visibleDepuis } from "../lib/attribution.js";
 
 const MISSIONS_DB  = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
-
-/* ── Réglages de l'avant-première ──────────────────────────────────────
-   Délai (en heures) avant qu'une mission devienne visible, selon le niveau
-   de la prestataire [niveau 1, niveau 2, niveau 3]. Plus la mission est
-   proche, plus les paliers sont courts.                                    */
-const PALIERS = [
-  { jours: 14, heures: [0, 24, 48] },
-  { jours: 7,  heures: [0, 12, 24] },
-  { jours: 3,  heures: [0, 4, 8]   },
-  { jours: 0,  heures: [0, 0, 0]   },
-];
-
-// Les missions ne sont proposées qu'à partir de J-30
-const HORIZON_JOURS = 30;
 
 const H = (t) => ({ "Authorization": `Bearer ${t}`, "Notion-Version": "2022-06-28", "Content-Type": "application/json" });
 
@@ -28,12 +15,6 @@ function slugify(v) {
   return String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
-// "1 - Prioritaire" -> 1 ; vide -> def
-function niveauNum(name, def) {
-  const m = String(name || "").match(/^\s*(\d)/);
-  return m ? parseInt(m[1], 10) : def;
-}
-
 async function getLogementInfo(token, logementId) {
   const vide = { slug: "", logementNom: "", illustration: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
   try {
@@ -76,13 +57,6 @@ function mapMission(page) {
     refus:       (props["Refus"]?.multi_select   || []).map(r => r.name),
     cree:        page.created_time,
   };
-}
-
-function delaiHeures(dateStr, niveau, now) {
-  if (!niveau || !dateStr) return 0;
-  const jours = (new Date(dateStr) - now) / 86400000;
-  const p = PALIERS.find(x => jours >= x.jours) || PALIERS[PALIERS.length - 1];
-  return p.heures[Math.min(niveau, 3) - 1] || 0;
 }
 
 async function queryAll(token) {
@@ -144,13 +118,9 @@ export default async function handler(req, res) {
       .filter(m => m.etat === "Disponible" && !m.prestataire)
       .map(enrichir)
       .filter(m => {
-        // 0) on ne propose que les missions des 30 prochains jours
-        if (m.date && (new Date(m.date) - now) / 86400000 > HORIZON_JOURS) return false;
-        // 1) logement réservé à certains niveaux
-        if (niveau && niveau > m.niveauRequis) return false;
-        // 2) avant-première : la mission devient visible après un délai selon le niveau
-        const visibleA = new Date(m.cree).getTime() + delaiHeures(m.date, niveau, now) * 3600000;
-        return now.getTime() >= visibleA;
+        // horizon J+30, logement réservé à certains niveaux, avant-première selon le niveau
+        const v = visibleDepuis(m, niveau, m.niveauRequis, now);
+        return v !== null && now.getTime() >= v;
       })
       .map(m => ({ ...m, candidature: m.candidats.includes(prestataireId) }));
 
