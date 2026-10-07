@@ -104,7 +104,7 @@ export default async function handler(req, res) {
               </thead>
               <tbody>${lignesMissions}</tbody>
             </table>
-            <a href="https://menage-app-nine.vercel.app/prestataire"
+            <a href="${process.env.APP_URL || 'https://agents.izinest.fr'}/prestataire"
                style="display:block;background:#085157;color:#fff;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;margin-top:20px;">
               Voir mes missions →
             </a>

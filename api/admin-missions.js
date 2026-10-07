@@ -19,7 +19,7 @@ async function getPage(token, id) {
 
 
 /* Création unique des colonnes Notion (regroupé ici : le plan Hobby de Vercel limite à 12 fonctions) :
-   https://menage-app-nine.vercel.app/api/admin-missions?setup=1&secret=<CRON_SECRET>   */
+   https://agents.izinest.fr/api/admin-missions?setup=1&secret=<CRON_SECRET>   */
 async function setupColonnes(req, res) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.query.secret !== secret) return res.status(401).json({ error: "Unauthorized" });
