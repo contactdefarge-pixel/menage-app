@@ -15,8 +15,17 @@ function slugify(v) {
   return String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
+// propriété « Type » des logements : sélection, multi-sélection, statut ou texte
+function typeLogement(prop) {
+  if (!prop) return "";
+  if (prop.select)        return prop.select.name || "";
+  if (prop.multi_select)  return prop.multi_select.map(o => o.name).join(" ");
+  if (prop.status)        return prop.status.name || "";
+  return plainText(prop);
+}
+
 async function getLogementInfo(token, logementId) {
-  const vide = { slug: "", logementNom: "", illustration: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
+  const vide = { slug: "", logementNom: "", illustration: "", type: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
   try {
     const r = await fetch(`https://api.notion.com/v1/pages/${logementId}`, { headers: H(token) });
     const data = await r.json();
@@ -26,6 +35,7 @@ async function getLogementInfo(token, logementId) {
       slug: slugify(nom),
       logementNom: nom,
       illustration: props["Illustration"]?.select?.name || "",
+      type: typeLogement(props["Type"]),
       adresse: plainText(props["Adresse"]),
       forfaitMenage: props["Forfait ménage"]?.number != null ? props["Forfait ménage"].number + " €" : "",
       dureeEstimee: plainText(props["Durée estimée"]),
@@ -111,7 +121,7 @@ export default async function handler(req, res) {
     const cache = {};
     const ids = [...new Set(aTraiter.map(m => m.logement).filter(Boolean))];
     await Promise.all(ids.map(async id => { cache[id] = await getLogementInfo(NOTION_TOKEN, id); }));
-    const vide = { slug: "", logementNom: "", illustration: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
+    const vide = { slug: "", logementNom: "", illustration: "", type: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
     const enrichir = m => ({ ...m, ...(m.logement ? cache[m.logement] : vide) });
 
     const disponibles = aTraiter

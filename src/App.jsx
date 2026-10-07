@@ -1194,19 +1194,30 @@ function formatDateFr(str){
   return d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 }
 
-var ILLUSTRATIONS = ["suite","chambre","salon","sdb","studio"];
-
-/* Choix de l'illustration : champ Notion "Illustration" s'il existe, sinon détection par le nom du logement */
-function pickIllustration(mission){
-  var explicit = String(mission.illustration||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z]/g,"");
-  if(explicit==="salledebain") explicit = "sdb";
-  if(ILLUSTRATIONS.indexOf(explicit)!==-1) return explicit;
-  var name = String(mission.logementNom||mission.nom||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
-  if(/suite|jacuzzi|spa|balneo/.test(name)) return "suite";
-  if(/studio|cuisine/.test(name)) return "studio";
-  if(/salon|sejour|living/.test(name)) return "salon";
-  if(/bain|sdb/.test(name)) return "sdb";
-  return "chambre";
+/* Émoji du logement : propriété Notion « Type » des logements, sinon détection par le nom */
+function pickEmoji(mission){
+  var norm=function(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();};
+  var rules=[
+    [/campagne|ferme|\bmas\b|gite|grange|maison de village/,"🏡"],
+    [/chalet|montagne|refuge/,"🏔️"],
+    [/chateau|manoir/,"🏰"],
+    [/hotel|auberge/,"🏨"],
+    [/appartement|immeuble|residence|bureau|\bapt\b|\bappart\b/,"🏢"],
+    [/duplex|triplex|loft|penthouse|attique/,"🏙️"],
+    [/studio|t1|chambre/,"🛏️"],
+    [/suite|jacuzzi|spa|balneo|piscine/,"🛁"],
+    [/villa/,"🏡"],
+    [/cabane|tiny|roulotte|insolite|yourte/,"🛖"],
+    [/camping|tente|caravane/,"⛺"],
+    [/bateau|peniche|voilier/,"⛵"],
+    [/maison|ville|pavillon|townhouse/,"🏠"]
+  ];
+  var sources=[mission.type, mission.logementNom||mission.nom];
+  for(var i=0;i<sources.length;i++){
+    var t=norm(sources[i]); if(!t) continue;
+    for(var j=0;j<rules.length;j++){ if(rules[j][0].test(t)) return rules[j][1]; }
+  }
+  return "🏠";
 }
 
 function IconSvg(props){
@@ -1226,12 +1237,12 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
     moisCourt = d.toLocaleDateString("fr-FR",{month:"short"});
   }
   var titre = mission.logementNom || String(mission.nom||"").split(" — ")[0];
-  var illu = pickIllustration(mission);
+  var emoji = pickEmoji(mission);
   var labelStyle = {fontFamily:DS.font.body,fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#0a6a70"};
   return (
     <div style={{background:DS.color.primaryDark,borderRadius:20,padding:22,color:"#fff",boxShadow:"0 1px 2px rgba(8,81,87,0.15), 0 12px 28px rgba(8,81,87,0.22)",display:"flex",flexDirection:"column",gap:16,userSelect:"none"}}>
       {total>1&&<div style={{fontFamily:DS.font.heading,fontSize:12,fontWeight:600,color:"#99e0dd"}}>{currentIdx+1} / {total}</div>}
-      <img src={"/illustrations/"+illu+".svg"} alt="" draggable={false} style={{display:"block",width:204,maxWidth:"60%",height:"auto",margin:"0 auto"}}/>
+      <div aria-hidden="true" style={{textAlign:"center",fontSize:84,lineHeight:1.1,margin:"4px 0",fontFamily:"'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif"}}>{emoji}</div>
       <div style={{display:"flex",gap:16,alignItems:"stretch"}}>
         {mission.date&&(
           <div style={{width:72,flexShrink:0,borderRadius:14,background:"#e0f5f5",color:DS.color.primaryDark,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 0"}}>
