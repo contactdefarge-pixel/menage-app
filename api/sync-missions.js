@@ -1,3 +1,5 @@
+import { notifierAnnulation } from "../lib/mail.js";
+
 const MISSIONS_DB  = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const LOGEMENTS_DB = "365d50ab-a52f-801f-b5fd-f740a0aa78c1";
 const WINDOW_DAYS  = 90;
@@ -111,6 +113,7 @@ async function getMissionsNotion() {
         beds24Id: plainText(props["Beds24 ID"]).trim(),
         date:     props["Date"]?.date?.start?.slice(0, 10) || "",
         hasLogement: (props["Logement"]?.relation || []).length > 0,
+        assignee: (props["Prestataire"]?.relation || []).length > 0,
       });
     }
     cursor = data.has_more ? data.next_cursor : undefined;
@@ -217,9 +220,14 @@ export default async function handler(req, res) {
     let created = 0;
     let deleted = 0;
     let repaired = 0;
+    let prevenues = 0;
 
     if (!dry) {
-      for (const m of toDelete) { await archiveMission(m.id); deleted++; }
+      for (const m of toDelete) {
+        // la prestataire assignée est prévenue par e-mail (pas lors d'un reset technique)
+        if (m.assignee && !reset) { const r = await notifierAnnulation(process.env.NOTION_TOKEN, m.id, "la réservation a été annulée"); if (r.ok) prevenues++; }
+        await archiveMission(m.id); deleted++;
+      }
       for (const m of toRepair) {
         const b = byId.get(m.beds24Id);
         await repairMission(m, b, findLogement(logements, b));
@@ -241,6 +249,7 @@ export default async function handler(req, res) {
       created: dry ? 0 : created,
       deleted: dry ? 0 : deleted,
       repaired: dry ? 0 : repaired,
+      prestatairesPrevenues: dry ? 0 : prevenues,
       wouldRepair: dry ? toRepair.map(m => `${m.nom} -> ${missionTitle(byId.get(m.beds24Id))}`) : undefined,
       wouldCreate: dry ? toCreate.map(b => `${missionTitle(b)} (#${b.bookId})`) : undefined,
       wouldDelete: dry ? toDelete.map(m => `${m.nom} (#${m.beds24Id})`) : undefined,

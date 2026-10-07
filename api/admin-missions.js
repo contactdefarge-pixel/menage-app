@@ -1,7 +1,8 @@
+import { getMissionDetails, getPrestataire, emailConfirmation, notifierAnnulation, sendEmail } from "../lib/mail.js";
+
 const MISSIONS_DB     = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const PRESTATAIRES_DB = "3d7d50ab-a52f-8012-a15d-e9d59a968f8f";
 const LOGEMENTS_DB    = "365d50ab-a52f-801f-b5fd-f740a0aa78c1";
-const RESEND_KEY  = process.env.RESEND_API_KEY;
 const H = (t) => ({ "Authorization": `Bearer ${t}`, "Notion-Version": "2022-06-28", "Content-Type": "application/json" });
 
 function plain(prop) {
@@ -14,15 +15,6 @@ function niveauNum(name) { const m = String(name || "").match(/^\s*(\d)/); retur
 async function getPage(token, id) {
   const r = await fetch(`https://api.notion.com/v1/pages/${id}`, { headers: H(token) });
   return r.json();
-}
-
-async function sendEmail({ to, subject, html }) {
-  if (!to) return;
-  try {
-    await fetch("https://api.resend.com/emails", { method: "POST",
-      headers: { "Authorization": `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: "izinest <onboarding@resend.dev>", to, subject, html }) });
-  } catch (e) { /* best effort */ }
 }
 
 
@@ -85,19 +77,45 @@ export default async function handler(req, res) {
           logementNom: log ? plain(log.properties?.["Nom"]) : "", attribution: /direct/i.test(log?.properties?.["Attribution"]?.select?.name || "") ? "direct" : "postuler",
           candidats: cands };
       }));
-      return res.status(200).json({ success: true, missions: out });
+      // missions déjà attribuées (à venir) : possibilité de les annuler
+      const r2 = await fetch(`https://api.notion.com/v1/databases/${MISSIONS_DB}/query`, {
+        method: "POST", headers: H(T),
+        body: JSON.stringify({ sorts: [{ property: "Date", direction: "ascending" }], page_size: 100,
+          filter: { and: [{ property: "État", status: { equals: "Acceptée" } }, { property: "Date", date: { on_or_after: new Date().toISOString().slice(0, 10) } }] } }),
+      });
+      const d2 = await r2.json();
+      const attribuees = await Promise.all((d2.results || []).map(async p => {
+        const pr = p.properties;
+        const logId = (pr["Logement"]?.relation || [])[0]?.id;
+        const presId = (pr["Prestataire"]?.relation || [])[0]?.id;
+        const log = logId ? await get(logId) : null;
+        const pres = presId ? await get(presId) : null;
+        const pp = pres?.properties || {};
+        return { id: p.id, nom: plain(pr["Nom"]), date: pr["Date"]?.date?.start || "",
+          logementNom: log ? plain(log.properties?.["Nom"]) : "", prestataire: plain(pp["Prénom/Nom"] || pp["Nom"]) };
+      }));
+      return res.status(200).json({ success: true, missions: out, attribuees });
     }
 
     if (req.method === "POST") {
-      const { missionId, prestataireId, missionNom, date } = req.body || {};
-      if (!missionId || !prestataireId) return res.status(400).json({ error: "Paramètres manquants" });
+      const { missionId, prestataireId, action } = req.body || {};
+      if (!missionId) return res.status(400).json({ error: "Paramètres manquants" });
+
+      if (action === "annuler") {
+        // prévenir la prestataire, puis archiver la mission
+        const mail = await notifierAnnulation(T, missionId, "elle a été annulée par izinest");
+        const ar = await fetch(`https://api.notion.com/v1/pages/${missionId}`, { method: "PATCH", headers: H(T), body: JSON.stringify({ archived: true }) });
+        if (!ar.ok) return res.status(500).json({ error: "Notion : " + (await ar.text()).slice(0, 300) });
+        return res.status(200).json({ success: true, emailEnvoye: mail.ok, emailErreur: mail.ok ? undefined : mail.error });
+      }
+
+      if (!prestataireId) return res.status(400).json({ error: "Paramètres manquants" });
       const up = await fetch(`https://api.notion.com/v1/pages/${missionId}`, { method: "PATCH", headers: H(T),
         body: JSON.stringify({ properties: { "État": { status: { name: "Acceptée" } }, "Prestataire": { relation: [{ id: prestataireId }] } } }) });
       if (!up.ok) return res.status(500).json({ error: "Notion : " + (await up.text()).slice(0, 300) });
-      const pg = await getPage(T, prestataireId);
-      await sendEmail({ to: pg.properties?.["Email"]?.email, subject: `✅ Mission confirmée — ${missionNom || ""}`,
-        html: `<p>Bonjour,</p><p>Votre candidature pour <strong>${missionNom || "la mission"}</strong>${date ? " du " + date : ""} est confirmée. Retrouvez-la dans votre agenda sur l'application izinest.</p>` });
-      return res.status(200).json({ success: true });
+      const [mis, pres] = await Promise.all([getMissionDetails(T, missionId), getPrestataire(T, prestataireId)]);
+      const mail = await sendEmail({ to: pres.email, ...emailConfirmation(mis, pres) });
+      return res.status(200).json({ success: true, emailEnvoye: mail.ok, emailErreur: mail.ok ? undefined : mail.error });
     }
     return res.status(405).json({ error: "Method not allowed" });
   } catch (e) {

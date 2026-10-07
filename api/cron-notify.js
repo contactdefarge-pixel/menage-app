@@ -120,7 +120,7 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "izinest <onboarding@resend.dev>",
+          from: process.env.MAIL_FROM || "izinest <onboarding@resend.dev>",
           to: presta.email,
           subject: `🏠 ${missionsPourPresta.length} mission${missionsPourPresta.length > 1 ? "s" : ""} disponible${missionsPourPresta.length > 1 ? "s" : ""} — izinest`,
           html,

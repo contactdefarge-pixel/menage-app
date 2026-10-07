@@ -1519,6 +1519,7 @@ function PageAdmin(){
   var [pwd,setPwd]=useState(function(){ try{return sessionStorage.getItem(ADMIN_KEY)||"";}catch(e){return "";} });
   var [saisie,setSaisie]=useState("");
   var [missions,setMissions]=useState(null);
+  var [attribuees,setAttribuees]=useState([]);
   var [erreur,setErreur]=useState("");
   var [busy,setBusy]=useState("");
   var [toast,setToast]=useState("");
@@ -1527,7 +1528,7 @@ function PageAdmin(){
     setErreur("");
     fetch("/api/admin-missions",{headers:{"x-admin-password":p}})
       .then(function(r){return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||"Erreur"); return d; });})
-      .then(function(d){ setMissions(d.missions||[]); try{sessionStorage.setItem(ADMIN_KEY,p);}catch(e){} })
+      .then(function(d){ setMissions(d.missions||[]); setAttribuees(d.attribuees||[]); try{sessionStorage.setItem(ADMIN_KEY,p);}catch(e){} })
       .catch(function(e){ setErreur(e.message); setMissions(null); setPwd(""); try{sessionStorage.removeItem(ADMIN_KEY);}catch(x){} });
   }
   useEffect(function(){ if(pwd) charger(pwd); },[pwd]);
@@ -1535,8 +1536,17 @@ function PageAdmin(){
     if(!window.confirm("Accepter la candidature de "+c.nom+" pour "+(m.logementNom||m.nom)+" ?")) return;
     setBusy(m.id+c.id);
     fetch("/api/admin-missions",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pwd},body:JSON.stringify({missionId:m.id,prestataireId:c.id,missionNom:m.logementNom||m.nom,date:formatDateFr(m.date)})})
-      .then(function(r){return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||"Erreur"); });})
-      .then(function(){ setMissions(function(prev){return prev.filter(function(x){return x.id!==m.id;});}); showToast(c.nom+" acceptée ✅"); })
+      .then(function(r){return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||"Erreur"); return d; });})
+      .then(function(d){ setMissions(function(prev){return prev.filter(function(x){return x.id!==m.id;});}); showToast(c.nom+(d.emailEnvoye?" acceptée, e-mail envoyé ✅":" acceptée (e-mail non envoyé ⚠️)")); charger(pwd); })
+      .catch(function(e){ showToast("Erreur : "+e.message); })
+      .finally(function(){ setBusy(""); });
+  }
+  function annuler(a){
+    if(!window.confirm("Annuler la mission "+(a.logementNom||a.nom)+" du "+formatDateFr(a.date)+" ?\n"+a.prestataire+" sera prévenue par e-mail. La mission sera supprimée.")) return;
+    setBusy("x"+a.id);
+    fetch("/api/admin-missions",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pwd},body:JSON.stringify({action:"annuler",missionId:a.id})})
+      .then(function(r){return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||"Erreur"); return d; });})
+      .then(function(d){ setAttribuees(function(prev){return prev.filter(function(x){return x.id!==a.id;});}); showToast(d.emailEnvoye?"Mission annulée, e-mail envoyé ✅":"Mission annulée (e-mail non envoyé ⚠️)"); })
       .catch(function(e){ showToast("Erreur : "+e.message); })
       .finally(function(){ setBusy(""); });
   }
@@ -1589,6 +1599,22 @@ function PageAdmin(){
           <div style={{marginTop:24}}>
             <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:13,color:DS.color.textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>En attente de candidature</div>
             {sans.map(function(m){ return <div key={m.id} style={{padding:"10px 0",borderTop:"1px solid "+DS.color.border,fontSize:14,color:DS.color.primaryDark}}>{m.logementNom||m.nom} <span style={{color:DS.color.textMuted}}>· {formatDateFr(m.date)}</span></div>; })}
+          </div>
+        )}
+        {attribuees.length>0&&(
+          <div style={{marginTop:28}}>
+            <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:13,color:DS.color.textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>Missions attribuées</div>
+            {attribuees.map(function(a){
+              return (
+                <div key={a.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,padding:"10px 0",borderTop:"1px solid "+DS.color.border}}>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontFamily:DS.font.heading,fontWeight:600,fontSize:14,color:DS.color.primaryDark}}>{a.logementNom||a.nom}</div>
+                    <div style={{fontSize:12,color:DS.color.textMuted}}>{formatDateFr(a.date)} · {a.prestataire||"—"}</div>
+                  </div>
+                  <button disabled={busy==="x"+a.id} onClick={function(){annuler(a);}} style={{flexShrink:0,height:34,padding:"0 14px",borderRadius:DS.radius.sm,border:"1.5px solid #dc2626",background:"none",color:"#dc2626",fontWeight:700,fontSize:12,fontFamily:DS.font.heading,cursor:"pointer"}}>{busy==="x"+a.id?"…":"Annuler"}</button>
+                </div>
+              );
+            })}
           </div>
         )}
         <button onClick={function(){charger(pwd);}} style={{marginTop:20,width:"100%",height:44,borderRadius:DS.radius.md,border:"1px solid "+DS.color.border,background:"none",color:DS.color.primaryDark,fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer"}}>Actualiser</button>

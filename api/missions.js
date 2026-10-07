@@ -1,3 +1,5 @@
+import { getMissionDetails, buildIcs } from "../lib/mail.js";
+
 const MISSIONS_DB  = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 
 /* ── Réglages de l'avant-première ──────────────────────────────────────
@@ -103,6 +105,18 @@ export default async function handler(req, res) {
   if (req.method !== "GET")    return res.status(405).json({ error: "Method not allowed" });
 
   const NOTION_TOKEN   = process.env.NOTION_TOKEN;
+
+  // ?ics=<id mission> : fichier calendrier (bouton « Apple Agenda » des e-mails)
+  if (req.query.ics) {
+    try {
+      const mis = await getMissionDetails(NOTION_TOKEN, String(req.query.ics));
+      if (!mis.date) return res.status(404).send("Mission introuvable");
+      res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+      res.setHeader("Content-Disposition", 'inline; filename="mission-izinest.ics"');
+      return res.status(200).send(buildIcs(mis));
+    } catch (e) { return res.status(500).send("Erreur"); }
+  }
+
   const prestataireId  = req.query.prestataireId  || "";
   const prestataireNom = req.query.prestataireNom || "";
   const now = new Date();

@@ -4,13 +4,8 @@ const RESEND_KEY      = process.env.RESEND_API_KEY;
 
 const H = (t) => ({ "Authorization": `Bearer ${t}`, "Notion-Version": "2022-06-28", "Content-Type": "application/json" });
 
-async function sendEmail({ to, subject, html }) {
-  return fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${RESEND_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: "izinest <onboarding@resend.dev>", to, subject, html }),
-  });
-}
+import { sendEmail as envoyer } from "../lib/mail.js";
+async function sendEmail({ to, subject, html }) { return envoyer({ to, subject, html }); }
 
 async function getPage(token, id) {
   const r = await fetch(`https://api.notion.com/v1/pages/${id}`, { headers: H(token) });
