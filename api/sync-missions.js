@@ -16,12 +16,9 @@ function plainText(prop) {
 /* ── Beds24 ── */
 async function getBeds24Token() {
   const refreshToken = process.env.BEDS24_REFRESH_TOKEN;
-  console.log("BEDS24_REFRESH_TOKEN length:", refreshToken ? refreshToken.length : "UNDEFINED");
-  console.log("BEDS24_REFRESH_TOKEN last3:", refreshToken ? refreshToken.slice(-3) : "N/A");
   const r = await fetch("https://beds24.com/api/v2/authentication/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken }),
+    method: "GET",
+    headers: { "refreshToken": (refreshToken || "").trim() },
   });
   const data = await r.json();
   if (!data.token) throw new Error("Beds24 auth failed: " + JSON.stringify(data));
@@ -37,12 +34,17 @@ async function getBeds24Bookings(token) {
   var to   = future.toISOString().slice(0, 10);
 
   const r = await fetch(
-    `https://beds24.com/api/v2/bookings?checkOut=${from}&checkOut2=${to}&status=1&includeInvoice=false`,
+    `https://beds24.com/api/v2/bookings?departureFrom=${from}&departureTo=${to}&status=confirmed&status=new`,
     { headers: { "token": token } }
   );
   const data = await r.json();
   if (!data.success && data.code !== 200) throw new Error("Beds24 bookings failed: " + JSON.stringify(data));
-  return data.data || [];
+  return (data.data || []).map(b => ({
+    bookId:   b.id ?? b.bookId,
+    checkOut: b.departure ?? b.checkOut,
+    roomName: b.roomName || b.propertyName || String(b.roomId || ""),
+    status:   b.status,
+  }));
 }
 
 /* ── Notion Logements ── */
