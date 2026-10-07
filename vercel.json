@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/sync-missions",
-      "schedule": "0 * * * *"
+      "schedule": "0 16 * * *"
     }
   ]
 }
