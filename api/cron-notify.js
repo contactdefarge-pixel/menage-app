@@ -6,7 +6,7 @@
    Appel manuel : /api/cron-notify?secret=<CRON_SECRET>&dry=1  (dry = aperçu sans envoi, window=<heures> pour élargir). */
 import { sendEmail, APP_URL, dateCourte } from "../lib/mail.js";
 import { niveauNum, visibleDepuis, estUrgente } from "../lib/attribution.js";
-import { emailUrgence } from "../lib/urgent.js";
+import { emailUrgence, testOnly } from "../lib/urgent.js";
 
 const MISSIONS_DB     = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const PRESTATAIRES_DB = "3d7d50ab-a52f-8012-a15d-e9d59a968f8f";
@@ -113,7 +113,7 @@ export default async function handler(req, res) {
       const pr = p.properties || {};
       return { id: p.id, nom: plainText(pr["Nom"]), email: pr["Email"]?.email || "",
                niveau: pr["Niveau"]?.select?.name ? niveauNum(pr["Niveau"].select.name, null) : null };
-    }).filter(p => p.email);
+    }).filter(p => p.email).filter(testOnly);
 
     // 3. pour chacun : missions qui se sont ouvertes à son niveau depuis la dernière fenêtre
     const envoyes = [], ignores = [];
