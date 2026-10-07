@@ -1523,7 +1523,7 @@ function PageAdmin(){
   var [erreur,setErreur]=useState("");
   var [busy,setBusy]=useState("");
   var [toast,setToast]=useState("");
-  function showToast(m){ setToast(m); setTimeout(function(){setToast("");},3000); }
+  function showToast(m){ setToast(m); setTimeout(function(){setToast("");},m.length>60?9000:3000); }
   function charger(p){
     setErreur("");
     fetch("/api/admin-missions",{headers:{"x-admin-password":p}})
@@ -1537,7 +1537,7 @@ function PageAdmin(){
     setBusy(m.id+c.id);
     fetch("/api/admin-missions",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pwd},body:JSON.stringify({missionId:m.id,prestataireId:c.id,missionNom:m.logementNom||m.nom,date:formatDateFr(m.date)})})
       .then(function(r){return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||"Erreur"); return d; });})
-      .then(function(d){ setMissions(function(prev){return prev.filter(function(x){return x.id!==m.id;});}); showToast(c.nom+(d.emailEnvoye?" acceptée, e-mail envoyé ✅":" acceptée (e-mail non envoyé ⚠️)")); charger(pwd); })
+      .then(function(d){ setMissions(function(prev){return prev.filter(function(x){return x.id!==m.id;});}); showToast(c.nom+(d.emailEnvoye?" acceptée, e-mail envoyé ✅":" acceptée, e-mail NON envoyé : "+String(d.emailErreur||"inconnu").slice(0,140))); charger(pwd); })
       .catch(function(e){ showToast("Erreur : "+e.message); })
       .finally(function(){ setBusy(""); });
   }
@@ -1546,7 +1546,7 @@ function PageAdmin(){
     setBusy("x"+a.id);
     fetch("/api/admin-missions",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pwd},body:JSON.stringify({action:"annuler",missionId:a.id})})
       .then(function(r){return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||"Erreur"); return d; });})
-      .then(function(d){ setAttribuees(function(prev){return prev.filter(function(x){return x.id!==a.id;});}); showToast(d.emailEnvoye?"Mission annulée, e-mail envoyé ✅":"Mission annulée (e-mail non envoyé ⚠️)"); })
+      .then(function(d){ setAttribuees(function(prev){return prev.filter(function(x){return x.id!==a.id;});}); showToast(d.emailEnvoye?"Mission annulée, e-mail envoyé ✅":"Mission annulée, e-mail NON envoyé : "+String(d.emailErreur||"inconnu").slice(0,140)); })
       .catch(function(e){ showToast("Erreur : "+e.message); })
       .finally(function(){ setBusy(""); });
   }
