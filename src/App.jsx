@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import exifr from "exifr";
-import { MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation } from "lucide-react";
+import { MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut } from "lucide-react";
 
 /* ─── DESIGN SYSTEM ─────────────────────────────────────────────────── */
 var DS = {
@@ -719,29 +719,26 @@ function ChangeBanner({changes,stepIndex,onAcknowledge,acknowledged}){
   if(stepChanges.length===0||acknowledged) return null;
   return (
     <div style={{
-      position:"fixed",top:0,left:0,right:0,zIndex:500,
-      background:"#fffbeb",borderBottom:"2px solid #f59e0b",
-      padding:"12px 20px",boxShadow:"0 2px 8px rgba(245,158,11,0.2)",
+      background:DS.color.primarySoft,border:"1.5px solid "+DS.color.primaryBorder,
+      borderRadius:DS.radius.xl,padding:14,marginBottom:16,
+      display:"flex",gap:12,alignItems:"flex-start",
     }}>
-      <div style={{maxWidth:480,margin:"0 auto",display:"flex",gap:10,alignItems:"flex-start"}}>
-        <span style={{fontSize:20,flexShrink:0}}>🔔</span>
-        <div style={{flex:1}}>
-          <div style={{fontFamily:DS.font.heading,fontSize:13,fontWeight:700,color:"#92400e",marginBottom:4}}>Mise à jour depuis votre dernière visite</div>
-          <div style={{fontFamily:DS.font.body,fontSize:12,color:"#92400e",marginBottom:8,lineHeight:1.4}}>
-            {stepChanges.map(function(c,i){return <span key={i}>{i>0?" · ":""}{c.label}</span>;})}
-          </div>
-          <button onClick={onAcknowledge} style={{background:"#f59e0b",border:"none",borderRadius:DS.radius.sm,color:"#fff",fontWeight:700,fontSize:12,padding:"6px 14px",cursor:"pointer",fontFamily:DS.font.heading}}>J'ai pris connaissance</button>
+      <div style={{width:34,height:34,flexShrink:0,borderRadius:DS.radius.md,background:DS.color.primary,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <BellRing size={18} strokeWidth={2}/>
+      </div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:DS.color.primary,marginBottom:2}}>Mise à jour</div>
+        <div style={{fontFamily:DS.font.heading,fontSize:14,fontWeight:700,color:DS.color.primaryDark,marginBottom:4}}>Depuis votre dernière visite</div>
+        <div style={{fontFamily:DS.font.body,fontSize:13,color:DS.color.primaryDark,marginBottom:12,lineHeight:1.45}}>
+          {stepChanges.map(function(c,i){return <span key={i}>{i>0?" · ":""}{c.label}</span>;})}
         </div>
+        <button onClick={onAcknowledge} style={{display:"inline-flex",alignItems:"center",gap:6,background:DS.color.primaryDark,border:"none",borderRadius:DS.radius.pill,color:"#fff",fontWeight:600,fontSize:13,padding:"8px 16px",cursor:"pointer",fontFamily:DS.font.heading}}><Check size={14} strokeWidth={2.5}/>J'ai pris connaissance</button>
       </div>
     </div>
   );
 }
 
-function ChangeBannerSpacer({changes,stepIndex,acknowledged}){
-  var stepChanges=changes.filter(function(c){return c.step===stepIndex;});
-  if(stepChanges.length===0||acknowledged) return null;
-  return <div style={{height:110,marginBottom:8}}/>;
-}
+function ChangeBannerSpacer(){ return null; }
 
 /* ─── STEP COMPONENTS ────────────────────────────────────────────────── */
 function plainOf(v){ return Array.isArray(v) ? v.map(function(t){return t.text||"";}).join("").trim() : cleanNotionText(v); }
@@ -770,7 +767,7 @@ function CodeBox({label,value}){
     </button>
   );
 }
-function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowledged,onAcknowledge}){
+function GrilleInfos({logement}){
   var voyageurs=logement.voyageurs?logement.voyageurs+" max":"";
   var litsOk=Array.isArray(logement.lits)&&logement.lits.length>0;
   var accesTxt=plainOf(logement.acces);
@@ -782,17 +779,12 @@ function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowle
   var conso=plainOf(logement.consommables);
   var adresse=plainOf(logement.adresse);
   var wifiLines=wifiTxt?wifiTxt.split("\n").filter(Boolean):[];
-  var bloque=!!(changes&&changes.some(function(c){return c.step===0;})&&!acknowledged);
   var T=DS.color.primaryDark;
   var BORD="1.5px solid "+DS.color.primaryBorder;
   var rich=function(v){ return Array.isArray(v)?<RichText value={v}/>:<FormattedText>{v}</FormattedText>; };
   var petit={fontSize:12,lineHeight:1.45,color:"#2c4b4e"};
   var spanBas=(poub&&conso)?1:2;
   return (
-    <div>
-      <ChangeBanner changes={changes||[]} stepIndex={0} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
-      <ChangeBannerSpacer changes={changes||[]} stepIndex={0} acknowledged={acknowledged}/>
-      {loading||error?<LogementLoading error={error}/>:null}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         {adresse&&(
           <Tuile span={2} bg="#fff" fg={T} icon={<IconPin/>} titre="Adresse" border={BORD}>
@@ -810,19 +802,20 @@ function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowle
           </Tuile>
         )}
         {(voyageurs||litsOk)&&(
-          <Tuile span={forfait?1:2} bg={DS.color.primarySoft} fg={T} icon={<IconUsers/>} titre="Voyageurs" border={BORD}>
+          <Tuile span={2} bg={DS.color.primarySoft} fg={T} icon={<IconUsers/>} titre="Voyageurs" border={BORD}>
             {voyageurs?<div style={{fontFamily:DS.font.heading,fontSize:22,fontWeight:700}}>{voyageurs}</div>:null}
             {litsOk?<div style={petit}><RichText value={logement.lits}/></div>:null}
           </Tuile>
         )}
-        {forfait&&(
-          <Tuile span={(voyageurs||litsOk)?1:2} bg={T} fg="#fff" icon={<IconEuro/>} titre="Forfait">
-            <div style={{fontFamily:DS.font.heading,fontSize:26,fontWeight:700,lineHeight:1.1}}>{forfait}</div>
-          </Tuile>
-        )}
-        {factur&&(
-          <Tuile span={2} bg="#fff" fg={T} icon={<IconReceipt/>} titre="Facturation à adresser à" border={BORD}>
-            <div style={{fontSize:15,fontWeight:600,color:"#0f2e31"}}>{factur}</div>
+        {(forfait||factur)&&(
+          <Tuile span={2} bg={T} fg="#fff" icon={<IconEuro/>} titre="Forfait ménage">
+            <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:12}}>
+              {forfait?<div style={{fontFamily:DS.font.heading,fontSize:30,fontWeight:700,lineHeight:1}}>{forfait}</div>:<span/>}
+              {factur?<div style={{textAlign:"right",minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:6,fontSize:10,letterSpacing:"0.08em",textTransform:"uppercase",opacity:0.8}}><Receipt size={12} strokeWidth={2}/>Facturation à adresser à</div>
+                <div style={{fontSize:14,fontWeight:600,marginTop:2}}>{factur}</div>
+              </div>:null}
+            </div>
           </Tuile>
         )}
         {wifiLines.length>0&&(
@@ -845,9 +838,19 @@ function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowle
           <Tuile span={spanBas} bg="#fff" fg={T} icon={<IconBox/>} titre="Consommables" border={BORD}><div style={petit}>{rich(logement.consommables)}</div></Tuile>
         )}
       </div>
+  );
+}
+
+function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowledged,onAcknowledge}){
+  var bloque=!!(changes&&changes.some(function(c){return c.step===0;})&&!acknowledged);
+  return (
+    <div>
+      <ChangeBanner changes={changes||[]} stepIndex={0} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
+      {loading||error?<LogementLoading error={error}/>:null}
+      <GrilleInfos logement={logement}/>
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:18}}>
         <Btn fullWidth onClick={onNext} disabled={bloque}>Commencer le rapport</Btn>
-        <button onClick={onModeVisite} style={{width:"100%",padding:"13px",borderRadius:DS.radius.md,border:"1.5px solid "+DS.color.primaryBorder,background:DS.color.surface,color:DS.color.primaryDark,fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>👁 Mode visite</button>
+        <button onClick={onModeVisite} style={{width:"100%",padding:"13px",borderRadius:DS.radius.md,border:"1.5px solid "+DS.color.primaryBorder,background:DS.color.surface,color:DS.color.primaryDark,fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><Eye size={16} strokeWidth={2}/>Mode visite</button>
       </div>
     </div>
   );
@@ -1133,42 +1136,19 @@ function ModeVisite({logement,onQuitter}){
     : accesRtVisite;
   return (
     <div style={wrap}>
-      <div style={{background:DS.color.primaryDark,color:"#fff",borderRadius:DS.radius.md,padding:"10px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <div style={{display:"flex",alignItems:"center",gap:8,fontFamily:DS.font.heading}}>
-          <span>👁</span>
-          <span style={{fontWeight:700,fontSize:14}}>Mode visite</span>
-          <span style={{fontSize:12,opacity:0.6}}>— lecture seule</span>
+      <div style={{background:DS.color.primaryDark,margin:"-24px -20px 16px",padding:"20px 20px 16px",fontFamily:DS.font.heading,color:"#fff"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)"}}><Eye size={13} strokeWidth={2}/>Mode visite · lecture seule</div>
+          <button onClick={onQuitter} style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:DS.radius.pill,color:"#fff",fontWeight:600,fontSize:12,padding:"5px 12px",cursor:"pointer",fontFamily:DS.font.heading}}><LogOut size={13} strokeWidth={2}/>Quitter</button>
         </div>
-        <button onClick={onQuitter} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:DS.radius.sm,color:"#fff",fontWeight:600,fontSize:13,padding:"5px 12px",cursor:"pointer",fontFamily:DS.font.heading}}>Quitter</button>
+        <div style={{fontSize:24,fontWeight:700,lineHeight:1.1}}>{logement.nom||"Chargement…"}</div>
       </div>
-      <div style={{display:"flex",gap:6,marginBottom:20,overflowX:"auto",paddingBottom:4}}>
+      <div style={{display:"flex",gap:6,marginBottom:16,overflowX:"auto",paddingBottom:4}}>
         {VISITE_STEPS.map(function(s,i){
-          return <button key={s} onClick={function(){setStepIndex(i);}} style={{padding:"8px 14px",borderRadius:DS.radius.pill,border:"none",cursor:"pointer",fontFamily:DS.font.heading,fontWeight:600,fontSize:13,whiteSpace:"nowrap",background:stepIndex===i?DS.color.primary:DS.color.primaryBg,color:stepIndex===i?"#fff":DS.color.primaryMuted,flexShrink:0}}>{VISITE_LABELS[s]}</button>;
+          return <button key={s} onClick={function(){setStepIndex(i);}} style={{padding:"8px 14px",borderRadius:DS.radius.pill,border:"1.5px solid "+(stepIndex===i?DS.color.primary:DS.color.primaryBorder),cursor:"pointer",fontFamily:DS.font.heading,fontWeight:600,fontSize:13,whiteSpace:"nowrap",background:stepIndex===i?DS.color.primary:"#fff",color:stepIndex===i?"#fff":DS.color.primaryDark,flexShrink:0}}>{VISITE_LABELS[s]}</button>;
         })}
       </div>
-      {step==="infos"&&(
-        <div>
-          <SectionTitle>{logement.nom}</SectionTitle>
-          <CopyAdresse adresse={logement.adresse}/>
-          <InfoCardWithCopy icon={<IconReceipt/>} title="Facturation à adresser à" text={logement.proprietaire}/>
-          <InfoCardWithCopy icon={<IconEuro/>} title="Forfait ménage" text={logement.forfaitMenage}/>
-          <WifiCard text={logement.wifi}/>
-          {(voyageursVisite||logement.lits)&&(
-            <InfoCard icon={<IconUsers/>} title="Voyageurs">
-              {voyageursVisite?<span>{voyageursVisite}</span>:null}
-              {voyageursVisite&&Array.isArray(logement.lits)&&logement.lits.length>0?<br/>:null}
-              {Array.isArray(logement.lits)&&logement.lits.length>0?<RichText value={logement.lits}/>:null}
-            </InfoCard>
-          )}
-          <InfoCardWithCopy icon={<IconTrash/>} title="Poubelles" text={logement.poubelles}/>
-          <InfoCardWithCopy icon={<IconBox/>} title="Consommables" text={logement.consommables}/>
-          {accesVisiteWithCle.length>0&&(
-            <InfoCard icon={<IconKey/>} title="Accès logement">
-              <RichText value={accesVisiteWithCle}/>
-            </InfoCard>
-          )}
-        </div>
-      )}
+      {step==="infos"&&<GrilleInfos logement={logement}/>}
       {step==="attention"&&(
         <div>
           <SectionTitle>Points d'attention</SectionTitle>
