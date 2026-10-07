@@ -1,3 +1,4 @@
+import { traiterUrgences, PROP_URGENCE } from "../lib/urgent.js";
 import { getMissionDetails, getPrestataire, emailConfirmation, notifierAnnulation, sendEmail } from "../lib/mail.js";
 
 const MISSIONS_DB     = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
@@ -31,7 +32,7 @@ async function setupColonnes(req, res) {
       "Niveau requis": sel(["1 - Prioritaires uniquement", "2 - Prioritaires et confirmées", "3 - Toutes"]),
       "Attribution": sel(["Direct", "Postuler"]),
     }],
-    ["Missions", MISSIONS_DB, { "Candidats": { relation: { database_id: PRESTATAIRES_DB, single_property: {} } } }],
+    ["Missions", MISSIONS_DB, { "Candidats": { relation: { database_id: PRESTATAIRES_DB, single_property: {} } }, [PROP_URGENCE]: { checkbox: {} } }],
   ];
   const out = {};
   for (const [nom, id, properties] of jobs) {
@@ -56,6 +57,7 @@ export default async function handler(req, res) {
   const T = process.env.NOTION_TOKEN;
   try {
     if (req.method === "GET") {
+      try { await traiterUrgences(T); } catch (e) {}
       const r = await fetch(`https://api.notion.com/v1/databases/${MISSIONS_DB}/query`, {
         method: "POST", headers: H(T),
         body: JSON.stringify({ sorts: [{ property: "Date", direction: "ascending" }], page_size: 100,

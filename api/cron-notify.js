@@ -6,7 +6,7 @@
    Appel manuel : /api/cron-notify?secret=<CRON_SECRET>&dry=1  (dry = aperçu sans envoi, window=<heures> pour élargir, all=1 = toutes les missions ouvertes à ton niveau). */
 import { sendEmail, APP_URL, dateCourte } from "../lib/mail.js";
 import { niveauNum, visibleDepuis, estUrgente } from "../lib/attribution.js";
-import { emailUrgence, testOnly } from "../lib/urgent.js";
+import { emailUrgence, testOnly, traiterUrgences, PROP_URGENCE } from "../lib/urgent.js";
 
 const MISSIONS_DB     = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const PRESTATAIRES_DB = "3d7d50ab-a52f-8012-a15d-e9d59a968f8f";
@@ -84,6 +84,11 @@ export default async function handler(req, res) {
   const debut = now.getTime() - fenetreH * 3600000;
 
   try {
+    // 0. urgences (0 à 3 jours) pas encore signalées : e-mail immédiat
+    const urgence = await traiterUrgences(token, { dry });
+    if (req.query.urgent) return res.status(200).json({ success: true, urgence });
+    const dejaSignalees = new Set(urgence.ids || []);
+
     // 1. missions à pourvoir
     const pages = await queryAll(token, MISSIONS_DB, {
       filter: { property: "État", status: { equals: "Disponible" } },
@@ -99,6 +104,7 @@ export default async function handler(req, res) {
         logement: (pr["Logement"]?.relation || [])[0]?.id || null,
         refus: (pr["Refus"]?.multi_select || []).map(r => r.name),
         cree: p.created_time,
+        notifiee: !!pr[PROP_URGENCE]?.checkbox,
       };
     }).filter(m => !m.prestataire);
 
@@ -125,7 +131,8 @@ export default async function handler(req, res) {
         const lg = m.logement ? logements[m.logement] : { nom: "", niveauRequis: 3, forfait: "" };
         if (estUrgente(m.date, now)) {
           // dernière minute : déjà annoncée par e-mail immédiat à sa création ; sinon relance quotidienne tant qu'elle n'est pas pourvue
-          if (new Date(m.cree).getTime() < debut) relances.push({ ...m, forfait: lg.forfait });
+          // relance quotidienne seulement si l'alerte est partie lors d'un passage précédent
+          if (m.notifiee && !dejaSignalees.has(m.id) && new Date(m.cree).getTime() < debut) relances.push({ ...m, forfait: lg.forfait });
           continue;
         }
         const v = visibleDepuis(m, presta.niveau, lg.niveauRequis, now);
@@ -147,7 +154,7 @@ export default async function handler(req, res) {
       envoyes.push({ prestataire: presta.nom, niveau: presta.niveau, missions: aAnnoncer.length, ok: r.ok, ...(r.ok ? {} : { erreur: r.error }) });
     }
 
-    return res.status(200).json({ success: true, dry, fenetreHeures: fenetreH, emailsSent: envoyes.filter(e => dry || e.ok).length, envoyes, sansNouveaute: ignores });
+    return res.status(200).json({ success: true, dry, urgence, fenetreHeures: fenetreH, emailsSent: envoyes.filter(e => dry || e.ok).length, envoyes, sansNouveaute: ignores });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }

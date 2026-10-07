@@ -1,6 +1,6 @@
 import { notifierAnnulation } from "../lib/mail.js";
 import { estUrgente } from "../lib/attribution.js";
-import { notifierUrgence, getLogementInfoUrgent } from "../lib/urgent.js";
+import { traiterUrgences } from "../lib/urgent.js";
 
 const MISSIONS_DB  = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const LOGEMENTS_DB = "365d50ab-a52f-801f-b5fd-f740a0aa78c1";
@@ -247,12 +247,9 @@ export default async function handler(req, res) {
         if (!reset && estUrgente(b.checkOut, today)) urgentes.push({ titre: missionTitle(b), date: b.checkOut, logementId });
       } else if (estUrgente(b.checkOut, today)) urgentes.push({ titre: missionTitle(b), date: b.checkOut, logementId });
     }
-    // réservation de dernière minute : e-mail immédiat à toutes les prestataires
+    // dernière minute (0 à 3 jours) : e-mail immédiat pour toute mission urgente pas encore signalée
     let urgence = null;
-    if (urgentes.length && !dry) {
-      for (const u of urgentes) u.forfait = (await getLogementInfoUrgent(process.env.NOTION_TOKEN, u.logementId)).forfait;
-      urgence = await notifierUrgence(process.env.NOTION_TOKEN, urgentes);
-    }
+    if (!reset) urgence = await traiterUrgences(process.env.NOTION_TOKEN, { dry });
 
     return res.status(200).json({
       success: true,
