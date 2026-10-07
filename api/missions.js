@@ -29,14 +29,17 @@ async function getLogementInfo(notion_token, logementId) {
       ? props["Forfait ménage"].number + " €"
       : "";
     const dureeEstimee = plainText(props["Durée estimée"]);
+    const illustration = props["Illustration"]?.select?.name || "";
     return {
       slug: slugify(nom),
+      logementNom: nom,
+      illustration,
       adresse,
       forfaitMenage,
       dureeEstimee,
     };
   } catch (e) {
-    return { slug: "", adresse: "", forfaitMenage: "", dureeEstimee: "" };
+    return { slug: "", logementNom: "", illustration: "", adresse: "", forfaitMenage: "", dureeEstimee: "" };
   }
 }
 
@@ -94,7 +97,7 @@ export default async function handler(req, res) {
       return Promise.all(missions.map(async (m) => {
         const info = m.logement
           ? await getLogementInfo(NOTION_TOKEN, m.logement)
-          : { slug: "", adresse: "", forfaitMenage: "", dureeEstimee: "" };
+          : { slug: "", logementNom: "", illustration: "", adresse: "", forfaitMenage: "", dureeEstimee: "" };
         return { ...m, ...info };
       }));
     };
