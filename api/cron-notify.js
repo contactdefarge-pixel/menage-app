@@ -6,7 +6,7 @@
    Appel manuel : /api/cron-notify?secret=<CRON_SECRET>&dry=1  (dry = aperçu sans envoi, window=<heures> pour élargir, all=1 = toutes les missions ouvertes à ton niveau). */
 import { sendEmail, APP_URL, dateCourte } from "../lib/mail.js";
 import { niveauNum, visibleDepuis, estUrgente } from "../lib/attribution.js";
-import { emailUrgence, testOnly, traiterUrgences, PROP_URGENCE } from "../lib/urgent.js";
+import { emailUrgence, testOnly, traiterUrgences, PROP_URGENCE, diagPrestataires } from "../lib/urgent.js";
 
 const MISSIONS_DB     = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const PRESTATAIRES_DB = "3d7d50ab-a52f-8012-a15d-e9d59a968f8f";
@@ -81,7 +81,8 @@ export default async function handler(req, res) {
     try {
       const u = await traiterUrgences(process.env.NOTION_TOKEN, { dry: !!req.query.dry });
       return res.status(200).json({ success: true, urgentes: (u.missions || []).length, missions: u.missions || [], envoyes: u.envoyes || 0,
-        erreur: u.erreur || ((u.erreurs || [])[0] || "").replace(/^[^:]*:\s*/, "") || undefined });
+        erreur: u.erreur || ((u.erreurs || [])[0] || "").replace(/^[^:]*:\s*/, "") || undefined,
+        diagnostic: req.query.diag ? await diagPrestataires(process.env.NOTION_TOKEN) : undefined });
     } catch (e) { return res.status(500).json({ error: e.message }); }
   }
   if (!okSecret) return res.status(401).json({ error: "Unauthorized" });
