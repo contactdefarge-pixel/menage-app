@@ -13,6 +13,9 @@ const PALIERS = [
   { jours: 0,  heures: [0, 0, 0]   },
 ];
 
+// Les missions ne sont proposées qu'à partir de J-30
+const HORIZON_JOURS = 30;
+
 const H = (t) => ({ "Authorization": `Bearer ${t}`, "Notion-Version": "2022-06-28", "Content-Type": "application/json" });
 
 function plainText(prop) {
@@ -141,6 +144,8 @@ export default async function handler(req, res) {
       .filter(m => m.etat === "Disponible" && !m.prestataire)
       .map(enrichir)
       .filter(m => {
+        // 0) on ne propose que les missions des 30 prochains jours
+        if (m.date && (new Date(m.date) - now) / 86400000 > HORIZON_JOURS) return false;
         // 1) logement réservé à certains niveaux
         if (niveau && niveau > m.niveauRequis) return false;
         // 2) avant-première : la mission devient visible après un délai selon le niveau

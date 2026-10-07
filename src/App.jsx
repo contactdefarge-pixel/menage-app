@@ -1454,7 +1454,7 @@ function AgendaPrestataire({prestataire, onLogout}){
       <div style={{background:DS.color.primaryDark,padding:"20px 20px 16px",fontFamily:DS.font.heading}}>
         <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.5)",marginBottom:4}}>izinest · Espace prestataire</div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{fontSize:20,fontWeight:700,color:"#fff"}}>Bonjour {prestataire.nom} 👋</div>
+          <div style={{fontSize:22,fontWeight:700,color:"#fff",lineHeight:1.1}}>{prestataire.nom}</div>
           <button onClick={function(){clearSession();onLogout();}} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:DS.radius.sm,color:"#fff",fontSize:12,fontWeight:600,padding:"5px 12px",cursor:"pointer",fontFamily:DS.font.heading}}>Déconnexion</button>
         </div>
       </div>
