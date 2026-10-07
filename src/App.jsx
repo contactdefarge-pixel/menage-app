@@ -1147,65 +1147,78 @@ function formatDateFr(str){
   return d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 }
 
-var CARD_GRADIENTS = [
-  "linear-gradient(145deg,#085157 0%,#00bab3 100%)",
-  "linear-gradient(145deg,#0f4c75 0%,#1b6ca8 100%)",
-  "linear-gradient(145deg,#1a3c4a 0%,#2d7d7a 100%)",
-  "linear-gradient(145deg,#2c3e50 0%,#085157 100%)",
-];
+var ILLUSTRATIONS = ["suite","chambre","salon","sdb","studio"];
 
-function MissionCardRiche({mission, gradient, total, currentIdx, onAccepter, onRefuser}){
+/* Choix de l'illustration : champ Notion "Illustration" s'il existe, sinon détection par le nom du logement */
+function pickIllustration(mission){
+  var explicit = String(mission.illustration||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z]/g,"");
+  if(explicit==="salledebain") explicit = "sdb";
+  if(ILLUSTRATIONS.indexOf(explicit)!==-1) return explicit;
+  var name = String(mission.logementNom||mission.nom||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+  if(/suite|jacuzzi|spa|balneo/.test(name)) return "suite";
+  if(/studio|cuisine/.test(name)) return "studio";
+  if(/salon|sejour|living/.test(name)) return "salon";
+  if(/bain|sdb/.test(name)) return "sdb";
+  return "chambre";
+}
+
+function IconSvg(props){
+  return (
+    <svg width={props.size||16} height={props.size||16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={props.sw||1.8} strokeLinecap="round" strokeLinejoin="round" style={props.style} aria-hidden="true">{props.children}</svg>
+  );
+}
+
+function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser}){
   var [loading, setLoading] = useState(false);
-  var jour = "", dateStr = "";
+  var jourCourt = "", jourNum = "", moisCourt = "";
   if(mission.date){
     var d = new Date(mission.date);
-    jour = d.toLocaleDateString("fr-FR",{weekday:"long"});
-    jour = jour.charAt(0).toUpperCase()+jour.slice(1);
-    dateStr = d.toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
+    jourCourt = d.toLocaleDateString("fr-FR",{weekday:"short"}).replace(".","");
+    jourCourt = jourCourt.charAt(0).toUpperCase()+jourCourt.slice(1);
+    jourNum = d.getDate();
+    moisCourt = d.toLocaleDateString("fr-FR",{month:"short"});
   }
+  var titre = mission.logementNom || String(mission.nom||"").split(" — ")[0];
+  var illu = pickIllustration(mission);
+  var labelStyle = {fontFamily:DS.font.body,fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#0a6a70"};
   return (
-    <div style={{background:gradient,borderRadius:20,padding:"24px 22px 20px",color:"#fff",position:"relative",overflow:"hidden",minHeight:320,display:"flex",flexDirection:"column",justifyContent:"space-between",userSelect:"none"}}>
-      <div style={{position:"absolute",top:-50,right:-50,width:180,height:180,borderRadius:"50%",background:"rgba(255,255,255,0.06)"}}/>
-      <div style={{position:"absolute",bottom:-70,left:-40,width:220,height:220,borderRadius:"50%",background:"rgba(255,255,255,0.04)"}}/>
-      {/* Compteur */}
-      {total>1&&<div style={{position:"absolute",top:18,right:18,background:"rgba(255,255,255,0.18)",borderRadius:DS.radius.pill,padding:"3px 10px",fontFamily:DS.font.heading,fontSize:11,fontWeight:600}}>{currentIdx+1} / {total}</div>}
-      {/* Contenu */}
-      <div style={{position:"relative",zIndex:1}}>
-        <div style={{fontFamily:DS.font.heading,fontSize:10,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",opacity:0.6,marginBottom:10}}>izinest · Mission disponible</div>
-        <div style={{fontFamily:DS.font.heading,fontSize:24,fontWeight:700,lineHeight:1.1,marginBottom:6}}>{mission.nom}</div>
-        {mission.adresse&&<div style={{fontFamily:DS.font.body,fontSize:12,opacity:0.65,marginBottom:12,lineHeight:1.4}}>{mission.adresse}</div>}
-        <div style={{display:"flex",flexDirection:"column",gap:6,marginTop:8}}>
-          {mission.date&&(
-            <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,0.12)",borderRadius:DS.radius.sm,padding:"7px 12px"}}>
-              <span style={{fontSize:15}}>📅</span>
-              <div>
-                <div style={{fontFamily:DS.font.heading,fontSize:13,fontWeight:700}}>{jour}</div>
-                <div style={{fontFamily:DS.font.body,fontSize:11,opacity:0.75}}>{dateStr}</div>
-              </div>
+    <div style={{background:DS.color.primaryDark,borderRadius:20,padding:22,color:"#fff",boxShadow:"0 1px 2px rgba(8,81,87,0.15), 0 12px 28px rgba(8,81,87,0.22)",display:"flex",flexDirection:"column",gap:16,userSelect:"none"}}>
+      {total>1&&<div style={{fontFamily:DS.font.heading,fontSize:12,fontWeight:600,color:"#99e0dd"}}>{currentIdx+1} / {total}</div>}
+      <img src={"/illustrations/"+illu+".svg"} alt="" draggable={false} style={{display:"block",width:204,maxWidth:"60%",height:"auto",margin:"0 auto"}}/>
+      <div style={{display:"flex",gap:16,alignItems:"stretch"}}>
+        {mission.date&&(
+          <div style={{width:72,flexShrink:0,borderRadius:14,background:"#e0f5f5",color:DS.color.primaryDark,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 0"}}>
+            <div style={labelStyle}>{jourCourt}</div>
+            <div style={{fontFamily:DS.font.heading,fontSize:34,fontWeight:700,lineHeight:1.05}}>{jourNum}</div>
+            <div style={labelStyle}>{moisCourt}</div>
+          </div>
+        )}
+        <div style={{display:"flex",flexDirection:"column",justifyContent:"center",gap:6,minWidth:0}}>
+          <div style={{fontFamily:DS.font.heading,fontSize:24,fontWeight:700,lineHeight:1.1,color:"#fff"}}>{titre}</div>
+          {mission.adresse&&(
+            <div style={{display:"flex",alignItems:"flex-start",gap:6,fontFamily:DS.font.body,fontSize:13,lineHeight:1.4,color:"#99e0dd"}}>
+              <IconSvg style={{flexShrink:0,marginTop:1}}><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></IconSvg>
+              <span>{mission.adresse}</span>
             </div>
           )}
-          <div style={{display:"flex",gap:6}}>
-            {mission.dureeEstimee&&(
-              <div style={{flex:1,display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:DS.radius.sm,padding:"7px 12px"}}>
-                <span style={{fontSize:14}}>⏱</span>
-                <div style={{fontFamily:DS.font.body,fontSize:12,fontWeight:600}}>{mission.dureeEstimee}</div>
-              </div>
-            )}
-            {mission.forfaitMenage&&(
-              <div style={{flex:1,display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.12)",borderRadius:DS.radius.sm,padding:"7px 12px"}}>
-                <span style={{fontSize:14}}>€</span>
-                <div style={{fontFamily:DS.font.heading,fontSize:14,fontWeight:700}}>{mission.forfaitMenage}</div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
-      {/* Boutons */}
-      <div style={{display:"flex",gap:8,marginTop:16,position:"relative",zIndex:1}}>
-        <button onClick={function(){setLoading(true);onAccepter(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:2,padding:"12px",borderRadius:DS.radius.md,border:"none",background:"#fff",color:DS.color.primaryDark,fontWeight:700,fontSize:14,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
-          {loading?"…":"✅ Accepter"}
+      {(mission.dureeEstimee||mission.forfaitMenage)&&(
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:14,borderTop:"1px solid rgba(255,255,255,0.18)"}}>
+          {mission.dureeEstimee
+            ?<span style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.14)",borderRadius:DS.radius.pill,padding:"5px 12px",fontFamily:DS.font.body,fontSize:12,fontWeight:600}}>
+                <IconSvg size={14} sw={2}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></IconSvg>
+                <span>{mission.dureeEstimee}</span>
+              </span>
+            :<span/>}
+          {mission.forfaitMenage&&<div style={{fontFamily:DS.font.heading,fontSize:40,fontWeight:700,lineHeight:1}}>{mission.forfaitMenage}</div>}
+        </div>
+      )}
+      <div style={{display:"flex",gap:10}}>
+        <button onClick={function(){setLoading(true);onAccepter(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:2,height:50,borderRadius:12,border:"none",background:"#fff",color:DS.color.primaryDark,fontWeight:700,fontSize:15,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          {loading?"…":<span style={{display:"flex",alignItems:"center",gap:8}}><IconSvg size={18} sw={2.4}><path d="M5 12.5l4.5 4.5L19 7.5"/></IconSvg>Accepter</span>}
         </button>
-        <button onClick={function(){setLoading(true);onRefuser(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:1,padding:"12px",borderRadius:DS.radius.md,border:"1.5px solid rgba(255,255,255,0.4)",background:"transparent",color:"#fff",fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
+        <button onClick={function(){setLoading(true);onRefuser(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:1,height:50,borderRadius:12,border:"1.5px solid rgba(255,255,255,0.5)",background:"transparent",color:"#fff",fontWeight:600,fontSize:15,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
           Refuser
         </button>
       </div>
@@ -1257,7 +1270,7 @@ function StackedCarousel({missions, onAccepter, onRefuser}){
             left:offset*8,
             right:offset*8,
             borderRadius:20,
-            background:CARD_GRADIENTS[idx%CARD_GRADIENTS.length],
+            background:DS.color.primaryDark,
             height:320,
             opacity:offset===1?0.55:0.3,
             transform:"scale("+(1-offset*0.03)+")",
@@ -1280,7 +1293,6 @@ function StackedCarousel({missions, onAccepter, onRefuser}){
       >
         <MissionCardRiche
           mission={missions[activeIndex]}
-          gradient={CARD_GRADIENTS[activeIndex%CARD_GRADIENTS.length]}
           total={total}
           currentIdx={activeIndex}
           onAccepter={handleAccepter}
