@@ -16,6 +16,8 @@ function plainText(prop) {
 /* ── Beds24 ── */
 async function getBeds24Token() {
   const refreshToken = process.env.BEDS24_REFRESH_TOKEN;
+  console.log("BEDS24_REFRESH_TOKEN length:", refreshToken ? refreshToken.length : "UNDEFINED");
+  console.log("BEDS24_REFRESH_TOKEN last3:", refreshToken ? refreshToken.slice(-3) : "N/A");
   const r = await fetch("https://beds24.com/api/v2/authentication/token", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
