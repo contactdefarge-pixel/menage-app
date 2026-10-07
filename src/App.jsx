@@ -716,23 +716,28 @@ function PhotoWarningModal({expected,actual,onConfirm,onCancel}){
 /* BANDEAU MODIFICATION */
 function ChangeBanner({changes,stepIndex,onAcknowledge,acknowledged}){
   var stepChanges=changes.filter(function(c){return c.step===stepIndex;});
-  if(stepChanges.length===0||acknowledged) return null;
+  var ref=useRef(null);
+  var [h,setH]=useState(120);
+  var visible=stepChanges.length>0&&!acknowledged;
+  useEffect(function(){ if(visible&&ref.current) setH(ref.current.offsetHeight); });
+  if(!visible) return null;
   return (
-    <div style={{
-      background:DS.color.primarySoft,border:"1.5px solid "+DS.color.primaryBorder,
-      borderRadius:DS.radius.xl,padding:14,marginBottom:16,
-      display:"flex",gap:12,alignItems:"flex-start",
-    }}>
-      <div style={{width:34,height:34,flexShrink:0,borderRadius:DS.radius.md,background:DS.color.primary,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
-        <BellRing size={18} strokeWidth={2}/>
-      </div>
-      <div style={{flex:1,minWidth:0}}>
-        <div style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:DS.color.primary,marginBottom:2}}>Mise à jour</div>
-        <div style={{fontFamily:DS.font.heading,fontSize:14,fontWeight:700,color:DS.color.primaryDark,marginBottom:4}}>Depuis votre dernière visite</div>
-        <div style={{fontFamily:DS.font.body,fontSize:13,color:DS.color.primaryDark,marginBottom:12,lineHeight:1.45}}>
-          {stepChanges.map(function(c,i){return <span key={i}>{i>0?" · ":""}{c.label}</span>;})}
+    <div>
+      <div style={{height:h+12}}/>
+      <div ref={ref} style={{position:"fixed",top:12,left:12,right:12,zIndex:500,maxWidth:456,margin:"0 auto",
+        background:"#fffbeb",border:"1.5px solid #fcd34d",borderRadius:DS.radius.xl,padding:14,
+        boxShadow:"0 4px 16px rgba(180,83,9,0.18)",display:"flex",gap:12,alignItems:"flex-start"}}>
+        <div style={{width:34,height:34,flexShrink:0,borderRadius:DS.radius.md,background:"#f59e0b",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <BellRing size={18} strokeWidth={2}/>
         </div>
-        <button onClick={onAcknowledge} style={{display:"inline-flex",alignItems:"center",gap:6,background:DS.color.primaryDark,border:"none",borderRadius:DS.radius.pill,color:"#fff",fontWeight:600,fontSize:13,padding:"8px 16px",cursor:"pointer",fontFamily:DS.font.heading}}><Check size={14} strokeWidth={2.5}/>J'ai pris connaissance</button>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",color:"#b45309",marginBottom:2}}>Mise à jour</div>
+          <div style={{fontFamily:DS.font.heading,fontSize:14,fontWeight:700,color:"#78350f",marginBottom:4}}>Depuis votre dernière visite</div>
+          <div style={{fontFamily:DS.font.body,fontSize:13,color:"#78350f",marginBottom:12,lineHeight:1.45}}>
+            {stepChanges.map(function(c,i){return <span key={i}>{i>0?" · ":""}{c.label}</span>;})}
+          </div>
+          <button onClick={onAcknowledge} style={{display:"inline-flex",alignItems:"center",gap:6,background:"#92400e",border:"none",borderRadius:DS.radius.pill,color:"#fff",fontWeight:600,fontSize:13,padding:"8px 16px",cursor:"pointer",fontFamily:DS.font.heading}}><Check size={14} strokeWidth={2.5}/>J'ai pris connaissance</button>
+        </div>
       </div>
     </div>
   );
@@ -802,20 +807,18 @@ function GrilleInfos({logement}){
           </Tuile>
         )}
         {(voyageurs||litsOk)&&(
-          <Tuile span={2} bg={DS.color.primarySoft} fg={T} icon={<IconUsers/>} titre="Voyageurs" border={BORD}>
+          <Tuile span={(forfait||factur)?1:2} bg={DS.color.primarySoft} fg={T} icon={<IconUsers/>} titre="Voyageurs" border={BORD}>
             {voyageurs?<div style={{fontFamily:DS.font.heading,fontSize:22,fontWeight:700}}>{voyageurs}</div>:null}
             {litsOk?<div style={petit}><RichText value={logement.lits}/></div>:null}
           </Tuile>
         )}
         {(forfait||factur)&&(
-          <Tuile span={2} bg={T} fg="#fff" icon={<IconEuro/>} titre="Forfait ménage">
-            <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between",gap:12}}>
-              {forfait?<div style={{fontFamily:DS.font.heading,fontSize:30,fontWeight:700,lineHeight:1}}>{forfait}</div>:<span/>}
-              {factur?<div style={{textAlign:"right",minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:6,fontSize:10,letterSpacing:"0.08em",textTransform:"uppercase",opacity:0.8}}><Receipt size={12} strokeWidth={2}/>Facturation à adresser à</div>
-                <div style={{fontSize:14,fontWeight:600,marginTop:2}}>{factur}</div>
-              </div>:null}
-            </div>
+          <Tuile span={(voyageurs||litsOk)?1:2} bg={T} fg="#fff" icon={<IconEuro/>} titre="Forfait ménage">
+            {forfait?<div style={{fontFamily:DS.font.heading,fontSize:26,fontWeight:700,lineHeight:1.1}}>{forfait}</div>:null}
+            {factur?<div style={{marginTop:forfait?8:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,fontSize:10,letterSpacing:"0.08em",textTransform:"uppercase",opacity:0.8}}><Receipt size={12} strokeWidth={2}/>Facturation à adresser à</div>
+              <div style={{fontSize:13,fontWeight:600,marginTop:2}}>{factur}</div>
+            </div>:null}
           </Tuile>
         )}
         {wifiLines.length>0&&(
