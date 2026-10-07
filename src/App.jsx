@@ -1732,6 +1732,7 @@ function PageAccueil(){
 }
 
 /* ─── APP ────────────────────────────────────────────────────────────── */
+var PAGES_SPECIALES=["prestataire","admin","logements"];
 export default function App(){
   var [step,setStep]=useState(0);
   var [arrivee,setArrivee]=useState(INIT_ARRIVEE);
@@ -1756,7 +1757,7 @@ export default function App(){
   useEffect(function(){
     var pathSlug=window.location.pathname.split("/").filter(Boolean).pop();
     var slug=slugify(pathSlug||"");
-    if(!slug) return;
+    if(!slug||PAGES_SPECIALES.indexOf(slug)!==-1) return;
     var cancelled=false;
     setLogementLoading(true); setLogementError("");
     fetch("/api/logement?slug="+encodeURIComponent(slug))
@@ -1820,8 +1821,9 @@ export default function App(){
 
   var pathParts=window.location.pathname.split("/").filter(Boolean);
   var pathSlug=pathParts[pathParts.length-1]||"";
-  if(!pathSlug) return <PageAccueil/>;
-  if(pathSlug==="prestataire") return <PagePrestataire/>;
+  // agents.izinest.fr = espace prestataire (cartes des missions) ; la liste des logements est sur /logements
+  if(!pathSlug||pathSlug==="prestataire") return <PagePrestataire/>;
+  if(pathSlug==="logements") return <PageAccueil/>;
   if(pathSlug==="admin") return <PageAdmin/>;
 
   return (

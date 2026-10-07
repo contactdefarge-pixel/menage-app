@@ -66,7 +66,7 @@ function emailMissions(presta, missions) {
       <p style="color:#085157;font-size:15px;">Bonjour ${esc(presta.nom)},</p>
       <p style="color:#5b8f93;font-size:14px;">${n > 1 ? "Ces missions viennent" : "Cette mission vient"} d'être ouverte${n > 1 ? "s" : ""} aux candidatures. Connectez-vous pour postuler :</p>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #99e0dd;"><tbody>${lignes}</tbody></table>
-      <a href="${APP_URL}/prestataire" style="display:block;background:#085157;color:#fff;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;margin-top:20px;">Voir les missions →</a>
+      <a href="${APP_URL}/" style="display:block;background:#085157;color:#fff;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;margin-top:20px;">Voir les missions →</a>
       <p style="color:#94b8bb;font-size:12px;text-align:center;margin-top:16px;">izinest · Conciergerie Pyrénées</p>
     </div>
   </div>`;
