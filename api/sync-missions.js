@@ -1,4 +1,6 @@
 import { notifierAnnulation } from "../lib/mail.js";
+import { estUrgente } from "../lib/attribution.js";
+import { notifierUrgence, getLogementInfoUrgent } from "../lib/urgent.js";
 
 const MISSIONS_DB  = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const LOGEMENTS_DB = "365d50ab-a52f-801f-b5fd-f740a0aa78c1";
@@ -139,7 +141,8 @@ async function createMission(booking, logementId) {
     "Beds24 ID": { rich_text: [{ text: { content: booking.bookId } }] },
   };
   if (logementId) props["Logement"] = { relation: [{ id: logementId }] };
-  await notion("pages", "POST", { parent: { database_id: MISSIONS_DB }, properties: props });
+  const page = await notion("pages", "POST", { parent: { database_id: MISSIONS_DB }, properties: props });
+  return page?.id;
 }
 
 async function archiveMission(pageId) {
@@ -152,7 +155,8 @@ export const config = { maxDuration: 60 };
 
 export default async function handler(req, res) {
   const auth = req.headers["authorization"] || "";
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const okSecret = process.env.CRON_SECRET && (auth === `Bearer ${process.env.CRON_SECRET}` || req.query?.secret === process.env.CRON_SECRET);
+  if (!okSecret) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
@@ -234,10 +238,20 @@ export default async function handler(req, res) {
         repaired++;
       }
     }
+    const urgentes = [];
     for (const b of toCreate) {
       const logementId = findLogement(logements, b);
       if (!logementId) unmatched.push(b.roomName || `(sans nom, propriété ${b.propertyName})`);
-      if (!dry) { await createMission(b, logementId); created++; }
+      if (!dry) {
+        await createMission(b, logementId); created++;
+        if (!reset && estUrgente(b.checkOut, today)) urgentes.push({ titre: missionTitle(b), date: b.checkOut, logementId });
+      } else if (estUrgente(b.checkOut, today)) urgentes.push({ titre: missionTitle(b), date: b.checkOut, logementId });
+    }
+    // réservation de dernière minute : e-mail immédiat à toutes les prestataires
+    let urgence = null;
+    if (urgentes.length && !dry) {
+      for (const u of urgentes) u.forfait = (await getLogementInfoUrgent(process.env.NOTION_TOKEN, u.logementId)).forfait;
+      urgence = await notifierUrgence(process.env.NOTION_TOKEN, urgentes);
     }
 
     return res.status(200).json({
@@ -253,6 +267,8 @@ export default async function handler(req, res) {
       wouldRepair: dry ? toRepair.map(m => `${m.nom} -> ${missionTitle(byId.get(m.beds24Id))}`) : undefined,
       wouldCreate: dry ? toCreate.map(b => `${missionTitle(b)} (#${b.bookId})`) : undefined,
       wouldDelete: dry ? toDelete.map(m => `${m.nom} (#${m.beds24Id})`) : undefined,
+      urgentes: urgentes.map(u => u.titre),
+      urgence,
       unmatchedLogements: [...new Set(unmatched)],
     });
   } catch (e) {

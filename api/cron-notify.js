@@ -5,7 +5,8 @@
    - une mission n'est annoncée qu'une fois par prestataire (fenêtre = les 24 dernières heures).
    Appel manuel : /api/cron-notify?secret=<CRON_SECRET>&dry=1  (dry = aperçu sans envoi, window=<heures> pour élargir). */
 import { sendEmail, APP_URL, dateCourte } from "../lib/mail.js";
-import { niveauNum, visibleDepuis } from "../lib/attribution.js";
+import { niveauNum, visibleDepuis, estUrgente } from "../lib/attribution.js";
+import { emailUrgence } from "../lib/urgent.js";
 
 const MISSIONS_DB     = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const PRESTATAIRES_DB = "3d7d50ab-a52f-8012-a15d-e9d59a968f8f";
@@ -118,15 +119,25 @@ export default async function handler(req, res) {
     const envoyes = [], ignores = [];
     for (const presta of prestataires) {
       const aAnnoncer = [];
+      const relances = [];
       for (const m of missions) {
         if (m.refus.includes(presta.id) || m.refus.includes(presta.nom)) continue;
         const lg = m.logement ? logements[m.logement] : { nom: "", niveauRequis: 3, forfait: "" };
+        if (estUrgente(m.date, now)) {
+          // dernière minute : déjà annoncée par e-mail immédiat à sa création ; sinon relance quotidienne tant qu'elle n'est pas pourvue
+          if (new Date(m.cree).getTime() < debut) relances.push({ ...m, forfait: lg.forfait });
+          continue;
+        }
         const v = visibleDepuis(m, presta.niveau, lg.niveauRequis, now);
         if (v === null || v > now.getTime()) continue;     // pas (encore) ouverte à ce niveau
         if (v < debut) continue;                            // déjà annoncée lors d'un envoi précédent
         aAnnoncer.push({ ...m, forfait: lg.forfait });
       }
-      if (aAnnoncer.length === 0) { ignores.push(presta.nom); continue; }
+      if (relances.length) {
+        if (dry) envoyes.push({ prestataire: presta.nom, urgentes: relances.map(m => m.titre) });
+        else { const { subject, html } = emailUrgence(presta, relances, now); const r = await sendEmail({ to: presta.email, subject: "🔁 " + subject, html }); envoyes.push({ prestataire: presta.nom, urgentes: relances.length, ok: r.ok }); }
+      }
+      if (aAnnoncer.length === 0) { if (!relances.length) ignores.push(presta.nom); continue; }
       if (dry) { envoyes.push({ prestataire: presta.nom, niveau: presta.niveau, missions: aAnnoncer.map(m => m.titre) }); continue; }
       const r = await sendEmail({
         to: presta.email,
