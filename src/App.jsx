@@ -1532,11 +1532,11 @@ function PageAdmin(){
   }
   useEffect(function(){ if(pwd) charger(pwd); },[pwd]);
   function valider(m,c){
-    if(!window.confirm("Valider "+c.nom+" pour "+(m.logementNom||m.nom)+" ?")) return;
+    if(!window.confirm("Accepter la candidature de "+c.nom+" pour "+(m.logementNom||m.nom)+" ?")) return;
     setBusy(m.id+c.id);
     fetch("/api/admin-missions",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pwd},body:JSON.stringify({missionId:m.id,prestataireId:c.id,missionNom:m.logementNom||m.nom,date:formatDateFr(m.date)})})
       .then(function(r){return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||"Erreur"); });})
-      .then(function(){ setMissions(function(prev){return prev.filter(function(x){return x.id!==m.id;});}); showToast(c.nom+" validée ✅"); })
+      .then(function(){ setMissions(function(prev){return prev.filter(function(x){return x.id!==m.id;});}); showToast(c.nom+" acceptée ✅"); })
       .catch(function(e){ showToast("Erreur : "+e.message); })
       .finally(function(){ setBusy(""); });
   }
@@ -1578,7 +1578,7 @@ function PageAdmin(){
                       <div style={{fontFamily:DS.font.heading,fontWeight:600,fontSize:14,color:DS.color.primaryDark}}>{c.nom}</div>
                       <div style={{fontSize:12,color:DS.color.textMuted}}>{c.niveau?("Niveau "+c.niveau+" · "+NIVEAUX[c.niveau]):"Niveau non renseigné"}</div>
                     </div>
-                    <button disabled={busy===m.id+c.id} onClick={function(){valider(m,c);}} style={{flexShrink:0,height:38,padding:"0 16px",borderRadius:DS.radius.sm,border:"none",background:DS.color.primary,color:"#fff",fontWeight:700,fontSize:13,fontFamily:DS.font.heading,cursor:"pointer"}}>{busy===m.id+c.id?"…":"Valider"}</button>
+                    <button disabled={busy===m.id+c.id} onClick={function(){valider(m,c);}} style={{flexShrink:0,height:38,padding:"0 16px",borderRadius:DS.radius.sm,border:"none",background:DS.color.primary,color:"#fff",fontWeight:700,fontSize:13,fontFamily:DS.font.heading,cursor:"pointer"}}>{busy===m.id+c.id?"…":"Accepter"}</button>
                   </div>
                 );
               })}

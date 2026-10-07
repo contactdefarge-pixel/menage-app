@@ -1,4 +1,6 @@
-const MISSIONS_DB = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
+const MISSIONS_DB     = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
+const PRESTATAIRES_DB = "3d7d50ab-a52f-8012-a15d-e9d59a968f8f";
+const LOGEMENTS_DB    = "365d50ab-a52f-801f-b5fd-f740a0aa78c1";
 const RESEND_KEY  = process.env.RESEND_API_KEY;
 const H = (t) => ({ "Authorization": `Bearer ${t}`, "Notion-Version": "2022-06-28", "Content-Type": "application/json" });
 
@@ -23,11 +25,37 @@ async function sendEmail({ to, subject, html }) {
   } catch (e) { /* best effort */ }
 }
 
+
+/* Création unique des colonnes Notion (regroupé ici : le plan Hobby de Vercel limite à 12 fonctions) :
+   https://menage-app-nine.vercel.app/api/admin-missions?setup=1&secret=<CRON_SECRET>   */
+async function setupColonnes(req, res) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || req.query.secret !== secret) return res.status(401).json({ error: "Unauthorized" });
+  const T = process.env.NOTION_TOKEN;
+  const sel = names => ({ select: { options: names.map(name => ({ name })) } });
+  const jobs = [
+    ["Prestataires", PRESTATAIRES_DB, { "Niveau": sel(["1 - Prioritaire", "2 - Confirmée", "3 - Standard"]) }],
+    ["Logements", LOGEMENTS_DB, {
+      "Niveau requis": sel(["1 - Prioritaires uniquement", "2 - Prioritaires et confirmées", "3 - Toutes"]),
+      "Attribution": sel(["Direct", "Postuler"]),
+    }],
+    ["Missions", MISSIONS_DB, { "Candidats": { relation: { database_id: PRESTATAIRES_DB, single_property: {} } } }],
+  ];
+  const out = {};
+  for (const [nom, id, properties] of jobs) {
+    const r = await fetch(`https://api.notion.com/v1/databases/${id}`, { method: "PATCH", headers: H(T), body: JSON.stringify({ properties }) });
+    out[nom] = r.ok ? "ok" : (await r.text()).slice(0, 300);
+  }
+  return res.status(200).json(out);
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-password");
   if (req.method === "OPTIONS") return res.status(200).end();
+
+  if (req.query.setup) return setupColonnes(req, res);
 
   const expected = process.env.ADMIN_PASSWORD;
   if (!expected) return res.status(503).json({ error: "ADMIN_PASSWORD n'est pas configuré dans Vercel" });
@@ -54,7 +82,7 @@ export default async function handler(req, res) {
           return { id: c.id, nom: plain(pp["Prénom/Nom"] || pp["Nom"]), niveau: niveauNum(pp["Niveau"]?.select?.name), email: pp["Email"]?.email || "" };
         }));
         return { id: p.id, nom: plain(pr["Nom"]), date: pr["Date"]?.date?.start || "",
-          logementNom: log ? plain(log.properties?.["Nom"]) : "", attribution: /postul/i.test(log?.properties?.["Attribution"]?.select?.name || "") ? "postuler" : "direct",
+          logementNom: log ? plain(log.properties?.["Nom"]) : "", attribution: /direct/i.test(log?.properties?.["Attribution"]?.select?.name || "") ? "direct" : "postuler",
           candidats: cands };
       }));
       return res.status(200).json({ success: true, missions: out });
