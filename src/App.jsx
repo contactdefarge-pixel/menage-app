@@ -1168,7 +1168,7 @@ function IconSvg(props){
   );
 }
 
-function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser}){
+function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, onPostuler, onRetirer}){
   var [loading, setLoading] = useState(false);
   var jourCourt = "", jourNum = "", moisCourt = "";
   if(mission.date){
@@ -1214,19 +1214,38 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser}){
           {mission.forfaitMenage&&<div style={{fontFamily:DS.font.heading,fontSize:40,fontWeight:700,lineHeight:1}}>{mission.forfaitMenage}</div>}
         </div>
       )}
-      <div style={{display:"flex",gap:10}}>
-        <button onClick={function(){setLoading(true);onAccepter(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:2,height:50,borderRadius:12,border:"none",background:"#fff",color:DS.color.primaryDark,fontWeight:700,fontSize:15,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-          {loading?"…":<span style={{display:"flex",alignItems:"center",gap:8}}><IconSvg size={18} sw={2.4}><path d="M5 12.5l4.5 4.5L19 7.5"/></IconSvg>Accepter</span>}
-        </button>
-        <button onClick={function(){setLoading(true);onRefuser(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:1,height:50,borderRadius:12,border:"1.5px solid rgba(255,255,255,0.5)",background:"transparent",color:"#fff",fontWeight:600,fontSize:15,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
-          Refuser
-        </button>
-      </div>
+      {mission.attribution==="postuler"
+        ?(mission.candidature
+          ?<div style={{display:"flex",flexDirection:"column",gap:10}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,height:50,borderRadius:12,background:"rgba(255,255,255,0.16)",color:"#fff",fontWeight:700,fontSize:15,fontFamily:DS.font.heading}}>
+                <IconSvg size={18} sw={2.4}><path d="M5 12.5l4.5 4.5L19 7.5"/></IconSvg>Candidature envoyée
+              </div>
+              <div style={{fontFamily:DS.font.body,fontSize:12,color:"#99e0dd",textAlign:"center"}}>Vous serez prévenue dès que la mission est confirmée.</div>
+              <button onClick={function(){setLoading(true);onRetirer(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{height:42,borderRadius:12,border:"1.5px solid rgba(255,255,255,0.5)",background:"transparent",color:"#fff",fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
+                {loading?"…":"Retirer ma candidature"}
+              </button>
+            </div>
+          :<div style={{display:"flex",gap:10}}>
+              <button onClick={function(){setLoading(true);onPostuler(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:2,height:50,borderRadius:12,border:"none",background:"#fff",color:DS.color.primaryDark,fontWeight:700,fontSize:15,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                {loading?"…":<span style={{display:"flex",alignItems:"center",gap:8}}><IconSvg size={18} sw={2.2}><path d="M7 11l5-8 1.5.9c.8.5 1 1.5.6 2.3L13 8h5a2 2 0 0 1 2 2.4l-1.2 6A3 3 0 0 1 15.9 19H7z"/><path d="M3 11h4v8H3z"/></IconSvg>Postuler</span>}
+              </button>
+              <button onClick={function(){setLoading(true);onRefuser(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:1,height:50,borderRadius:12,border:"1.5px solid rgba(255,255,255,0.5)",background:"transparent",color:"#fff",fontWeight:600,fontSize:15,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
+                Refuser
+              </button>
+            </div>)
+        :<div style={{display:"flex",gap:10}}>
+            <button onClick={function(){setLoading(true);onAccepter(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:2,height:50,borderRadius:12,border:"none",background:"#fff",color:DS.color.primaryDark,fontWeight:700,fontSize:15,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              {loading?"…":<span style={{display:"flex",alignItems:"center",gap:8}}><IconSvg size={18} sw={2.4}><path d="M5 12.5l4.5 4.5L19 7.5"/></IconSvg>Accepter</span>}
+            </button>
+            <button onClick={function(){setLoading(true);onRefuser(mission).finally(function(){setLoading(false);});}} disabled={loading} style={{flex:1,height:50,borderRadius:12,border:"1.5px solid rgba(255,255,255,0.5)",background:"transparent",color:"#fff",fontWeight:600,fontSize:15,fontFamily:DS.font.heading,cursor:loading?"not-allowed":"pointer"}}>
+              Refuser
+            </button>
+          </div>}
     </div>
   );
 }
 
-function StackedCarousel({missions, onAccepter, onRefuser}){
+function StackedCarousel({missions, onAccepter, onRefuser, onPostuler, onRetirer}){
   var [activeIndex, setActiveIndex] = useState(0);
   var [dragX, setDragX] = useState(0);
   var [isDragging, setIsDragging] = useState(false);
@@ -1297,6 +1316,8 @@ function StackedCarousel({missions, onAccepter, onRefuser}){
           currentIdx={activeIndex}
           onAccepter={handleAccepter}
           onRefuser={handleRefuser}
+          onPostuler={onPostuler}
+          onRetirer={onRetirer}
         />
       </div>
 
@@ -1406,7 +1427,13 @@ function AgendaPrestataire({prestataire, onLogout}){
         prestataireNom:prestataire.nom,
         missionNom:mission.nom,
       })
-    }).then(function(){
+    }).then(function(r){
+      if(!r.ok) return r.json().then(function(d){ throw new Error(d.error||"Erreur"); });
+      if(action==="postuler"||action==="retirer"){
+        setDisponibles(function(prev){ return prev.map(function(m){ return m.id===mission.id?Object.assign({},m,{candidature:action==="postuler"}):m; }); });
+        showToast(action==="postuler"?"Candidature envoyée 🙋":"Candidature retirée");
+        return;
+      }
       if(action==="accepter"){
         setDisponibles(function(prev){ return prev.filter(function(m){ return m.id!==mission.id; }); });
         setMesMissions(function(prev){ return prev.concat([Object.assign({},mission,{etat:"Acceptée",prestataire:prestataire.id})]); });
@@ -1415,7 +1442,7 @@ function AgendaPrestataire({prestataire, onLogout}){
         setDisponibles(function(prev){ return prev.filter(function(m){ return m.id!==mission.id; }); });
         showToast("Mission refusée");
       }
-    });
+    }).catch(function(e){ showToast("Erreur : "+e.message); });
   }
 
   var missionsFutures = mesMissions.filter(function(m){ return !m.date||new Date(m.date)>=new Date(); });
@@ -1456,6 +1483,8 @@ function AgendaPrestataire({prestataire, onLogout}){
                 missions={disponibles}
                 onAccepter={function(m){return handleAction(m,"accepter");}}
                 onRefuser={function(m){return handleAction(m,"refuser");}}
+                onPostuler={function(m){return handleAction(m,"postuler");}}
+                onRetirer={function(m){return handleAction(m,"retirer");}}
               />
         )}
 
@@ -1480,6 +1509,92 @@ function PagePrestataire(){
 
   if(!prestataire) return <LoginPrestataire onLogin={function(p){ setPrestataire(p); }}/>;
   return <AgendaPrestataire prestataire={prestataire} onLogout={function(){ setPrestataire(null); }}/>;
+}
+
+
+/* ─── ADMIN : validation des candidatures ─────────────────────────────── */
+var ADMIN_KEY="izinest_admin_pwd";
+var NIVEAUX={1:"Prioritaire",2:"Confirmée",3:"Standard"};
+function PageAdmin(){
+  var [pwd,setPwd]=useState(function(){ try{return sessionStorage.getItem(ADMIN_KEY)||"";}catch(e){return "";} });
+  var [saisie,setSaisie]=useState("");
+  var [missions,setMissions]=useState(null);
+  var [erreur,setErreur]=useState("");
+  var [busy,setBusy]=useState("");
+  var [toast,setToast]=useState("");
+  function showToast(m){ setToast(m); setTimeout(function(){setToast("");},3000); }
+  function charger(p){
+    setErreur("");
+    fetch("/api/admin-missions",{headers:{"x-admin-password":p}})
+      .then(function(r){return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||"Erreur"); return d; });})
+      .then(function(d){ setMissions(d.missions||[]); try{sessionStorage.setItem(ADMIN_KEY,p);}catch(e){} })
+      .catch(function(e){ setErreur(e.message); setMissions(null); setPwd(""); try{sessionStorage.removeItem(ADMIN_KEY);}catch(x){} });
+  }
+  useEffect(function(){ if(pwd) charger(pwd); },[pwd]);
+  function valider(m,c){
+    if(!window.confirm("Valider "+c.nom+" pour "+(m.logementNom||m.nom)+" ?")) return;
+    setBusy(m.id+c.id);
+    fetch("/api/admin-missions",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pwd},body:JSON.stringify({missionId:m.id,prestataireId:c.id,missionNom:m.logementNom||m.nom,date:formatDateFr(m.date)})})
+      .then(function(r){return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||"Erreur"); });})
+      .then(function(){ setMissions(function(prev){return prev.filter(function(x){return x.id!==m.id;});}); showToast(c.nom+" validée ✅"); })
+      .catch(function(e){ showToast("Erreur : "+e.message); })
+      .finally(function(){ setBusy(""); });
+  }
+  var head=(
+    <div style={{background:DS.color.primaryDark,padding:"20px 20px 16px",fontFamily:DS.font.heading}}>
+      <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.5)",marginBottom:4}}>izinest · Admin</div>
+      <div style={{fontSize:20,fontWeight:700,color:"#fff"}}>Candidatures</div>
+    </div>
+  );
+  if(!pwd||missions===null){
+    return (
+      <div style={{minHeight:"100vh",background:DS.color.surface,fontFamily:DS.font.body}}>
+        {head}
+        <div style={{maxWidth:380,margin:"0 auto",padding:"32px 20px"}}>
+          <input type="password" value={saisie} onChange={function(e){setSaisie(e.target.value);}} placeholder="Mot de passe admin" style={{width:"100%",boxSizing:"border-box",padding:"12px 14px",borderRadius:DS.radius.md,border:"1px solid "+DS.color.border,fontSize:15,fontFamily:DS.font.body,marginBottom:12}}/>
+          {erreur?<div style={{color:"#b91c1c",fontSize:13,marginBottom:12}}>{erreur}</div>:null}
+          <button onClick={function(){setPwd(saisie);}} style={{width:"100%",height:48,borderRadius:DS.radius.md,border:"none",background:DS.color.primary,color:"#fff",fontWeight:700,fontSize:15,fontFamily:DS.font.heading,cursor:"pointer"}}>Entrer</button>
+        </div>
+      </div>
+    );
+  }
+  var avec=missions.filter(function(m){return m.candidats.length>0;});
+  var sans=missions.filter(function(m){return m.candidats.length===0&&m.attribution==="postuler";});
+  return (
+    <div style={{minHeight:"100vh",background:DS.color.surface,fontFamily:DS.font.body}}>
+      {toast?<div style={{position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",background:DS.color.primaryDark,color:"#fff",padding:"10px 20px",borderRadius:DS.radius.md,fontFamily:DS.font.heading,fontWeight:600,fontSize:14,zIndex:9999}}>{toast}</div>:null}
+      {head}
+      <div style={{maxWidth:560,margin:"0 auto",padding:"20px 20px 60px"}}>
+        {avec.length===0&&<div style={{textAlign:"center",padding:32,color:DS.color.textMuted}}>Aucune candidature en attente.</div>}
+        {avec.map(function(m){
+          return (
+            <div key={m.id} style={{background:DS.color.surface,border:"1px solid "+DS.color.border,borderRadius:DS.radius.md,padding:16,marginBottom:12}}>
+              <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:16,color:DS.color.primaryDark}}>{m.logementNom||m.nom}</div>
+              <div style={{fontSize:13,color:DS.color.textMuted,margin:"2px 0 12px"}}>{formatDateFr(m.date)}</div>
+              {m.candidats.map(function(c){
+                return (
+                  <div key={c.id} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,padding:"10px 0",borderTop:"1px solid "+DS.color.border}}>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontFamily:DS.font.heading,fontWeight:600,fontSize:14,color:DS.color.primaryDark}}>{c.nom}</div>
+                      <div style={{fontSize:12,color:DS.color.textMuted}}>{c.niveau?("Niveau "+c.niveau+" · "+NIVEAUX[c.niveau]):"Niveau non renseigné"}</div>
+                    </div>
+                    <button disabled={busy===m.id+c.id} onClick={function(){valider(m,c);}} style={{flexShrink:0,height:38,padding:"0 16px",borderRadius:DS.radius.sm,border:"none",background:DS.color.primary,color:"#fff",fontWeight:700,fontSize:13,fontFamily:DS.font.heading,cursor:"pointer"}}>{busy===m.id+c.id?"…":"Valider"}</button>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+        {sans.length>0&&(
+          <div style={{marginTop:24}}>
+            <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:13,color:DS.color.textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>En attente de candidature</div>
+            {sans.map(function(m){ return <div key={m.id} style={{padding:"10px 0",borderTop:"1px solid "+DS.color.border,fontSize:14,color:DS.color.primaryDark}}>{m.logementNom||m.nom} <span style={{color:DS.color.textMuted}}>· {formatDateFr(m.date)}</span></div>; })}
+          </div>
+        )}
+        <button onClick={function(){charger(pwd);}} style={{marginTop:20,width:"100%",height:44,borderRadius:DS.radius.md,border:"1px solid "+DS.color.border,background:"none",color:DS.color.primaryDark,fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer"}}>Actualiser</button>
+      </div>
+    </div>
+  );
 }
 
 
@@ -1608,6 +1723,7 @@ export default function App(){
   var pathSlug=pathParts[pathParts.length-1]||"";
   if(!pathSlug) return <PageAccueil/>;
   if(pathSlug==="prestataire") return <PagePrestataire/>;
+  if(pathSlug==="admin") return <PageAdmin/>;
 
   return (
     <div style={wrap}>
