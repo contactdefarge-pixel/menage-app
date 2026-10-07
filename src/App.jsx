@@ -1244,13 +1244,13 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
   var [heroKo, setHeroKo] = useState(false);
   var labelStyle = {fontFamily:DS.font.body,fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#0a6a70"};
   return (
-    <div style={{background:DS.color.primaryDark,borderRadius:20,padding:22,color:"#fff",
+    <div style={{background:DS.color.primaryDark,borderRadius:20,padding:"22px 22px 18px",color:"#fff",
       boxShadow:"0 1px 2px rgba(8,81,87,0.15), 0 12px 28px rgba(8,81,87,0.22)",
-      display:"flex",flexDirection:"column",gap:16,userSelect:"none",height:"100%",boxSizing:"border-box"}}>
+      display:"flex",flexDirection:"column",gap:16,userSelect:"none",boxSizing:"border-box"}}>
       {mission.hero&&!heroKo
-        ?<div style={{position:"relative",margin:"-22px -22px 0",height:190,borderRadius:"18px 18px 0 0",overflow:"hidden",background:"#0a6a70"}}>
+        ?<div style={{position:"relative",margin:"-22px -22px 8px",height:200,borderRadius:"18px 18px 0 0",overflow:"hidden",background:"#0a6a70"}}>
             <img src={mission.hero} alt="" draggable={false} loading="lazy" onError={function(){setHeroKo(true);}} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
-            <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 38%, rgba(8,81,87,0) 62%, rgba(8,81,87,0.9) 100%)"}}/>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 32%, rgba(8,81,87,0) 50%, rgba(8,81,87,0.35) 68%, rgba(8,81,87,0.75) 84%, rgba(8,81,87,0.95) 95%, #085157 100%)"}}/>
             <div style={{position:"absolute",top:14,left:14,right:14,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               {urgente?<span style={{display:"inline-flex",alignItems:"center",gap:6,background:"#f59e0b",color:"#451a03",borderRadius:DS.radius.pill,padding:"4px 12px",fontFamily:DS.font.heading,fontSize:12,fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase"}}>
                 <span style={{width:7,height:7,borderRadius:4,background:"#451a03",animation:"izPulse 1.2s ease-in-out infinite"}}/>Urgent · {libelleUrgence(jr)}
@@ -1366,7 +1366,7 @@ function StackedCarousel({missions, onAccepter, onRefuser, onPostuler, onRetirer
     <div style={{position:"relative",width:"100%",paddingBottom:24}}>
       <style>{"@keyframes izPulse{0%,100%{opacity:1}50%{opacity:.25}} .iz-track::-webkit-scrollbar{display:none}"}</style>
       <div ref={trackRef} className="iz-track" onScroll={onScroll}
-        style={{display:"flex",gap:12,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",
+        style={{display:"flex",alignItems:"flex-start",gap:12,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",
                 margin:"0 -20px",padding:"6px 20px 10px",scrollPadding:"0 20px",overscrollBehaviorX:"contain"}}>
         {missions.map(function(m,i){
           var on=i===activeIndex;
