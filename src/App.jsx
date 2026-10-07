@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import exifr from "exifr";
+import { MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation } from "lucide-react";
 
 /* ─── DESIGN SYSTEM ─────────────────────────────────────────────────── */
 var DS = {
@@ -425,22 +426,16 @@ function Ico({d,cx,cy,r,points,x1,y1,x2,y2,extra,size}){
     </svg>
   );
 }
-function IconPin()    { return <Ico d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z" cx={12} cy={10} r={2.5}/>; }
-function IconWifi()    { return <Ico d="M5 12.55a11 11 0 0 1 14.08 0" extra={["M1.42 9a16 16 0 0 1 21.16 0","M8.53 16.11a6 6 0 0 1 6.95 0"]} cx={12} cy={20} r={1}/>; }
-function IconUsers()   { return <Ico d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" extra={["M23 21v-2a4 4 0 0 0-3-3.87","M16 3.13a4 4 0 0 1 0 7.75"]} cx={9} cy={7} r={4}/>; }
-function IconTrash()   { return <Ico points="3 6 5 6 21 6" extra={["M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6","M10 11v6","M14 11v6","M9 6V4h6v2"]}/>; }
-function IconBox()     { return <Ico d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" extra={["M3.27 6.96 12 12.01 20.73 6.96"]} x1={12} y1={22.08} x2={12} y2={12}/>; }
-function IconKey()     { return <Ico d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>; }
-function IconReceipt() { return <Ico d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z" extra={["M8 8h8","M8 12h8","M8 16h5"]}/>; }
-function IconEuro() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={DS.color.primaryDark} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 10h12"/>
-      <path d="M4 14h12"/>
-      <path d="M19 6a7 7 0 1 0 0 12"/>
-    </svg>
-  );
-}
+/* Icônes Lucide : même famille, trait 2 px, couleur = celle du texte (currentColor) */
+var LI={size:18,strokeWidth:2,color:"currentColor"};
+function IconPin()     { return <MapPin {...LI}/>; }
+function IconWifi()    { return <Wifi {...LI}/>; }
+function IconUsers()   { return <Users {...LI}/>; }
+function IconTrash()   { return <Trash2 {...LI}/>; }
+function IconBox()     { return <Package {...LI}/>; }
+function IconKey()     { return <KeyRound {...LI}/>; }
+function IconReceipt() { return <Receipt {...LI}/>; }
+function IconEuro()    { return <Euro {...LI}/>; }
 function IconCheck(){ return <svg width="72" height="72" viewBox="0 0 72 72" fill="none"><rect x="8" y="8" width="56" height="56" rx="18" fill="#dcfce7"/><rect x="8" y="8" width="56" height="56" rx="18" stroke="#86efac" strokeWidth="2"/><path d="M24 36.5L32.2 44L49 28" stroke="#16a34a" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/></svg>; }
 function IconCheckSmall(){ return <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4.5 10.4L8.1 14L15.8 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>; }
 function IconCircleCheck(){ return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={DS.color.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12.5l3 3 5-5.5"/></svg>; }
@@ -465,21 +460,19 @@ function ProgressBar({current,total}){
   );
 }
 
-function AppHeader({nom,step,total,sousTitre}){
+function AppHeader({nom,step,total}){
   return (
     <div style={{
       background:DS.color.primaryDark,
-      margin:"-24px -20px "+(step===0?"16px":"24px"),
+      margin:"-24px -20px 24px",
       padding:"20px 20px 16px",
       fontFamily:DS.font.heading,
-      borderRadius:step===0?"0 0 28px 28px":0,
     }}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
         <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)"}}>izinest · rapport de ménage</div>
         <div style={{fontSize:12,color:DS.color.primaryBorder}}>Étape {step+1} / {total}</div>
       </div>
       <div style={{fontSize:24,fontWeight:700,color:"#fff",lineHeight:1.1}}>{nom||"Chargement…"}</div>
-      {step===0&&sousTitre?<div style={{fontSize:12,color:DS.color.primaryBorder,marginTop:6}}>{sousTitre}</div>:null}
       <div style={{display:"flex",gap:4,marginTop:12}}>
         {Array.from({length:total}).map(function(_,i){return <div key={i} style={{flex:1,height:4,borderRadius:2,background:i<=step?DS.color.primaryBorder:"rgba(255,255,255,0.2)"}}/>;})}
       </div>
@@ -506,7 +499,7 @@ function InfoCard({icon,title,children}){
       <div style={{
         width:34,height:34,flexShrink:0,borderRadius:DS.radius.sm,
         background:DS.color.primarySoft,
-        display:"flex",alignItems:"center",justifyContent:"center",
+        display:"flex",alignItems:"center",justifyContent:"center",color:DS.color.primaryDark,
       }}>{icon}</div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontFamily:DS.font.heading,fontSize:10,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:DS.color.primary,marginBottom:2}}>{title}</div>
@@ -763,6 +756,10 @@ function Tuile({span,bg,fg,icon,titre,children,border}){
     </div>
   );
 }
+function BtnTuile({onClick,icon,label,copie}){
+  var [ok,setOk]=useState(false);
+  return <button onClick={function(){onClick();setOk(true);setTimeout(function(){setOk(false);},2000);}} style={{display:"inline-flex",alignItems:"center",gap:6,height:34,padding:"0 14px",borderRadius:DS.radius.pill,border:"none",background:DS.color.primarySoft,color:DS.color.primaryDark,fontSize:13,fontWeight:600,fontFamily:DS.font.heading,cursor:"pointer"}}>{icon}{ok?copie:label}</button>;
+}
 function CodeBox({label,value}){
   var [copied,setCopied]=useState(false);
   function copy(){ navigator.clipboard.writeText(value).then(function(){setCopied(true);setTimeout(function(){setCopied(false);},2000);}); }
@@ -787,6 +784,7 @@ function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowle
   var wifiLines=wifiTxt?wifiTxt.split("\n").filter(Boolean):[];
   var bloque=!!(changes&&changes.some(function(c){return c.step===0;})&&!acknowledged);
   var T=DS.color.primaryDark;
+  var BORD="1.5px solid "+DS.color.primaryBorder;
   var rich=function(v){ return Array.isArray(v)?<RichText value={v}/>:<FormattedText>{v}</FormattedText>; };
   var petit={fontSize:12,lineHeight:1.45,color:"#2c4b4e"};
   var spanBas=(poub&&conso)?1:2;
@@ -796,40 +794,39 @@ function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowle
       <ChangeBannerSpacer changes={changes||[]} stepIndex={0} acknowledged={acknowledged}/>
       {loading||error?<LogementLoading error={error}/>:null}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        {adresse&&(
+          <Tuile span={2} bg="#fff" fg={T} icon={<IconPin/>} titre="Adresse" border={BORD}>
+            <div style={{fontSize:15,fontWeight:600,color:"#0f2e31",marginBottom:10}}>{adresse}</div>
+            <div style={{display:"flex",gap:8}}>
+              <BtnTuile onClick={function(){navigator.clipboard.writeText(adresse);}} icon={<CopyIcon size={14} strokeWidth={2}/>} label="Copier" copie="Copié !"/>
+              <a href={"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(adresse)} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,height:34,padding:"0 14px",borderRadius:DS.radius.pill,background:T,color:"#fff",fontSize:13,fontWeight:600,textDecoration:"none",fontFamily:DS.font.heading}}><Navigation size={14} strokeWidth={2}/>Itinéraire</a>
+            </div>
+          </Tuile>
+        )}
         {(accesTxt||cle)&&(
           <Tuile span={2} bg={DS.color.primary} fg="#fff" icon={<IconKey/>} titre="Accès">
             {cle?<div style={{display:"flex",gap:10,marginBottom:accesTxt?10:0}}><CodeBox label="Boîte à clé" value={cle}/></div>:null}
             {accesTxt?<div style={{fontSize:13,lineHeight:1.45}}>{rich(logement.acces)}</div>:null}
           </Tuile>
         )}
-        {adresse&&(
-          <Tuile span={2} bg="#fff" fg={T} icon={<IconPin/>} titre="Adresse">
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-              <div style={{fontSize:15,fontWeight:600,color:"#0f2e31",minWidth:0}}>{adresse}</div>
-              <div style={{display:"flex",gap:6,flexShrink:0}}>
-                <CopyBtn value={adresse}/>
-                <a href={"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(adresse)} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",height:30,padding:"0 12px",borderRadius:DS.radius.pill,background:T,color:"#fff",fontSize:12,fontWeight:600,textDecoration:"none",fontFamily:DS.font.heading,whiteSpace:"nowrap"}}>Itinéraire</a>
-              </div>
-            </div>
-          </Tuile>
-        )}
         {(voyageurs||litsOk)&&(
-          <Tuile span={forfait?1:2} bg={DS.color.primarySoft} fg={T} icon={<IconUsers/>} titre="Voyageurs">
+          <Tuile span={forfait?1:2} bg={DS.color.primarySoft} fg={T} icon={<IconUsers/>} titre="Voyageurs" border={BORD}>
             {voyageurs?<div style={{fontFamily:DS.font.heading,fontSize:22,fontWeight:700}}>{voyageurs}</div>:null}
             {litsOk?<div style={petit}><RichText value={logement.lits}/></div>:null}
           </Tuile>
         )}
         {forfait&&(
-          <Tuile span={(voyageurs||litsOk)?1:2} bg="#fff3d6" fg="#6b4a06" icon={<IconEuro/>} titre="Forfait">
+          <Tuile span={(voyageurs||litsOk)?1:2} bg={T} fg="#fff" icon={<IconEuro/>} titre="Forfait">
             <div style={{fontFamily:DS.font.heading,fontSize:26,fontWeight:700,lineHeight:1.1}}>{forfait}</div>
-            {factur?<div style={{fontSize:12,marginTop:4}}>{factur}</div>:null}
           </Tuile>
         )}
-        {!forfait&&factur&&(
-          <Tuile span={2} bg="#fff3d6" fg="#6b4a06" icon={<IconReceipt/>} titre="Facturation"><div style={{fontSize:13}}>{factur}</div></Tuile>
+        {factur&&(
+          <Tuile span={2} bg="#fff" fg={T} icon={<IconReceipt/>} titre="Facturation à adresser à" border={BORD}>
+            <div style={{fontSize:15,fontWeight:600,color:"#0f2e31"}}>{factur}</div>
+          </Tuile>
         )}
         {wifiLines.length>0&&(
-          <Tuile span={2} bg="#fff" fg={T} icon={<IconWifi/>} titre="Wifi">
+          <Tuile span={2} bg="#fff" fg={T} icon={<IconWifi/>} titre="Wifi" border={BORD}>
             {wifiLines.map(function(line,i){
               var isMdp=line.toLowerCase().includes("mot de passe");
               var val=isMdp?line.split(":").slice(1).join(":").trim():"";
@@ -842,10 +839,10 @@ function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowle
           </Tuile>
         )}
         {poub&&(
-          <Tuile span={spanBas} bg="#fff" fg={T} icon={<IconTrash/>} titre="Poubelles"><div style={petit}>{rich(logement.poubelles)}</div></Tuile>
+          <Tuile span={spanBas} bg="#fff" fg={T} icon={<IconTrash/>} titre="Poubelles" border={BORD}><div style={petit}>{rich(logement.poubelles)}</div></Tuile>
         )}
         {conso&&(
-          <Tuile span={spanBas} bg="#fff" fg={T} icon={<IconBox/>} titre="Consommables"><div style={petit}>{rich(logement.consommables)}</div></Tuile>
+          <Tuile span={spanBas} bg="#fff" fg={T} icon={<IconBox/>} titre="Consommables" border={BORD}><div style={petit}>{rich(logement.consommables)}</div></Tuile>
         )}
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:18}}>
@@ -1825,7 +1822,7 @@ export default function App(){
   return (
     <div style={wrap}>
       {showResume?<ResumeModal saved={savedDraft} onResume={handleResume} onRestart={handleRestart}/>:null}
-      <AppHeader nom={logement.nom} step={step} total={TOTAL} sousTitre={logement.adresse}/>
+      <AppHeader nom={logement.nom} step={step} total={TOTAL}/>
       {step===0&&<Step1Infos logement={logement} loading={logementLoading} error={logementError} onNext={next} onModeVisite={function(){setModeVisite(true);}} changes={changes} acknowledged={acknowledgedSteps[0]} onAcknowledge={function(){setAcknowledgedSteps(function(p){return Object.assign({},p,{0:true});});}}/>}
       {step===1&&<Step2Arrivee data={arrivee} setData={setArrivee} onNext={next} onPrev={prev}/>}
       {step===2&&<Step3Attention data={attention} setData={setAttention} logement={logement} onNext={next} onPrev={prev} changes={changes} acknowledged={acknowledgedSteps[2]} onAcknowledge={function(){setAcknowledgedSteps(function(p){return Object.assign({},p,{2:true});});}}/>}
