@@ -716,15 +716,11 @@ function PhotoWarningModal({expected,actual,onConfirm,onCancel}){
 /* BANDEAU MODIFICATION */
 function ChangeBanner({changes,stepIndex,onAcknowledge,acknowledged}){
   var stepChanges=changes.filter(function(c){return c.step===stepIndex;});
-  var ref=useRef(null);
-  var [h,setH]=useState(120);
   var visible=stepChanges.length>0&&!acknowledged;
-  useEffect(function(){ if(visible&&ref.current) setH(ref.current.offsetHeight); });
   if(!visible) return null;
   return (
-    <div>
-      <div style={{height:h+12}}/>
-      <div ref={ref} style={{position:"fixed",top:12,left:12,right:12,zIndex:500,maxWidth:456,margin:"0 auto",
+    <div style={{position:"sticky",top:12,zIndex:500,marginBottom:16}}>
+      <div style={{
         background:"#fffbeb",border:"1.5px solid #fcd34d",borderRadius:DS.radius.xl,padding:14,
         boxShadow:"0 4px 16px rgba(180,83,9,0.18)",display:"flex",gap:12,alignItems:"flex-start"}}>
         <div style={{width:34,height:34,flexShrink:0,borderRadius:DS.radius.md,background:"#f59e0b",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>
