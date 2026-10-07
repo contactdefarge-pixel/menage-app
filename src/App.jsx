@@ -1366,16 +1366,23 @@ function StackedCarousel({missions, onAccepter, onRefuser, onPostuler, onRetirer
         })}
       </div>
       {total>1&&(
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginTop:10}}>
-          {arrow(-1)}
-          <div style={{display:"flex",gap:6,alignItems:"center"}}>
-            {missions.map(function(m,i){
-              var on=i===activeIndex;
-              return <button key={i} aria-label={"Mission "+(i+1)} onClick={function(){goTo(i);}} style={{width:on?20:7,height:7,borderRadius:4,border:"none",padding:0,cursor:"pointer",transition:"all .2s",
-                background:on?DS.color.primary:DS.color.border}}/>;
-            })}
-          </div>
-          {arrow(1)}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginTop:10,width:"100%"}}>
+          <div style={{flexShrink:0}}>{arrow(-1)}</div>
+          {total<=7
+            ?<div style={{display:"flex",gap:6,alignItems:"center"}}>
+                {missions.map(function(m,i){
+                  var on=i===activeIndex;
+                  return <button key={i} aria-label={"Mission "+(i+1)} onClick={function(){goTo(i);}} style={{width:on?20:7,height:7,borderRadius:4,border:"none",padding:0,cursor:"pointer",transition:"all .2s",background:on?DS.color.primary:DS.color.border}}/>;
+                })}
+              </div>
+            /* beaucoup de missions : barre de progression + compteur, largeur fixe */
+            :<div style={{display:"flex",alignItems:"center",gap:10,flex:"0 1 160px",minWidth:0}}>
+                <div style={{flex:1,height:6,borderRadius:3,background:DS.color.border,overflow:"hidden"}}>
+                  <div style={{width:((activeIndex+1)/total*100)+"%",height:"100%",borderRadius:3,background:DS.color.primary,transition:"width .25s ease"}}/>
+                </div>
+                <span style={{fontFamily:DS.font.heading,fontSize:12,fontWeight:600,color:DS.color.primaryDark,whiteSpace:"nowrap"}}>{activeIndex+1} / {total}</span>
+              </div>}
+          <div style={{flexShrink:0}}>{arrow(1)}</div>
         </div>
       )}
     </div>
