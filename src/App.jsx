@@ -1244,8 +1244,7 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
   var labelStyle = {fontFamily:DS.font.body,fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#0a6a70"};
   return (
     <div style={{background:DS.color.primaryDark,borderRadius:20,padding:22,color:"#fff",
-      border:urgente?"2px solid #f59e0b":"2px solid transparent",
-      boxShadow:urgente?"0 0 0 4px rgba(245,158,11,0.18), 0 12px 28px rgba(146,64,14,0.28)":"0 1px 2px rgba(8,81,87,0.15), 0 12px 28px rgba(8,81,87,0.22)",
+      boxShadow:"0 1px 2px rgba(8,81,87,0.15), 0 12px 28px rgba(8,81,87,0.22)",
       display:"flex",flexDirection:"column",gap:16,userSelect:"none",height:"100%",boxSizing:"border-box"}}>
       {(total>1||urgente)&&(
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:26}}>
@@ -1260,7 +1259,7 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
       <img src={"/illustrations/maisons/"+maison+".png"} alt="" draggable={false} style={{display:"block",width:220,maxWidth:"66%",height:"auto",margin:"-6px auto -10px",filter:"drop-shadow(0 10px 18px rgba(0,0,0,0.25))"}}/>
       <div style={{display:"flex",gap:16,alignItems:"stretch"}}>
         {mission.date&&(
-          <div style={{width:72,flexShrink:0,borderRadius:14,background:urgente?"#fde68a":"#e0f5f5",color:urgente?"#78350f":DS.color.primaryDark,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 0"}}>
+          <div style={{width:72,flexShrink:0,borderRadius:14,background:"#e0f5f5",color:DS.color.primaryDark,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 0"}}>
             <div style={labelStyle}>{jourCourt}</div>
             <div style={{fontFamily:DS.font.heading,fontSize:34,fontWeight:700,lineHeight:1.05}}>{jourNum}</div>
             <div style={labelStyle}>{moisCourt}</div>
@@ -1371,10 +1370,9 @@ function StackedCarousel({missions, onAccepter, onRefuser, onPostuler, onRetirer
           {arrow(-1)}
           <div style={{display:"flex",gap:6,alignItems:"center"}}>
             {missions.map(function(m,i){
-              var urg=(function(){var j=joursAvant(m.date);return j>=0&&j<=3;})();
               var on=i===activeIndex;
               return <button key={i} aria-label={"Mission "+(i+1)} onClick={function(){goTo(i);}} style={{width:on?20:7,height:7,borderRadius:4,border:"none",padding:0,cursor:"pointer",transition:"all .2s",
-                background:on?(urg?"#f59e0b":DS.color.primary):(urg?"#fcd34d":DS.color.border)}}/>;
+                background:on?DS.color.primary:DS.color.border}}/>;
             })}
           </div>
           {arrow(1)}
