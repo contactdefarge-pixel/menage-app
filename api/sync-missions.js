@@ -144,6 +144,9 @@ async function archiveMission(pageId) {
 }
 
 /* ── Handler ── */
+// Un reset enchaîne ~50 appels Notion : on laisse 60 s à la fonction
+export const config = { maxDuration: 60 };
+
 export default async function handler(req, res) {
   const auth = req.headers["authorization"] || "";
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -152,8 +155,30 @@ export default async function handler(req, res) {
 
   // ?dry=1 : simule sans rien créer ni supprimer
   const dry = req.query?.dry === "1";
+  const reset = req.query?.reset === "1";
 
   try {
+    // ?testRoom=Nom du logement&testDate=2026-10-08 : crée une mission de test (sans Beds24)
+    if (req.query?.testRoom) {
+      const logements = await getLogements();
+      const booking = {
+        bookId:       `TEST-${Date.now()}`,
+        checkOut:     req.query.testDate || new Date().toISOString().slice(0, 10),
+        roomName:     req.query.testRoom,
+        propertyName: "",
+      };
+      const logementId = findLogement(logements, booking);
+      if (!dry) await createMission(booking, logementId);
+      return res.status(200).json({
+        success: true,
+        test: true,
+        dry,
+        mission: missionTitle(booking),
+        logementTrouve: !!logementId,
+        logementsDisponibles: logements.map(l => l.nom),
+      });
+    }
+
     const today = new Date();
     const future = new Date();
     future.setDate(today.getDate() + WINDOW_DAYS);
@@ -170,17 +195,21 @@ export default async function handler(req, res) {
     // Archiver les missions dont la réservation a disparu / été annulée.
     // Seules les missions DANS la fenêtre [aujourd'hui ; +90 jours] sont concernées :
     // les missions passées sont conservées.
-    const toDelete = missions.filter(m =>
-      m.beds24Id && m.date >= from && m.date <= to && !activeIds.has(m.beds24Id)
-    );
+    // ?reset=1 : archive TOUTES les missions à venir (avec ou sans Beds24 ID) puis les recrée depuis Beds24
+    const toDelete = reset
+      ? missions.filter(m => m.date >= from)
+      : missions.filter(m =>
+          m.beds24Id && !m.beds24Id.startsWith("TEST-") &&
+          m.date >= from && m.date <= to && !activeIds.has(m.beds24Id)
+        );
 
     // Créer les missions manquantes
-    const knownIds = new Set(missions.map(m => m.beds24Id).filter(Boolean));
+    const knownIds = new Set(reset ? [] : missions.map(m => m.beds24Id).filter(Boolean));
     const toCreate = bookings.filter(b => !knownIds.has(b.bookId));
 
     // Réparer les missions créées avec un titre de type « 725859 — 2026-10-12 » (roomId au lieu du nom)
     const byId = new Map(bookings.map(b => [b.bookId, b]));
-    const toRepair = missions.filter(m =>
+    const toRepair = reset ? [] : missions.filter(m =>
       /^\d+\s+—/.test(m.nom) && byId.has(m.beds24Id) && byId.get(m.beds24Id).roomName
     );
 
@@ -206,6 +235,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       dry,
+      reset,
       window: { from, to },
       bookings: bookings.length,
       created: dry ? 0 : created,
