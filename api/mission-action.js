@@ -44,13 +44,11 @@ export default async function handler(req, res) {
     let properties = {};
 
     if (action === "accepter") {
-      // un logement en mode « Postuler » ne s'accepte pas directement
+      // par défaut, une mission se postule ; l'acceptation directe n'existe que si le logement est en « Direct »
       const logId = (props["Logement"]?.relation || [])[0]?.id;
-      if (logId) {
-        const log = await getPage(NOTION_TOKEN, logId);
-        if (/postul/i.test(log.properties?.["Attribution"]?.select?.name || ""))
-          return res.status(400).json({ error: "Ce logement fonctionne par candidature" });
-      }
+      const log = logId ? await getPage(NOTION_TOKEN, logId) : null;
+      if (!/direct/i.test(log?.properties?.["Attribution"]?.select?.name || ""))
+        return res.status(400).json({ error: "Cette mission fonctionne par candidature" });
       properties = { "État": { status: { name: "Acceptée" } }, "Prestataire": { relation: [{ id: prestataireId }] } };
       await sendEmail({ to: ADMIN_EMAIL, subject: `✅ Mission acceptée — ${missionNom}`,
         html: `<p><strong>${nomAffiche}</strong> a accepté la mission <strong>${missionNom}</strong>.</p><p>Connectez-vous à Notion pour voir les détails.</p>` });

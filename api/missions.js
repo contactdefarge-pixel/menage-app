@@ -30,7 +30,7 @@ function niveauNum(name, def) {
 }
 
 async function getLogementInfo(token, logementId) {
-  const vide = { slug: "", logementNom: "", illustration: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "direct" };
+  const vide = { slug: "", logementNom: "", illustration: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
   try {
     const r = await fetch(`https://api.notion.com/v1/pages/${logementId}`, { headers: H(token) });
     const data = await r.json();
@@ -44,7 +44,7 @@ async function getLogementInfo(token, logementId) {
       forfaitMenage: props["Forfait ménage"]?.number != null ? props["Forfait ménage"].number + " €" : "",
       dureeEstimee: plainText(props["Durée estimée"]),
       niveauRequis: niveauNum(props["Niveau requis"]?.select?.name, 3),
-      attribution: /postul/i.test(props["Attribution"]?.select?.name || "") ? "postuler" : "direct",
+      attribution: /direct/i.test(props["Attribution"]?.select?.name || "") ? "direct" : "postuler",
     };
   } catch (e) { return vide; }
 }
@@ -120,7 +120,7 @@ export default async function handler(req, res) {
     const cache = {};
     const ids = [...new Set(aTraiter.map(m => m.logement).filter(Boolean))];
     await Promise.all(ids.map(async id => { cache[id] = await getLogementInfo(NOTION_TOKEN, id); }));
-    const vide = { slug: "", logementNom: "", illustration: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "direct" };
+    const vide = { slug: "", logementNom: "", illustration: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
     const enrichir = m => ({ ...m, ...(m.logement ? cache[m.logement] : vide) });
 
     const disponibles = aTraiter
