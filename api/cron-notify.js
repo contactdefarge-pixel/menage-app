@@ -126,7 +126,7 @@ export default async function handler(req, res) {
     const prestPages = await queryAll(token, PRESTATAIRES_DB, {});
     const prestataires = prestPages.map(p => {
       const pr = p.properties || {};
-      return { id: p.id, nom: plainText(pr["Nom"]), email: pr["Email"]?.email || "",
+      return { id: p.id, nom: plainText(pr["Prénom/Nom"] || pr["Nom"]), email: pr["Email"]?.email || "",
                niveau: pr["Niveau"]?.select?.name ? niveauNum(pr["Niveau"].select.name, null) : null };
     }).filter(p => p.email).filter(testOnly);
 
