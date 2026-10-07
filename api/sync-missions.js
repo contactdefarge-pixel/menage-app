@@ -89,13 +89,11 @@ async function getLogements() {
   }));
 }
 
+// Le logement Notion correspond au Room Name Beds24 (une propriété peut contenir plusieurs logements)
 function findLogement(logements, booking) {
-  for (const candidate of [booking.propertyName, booking.roomName]) {
-    const key = (candidate || "").trim().toLowerCase();
-    const hit = key && logements.find(l => l.nom === key);
-    if (hit) return hit.id;
-  }
-  return null;
+  const key = (booking.roomName || "").trim().toLowerCase();
+  const hit = key && logements.find(l => l.nom === key);
+  return hit ? hit.id : null;
 }
 
 /* ── Notion Missions ── */
@@ -112,6 +110,7 @@ async function getMissionsNotion() {
         nom:      plainText(props["Nom"]),
         beds24Id: plainText(props["Beds24 ID"]).trim(),
         date:     props["Date"]?.date?.start?.slice(0, 10) || "",
+        hasLogement: (props["Logement"]?.relation || []).length > 0,
       });
     }
     cursor = data.has_more ? data.next_cursor : undefined;
@@ -119,10 +118,19 @@ async function getMissionsNotion() {
   return missions;
 }
 
+function missionTitle(booking) {
+  return `${booking.roomName || booking.propertyName || "Logement"} — ${booking.checkOut}`;
+}
+
+async function repairMission(mission, booking, logementId) {
+  const props = { "Nom": { title: [{ text: { content: missionTitle(booking) } }] } };
+  if (!mission.hasLogement && logementId) props["Logement"] = { relation: [{ id: logementId }] };
+  await notion(`pages/${mission.id}`, "PATCH", { properties: props });
+}
+
 async function createMission(booking, logementId) {
-  const titre = booking.propertyName || booking.roomName || "Logement";
   const props = {
-    "Nom":       { title: [{ text: { content: `${titre} — ${booking.checkOut}` } }] },
+    "Nom":       { title: [{ text: { content: missionTitle(booking) } }] },
     "Date":      { date: { start: booking.checkOut } },
     "État":      { status: { name: "Disponible" } },
     "Beds24 ID": { rich_text: [{ text: { content: booking.bookId } }] },
@@ -170,16 +178,28 @@ export default async function handler(req, res) {
     const knownIds = new Set(missions.map(m => m.beds24Id).filter(Boolean));
     const toCreate = bookings.filter(b => !knownIds.has(b.bookId));
 
+    // Réparer les missions créées avec un titre de type « 725859 — 2026-10-12 » (roomId au lieu du nom)
+    const byId = new Map(bookings.map(b => [b.bookId, b]));
+    const toRepair = missions.filter(m =>
+      /^\d+\s+—/.test(m.nom) && byId.has(m.beds24Id) && byId.get(m.beds24Id).roomName
+    );
+
     const unmatched = [];
     let created = 0;
     let deleted = 0;
+    let repaired = 0;
 
     if (!dry) {
       for (const m of toDelete) { await archiveMission(m.id); deleted++; }
+      for (const m of toRepair) {
+        const b = byId.get(m.beds24Id);
+        await repairMission(m, b, findLogement(logements, b));
+        repaired++;
+      }
     }
     for (const b of toCreate) {
       const logementId = findLogement(logements, b);
-      if (!logementId) unmatched.push(`${b.propertyName} / ${b.roomName}`);
+      if (!logementId) unmatched.push(b.roomName || `(sans nom, propriété ${b.propertyName})`);
       if (!dry) { await createMission(b, logementId); created++; }
     }
 
@@ -190,7 +210,9 @@ export default async function handler(req, res) {
       bookings: bookings.length,
       created: dry ? 0 : created,
       deleted: dry ? 0 : deleted,
-      wouldCreate: dry ? toCreate.map(b => `${b.propertyName || b.roomName} — ${b.checkOut} (#${b.bookId})`) : undefined,
+      repaired: dry ? 0 : repaired,
+      wouldRepair: dry ? toRepair.map(m => `${m.nom} -> ${missionTitle(byId.get(m.beds24Id))}`) : undefined,
+      wouldCreate: dry ? toCreate.map(b => `${missionTitle(b)} (#${b.bookId})`) : undefined,
       wouldDelete: dry ? toDelete.map(m => `${m.nom} (#${m.beds24Id})`) : undefined,
       unmatchedLogements: [...new Set(unmatched)],
     });
