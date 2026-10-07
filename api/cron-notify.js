@@ -3,7 +3,7 @@
      (avant-première : voir lib/attribution.js) ;
    - elle lui est annoncée le jour où elle s'ouvre à lui (mission non pourvue qui « descend » au niveau suivant) ;
    - une mission n'est annoncée qu'une fois par prestataire (fenêtre = les 24 dernières heures).
-   Appel manuel : /api/cron-notify?secret=<CRON_SECRET>&dry=1  (dry = aperçu sans envoi, window=<heures> pour élargir). */
+   Appel manuel : /api/cron-notify?secret=<CRON_SECRET>&dry=1  (dry = aperçu sans envoi, window=<heures> pour élargir, all=1 = toutes les missions ouvertes à ton niveau). */
 import { sendEmail, APP_URL, dateCourte } from "../lib/mail.js";
 import { niveauNum, visibleDepuis, estUrgente } from "../lib/attribution.js";
 import { emailUrgence, testOnly } from "../lib/urgent.js";
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
 
   const token = process.env.NOTION_TOKEN;
   const dry = !!req.query.dry;
-  const fenetreH = Math.max(1, Number(req.query.window) || 24);
+  const fenetreH = req.query.all ? 24 * 365 : Math.max(1, Number(req.query.window) || 24);
   const now = new Date();
   const debut = now.getTime() - fenetreH * 3600000;
 
