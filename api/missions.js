@@ -15,6 +15,14 @@ function slugify(v) {
   return String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
+// image de couverture « Hero » : fichier Notion (URL temporaire, renouvelée à chaque appel), lien externe, URL ou texte
+function heroUrl(prop) {
+  if (!prop) return "";
+  if (prop.files && prop.files.length) { const f = prop.files[0]; return f.file?.url || f.external?.url || ""; }
+  if (prop.url) return prop.url;
+  const t = plainText(prop); return /^https?:\/\//.test(t) ? t.trim() : "";
+}
+
 // propriété « Type » des logements : sélection, multi-sélection, statut ou texte
 function typeLogement(prop) {
   if (!prop) return "";
@@ -25,7 +33,7 @@ function typeLogement(prop) {
 }
 
 async function getLogementInfo(token, logementId) {
-  const vide = { slug: "", logementNom: "", illustration: "", type: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
+  const vide = { slug: "", logementNom: "", illustration: "", type: "", hero: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
   try {
     const r = await fetch(`https://api.notion.com/v1/pages/${logementId}`, { headers: H(token) });
     const data = await r.json();
@@ -36,6 +44,7 @@ async function getLogementInfo(token, logementId) {
       logementNom: nom,
       illustration: props["Illustration"]?.select?.name || "",
       type: typeLogement(props["Type"]),
+      hero: heroUrl(props["Hero"]),
       adresse: plainText(props["Adresse"]),
       forfaitMenage: props["Forfait ménage"]?.number != null ? props["Forfait ménage"].number + " €" : "",
       dureeEstimee: plainText(props["Durée estimée"]),
@@ -121,7 +130,7 @@ export default async function handler(req, res) {
     const cache = {};
     const ids = [...new Set(aTraiter.map(m => m.logement).filter(Boolean))];
     await Promise.all(ids.map(async id => { cache[id] = await getLogementInfo(NOTION_TOKEN, id); }));
-    const vide = { slug: "", logementNom: "", illustration: "", type: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
+    const vide = { slug: "", logementNom: "", illustration: "", type: "", hero: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
     const enrichir = m => ({ ...m, ...(m.logement ? cache[m.logement] : vide) });
 
     const disponibles = aTraiter

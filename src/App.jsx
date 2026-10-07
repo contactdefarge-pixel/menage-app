@@ -1241,22 +1241,36 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
   var maison = pickMaison(mission);
   var jr = joursAvant(mission.date);
   var urgente = jr>=0 && jr<=3;
+  var [heroKo, setHeroKo] = useState(false);
   var labelStyle = {fontFamily:DS.font.body,fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#0a6a70"};
   return (
     <div style={{background:DS.color.primaryDark,borderRadius:20,padding:22,color:"#fff",
       boxShadow:"0 1px 2px rgba(8,81,87,0.15), 0 12px 28px rgba(8,81,87,0.22)",
       display:"flex",flexDirection:"column",gap:16,userSelect:"none",height:"100%",boxSizing:"border-box"}}>
-      {(total>1||urgente)&&(
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:26}}>
-          {urgente
-            ?<span style={{display:"inline-flex",alignItems:"center",gap:6,background:"#f59e0b",color:"#451a03",borderRadius:DS.radius.pill,padding:"4px 12px",fontFamily:DS.font.heading,fontSize:12,fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase"}}>
+      {mission.hero&&!heroKo
+        ?<div style={{position:"relative",margin:"-22px -22px 0",height:190,borderRadius:"18px 18px 0 0",overflow:"hidden",background:"#0a6a70"}}>
+            <img src={mission.hero} alt="" draggable={false} loading="lazy" onError={function(){setHeroKo(true);}} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+            <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 38%, rgba(8,81,87,0) 62%, rgba(8,81,87,0.9) 100%)"}}/>
+            <div style={{position:"absolute",top:14,left:14,right:14,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              {urgente?<span style={{display:"inline-flex",alignItems:"center",gap:6,background:"#f59e0b",color:"#451a03",borderRadius:DS.radius.pill,padding:"4px 12px",fontFamily:DS.font.heading,fontSize:12,fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase"}}>
                 <span style={{width:7,height:7,borderRadius:4,background:"#451a03",animation:"izPulse 1.2s ease-in-out infinite"}}/>Urgent · {libelleUrgence(jr)}
-              </span>
-            :<span/>}
-          {total>1&&<span style={{fontFamily:DS.font.heading,fontSize:12,fontWeight:600,color:"#99e0dd"}}>{currentIdx+1} / {total}</span>}
-        </div>
-      )}
-      <img src={"/illustrations/maisons/"+maison+".png"} alt="" draggable={false} style={{display:"block",width:220,maxWidth:"66%",height:"auto",margin:"-6px auto -10px",filter:"drop-shadow(0 10px 18px rgba(0,0,0,0.25))"}}/>
+              </span>:<span/>}
+              {total>1&&<span style={{fontFamily:DS.font.heading,fontSize:12,fontWeight:700,color:"#fff",background:"rgba(0,0,0,0.35)",borderRadius:DS.radius.pill,padding:"3px 10px"}}>{currentIdx+1} / {total}</span>}
+            </div>
+          </div>
+        :<React.Fragment>
+        {(total>1||urgente)&&(
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:26}}>
+            {urgente
+              ?<span style={{display:"inline-flex",alignItems:"center",gap:6,background:"#f59e0b",color:"#451a03",borderRadius:DS.radius.pill,padding:"4px 12px",fontFamily:DS.font.heading,fontSize:12,fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase"}}>
+                  <span style={{width:7,height:7,borderRadius:4,background:"#451a03",animation:"izPulse 1.2s ease-in-out infinite"}}/>Urgent · {libelleUrgence(jr)}
+                </span>
+              :<span/>}
+            {total>1&&<span style={{fontFamily:DS.font.heading,fontSize:12,fontWeight:600,color:"#99e0dd"}}>{currentIdx+1} / {total}</span>}
+          </div>
+        )}
+        <img src={"/illustrations/maisons/"+maison+".png"} alt="" draggable={false} style={{display:"block",width:220,maxWidth:"66%",height:"auto",margin:"-6px auto -10px",filter:"drop-shadow(0 10px 18px rgba(0,0,0,0.25))"}}/>
+          </React.Fragment>}
       <div style={{display:"flex",gap:16,alignItems:"stretch"}}>
         {mission.date&&(
           <div style={{width:72,flexShrink:0,borderRadius:14,background:"#e0f5f5",color:DS.color.primaryDark,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 0"}}>
