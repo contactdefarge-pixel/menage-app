@@ -75,6 +75,15 @@ function emailMissions(presta, missions) {
 export default async function handler(req, res) {
   const auth = req.headers["authorization"] || "";
   const okSecret = process.env.CRON_SECRET && (auth === `Bearer ${process.env.CRON_SECRET}` || req.query.secret === process.env.CRON_SECRET);
+  // ?urgent=1 sans secret : déclencheur public et sans risque (chaque mission urgente n'est signalée qu'une fois),
+  // appelé toutes les 5 minutes par GitHub Actions pour que l'alerte parte quasi immédiatement.
+  if (!okSecret && req.query.urgent) {
+    try {
+      const u = await traiterUrgences(process.env.NOTION_TOKEN, { dry: !!req.query.dry });
+      return res.status(200).json({ success: true, urgentes: (u.missions || []).length, missions: u.missions || [], envoyes: u.envoyes || 0,
+        erreur: u.erreur || ((u.erreurs || [])[0] || "").replace(/^[^:]*:\s*/, "") || undefined });
+    } catch (e) { return res.status(500).json({ error: e.message }); }
+  }
   if (!okSecret) return res.status(401).json({ error: "Unauthorized" });
 
   const token = process.env.NOTION_TOKEN;
