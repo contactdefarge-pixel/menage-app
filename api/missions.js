@@ -1,6 +1,8 @@
 import { getMissionDetails, buildIcs } from "../lib/mail.js";
 import { niveauNum, visibleDepuis } from "../lib/attribution.js";
 
+export const config = { maxDuration: 30 };
+
 const MISSIONS_DB  = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 
 const H = (t) => ({ "Authorization": `Bearer ${t}`, "Notion-Version": "2022-06-28", "Content-Type": "application/json" });
@@ -32,6 +34,16 @@ function typeLogement(prop) {
   return plainText(prop);
 }
 
+// cache en mémoire (instance chaude) : évite de relire chaque logement à chaque ouverture de page
+const LOG_CACHE = new Map(); const LOG_TTL = 5 * 60 * 1000;
+async function getLogementInfoCached(token, id) {
+  const c = LOG_CACHE.get(id);
+  if (c && Date.now() - c.t < LOG_TTL) return c.v;
+  const v = await getLogementInfo(token, id);
+  LOG_CACHE.set(id, { t: Date.now(), v });
+  return v;
+}
+
 async function getLogementInfo(token, logementId) {
   const vide = { slug: "", logementNom: "", illustration: "", type: "", hero: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
   try {
@@ -44,7 +56,8 @@ async function getLogementInfo(token, logementId) {
       logementNom: nom,
       illustration: props["Illustration"]?.select?.name || "",
       type: typeLogement(props["Type"]),
-      hero: heroUrl(props["Hero"]),
+      // image servie par /api/missions?hero=… : redimensionnée, compressée et mise en cache par Vercel
+      hero: heroUrl(props["Hero"]) ? `/api/missions?hero=${logementId}&v=${encodeURIComponent(data.last_edited_time || "")}` : "",
       adresse: plainText(props["Adresse"]),
       forfaitMenage: props["Forfait ménage"]?.number != null ? props["Forfait ménage"].number + " €" : "",
       dureeEstimee: plainText(props["Durée estimée"]),
@@ -78,12 +91,12 @@ function mapMission(page) {
   };
 }
 
-async function queryAll(token) {
+async function queryAll(token, filter) {
   let results = [], cursor;
   for (let i = 0; i < 6; i++) {
     const r = await fetch(`https://api.notion.com/v1/databases/${MISSIONS_DB}/query`, {
       method: "POST", headers: H(token),
-      body: JSON.stringify({ sorts: [{ property: "Date", direction: "ascending" }], page_size: 100, ...(cursor ? { start_cursor: cursor } : {}) }),
+      body: JSON.stringify({ sorts: [{ property: "Date", direction: "ascending" }], page_size: 100, ...(filter ? { filter } : {}), ...(cursor ? { start_cursor: cursor } : {}) }),
     });
     const data = await r.json();
     results = results.concat(data.results || []);
@@ -91,6 +104,38 @@ async function queryAll(token) {
     cursor = data.next_cursor;
   }
   return results;
+}
+
+// seulement ce qui peut s'afficher : missions disponibles dans la fenêtre J-1..J+31, et celles de la prestataire
+function filtreMissions(prestataireId, now) {
+  const jour = (n) => new Date(now.getTime() + n * 86400000).toISOString().slice(0, 10);
+  const dispo = { and: [
+    { property: "État", status: { equals: "Disponible" } },
+    { property: "Date", date: { on_or_after: jour(-1) } },
+    { property: "Date", date: { on_or_before: jour(31) } },
+  ] };
+  return prestataireId ? { or: [dispo, { property: "Prestataire", relation: { contains: prestataireId } }] } : dispo;
+}
+
+async function servirHero(req, res, token) {
+  const id = String(req.query.hero || "").replace(/[^a-f0-9-]/gi, "");
+  try {
+    const page = await (await fetch(`https://api.notion.com/v1/pages/${id}`, { headers: H(token) })).json();
+    const url = heroUrl(page.properties?.["Hero"]);
+    if (!url) return res.status(404).send("Pas d'image");
+    const src = await fetch(url);
+    if (!src.ok) return res.status(502).send("Image inaccessible");
+    const buf = Buffer.from(await src.arrayBuffer());
+    let out = buf, type = src.headers.get("content-type") || "image/jpeg";
+    try {
+      const sharp = (await import("sharp")).default;
+      out = await sharp(buf).rotate().resize({ width: 900, withoutEnlargement: true }).webp({ quality: 72 }).toBuffer();
+      type = "image/webp";
+    } catch (e) { console.error("hero sharp:", e.message); }
+    res.setHeader("Content-Type", type);
+    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=604800");
+    return res.status(200).send(out);
+  } catch (e) { return res.status(500).send("Erreur image"); }
 }
 
 export default async function handler(req, res) {
@@ -101,6 +146,9 @@ export default async function handler(req, res) {
   if (req.method !== "GET")    return res.status(405).json({ error: "Method not allowed" });
 
   const NOTION_TOKEN   = process.env.NOTION_TOKEN;
+
+  // ?hero=<id logement> : image de couverture optimisée
+  if (req.query.hero) return servirHero(req, res, NOTION_TOKEN);
 
   // ?ics=<id mission> : fichier calendrier (bouton « Apple Agenda » des e-mails)
   if (req.query.ics) {
@@ -118,7 +166,7 @@ export default async function handler(req, res) {
   const now = new Date();
 
   try {
-    const [pages, niveau] = await Promise.all([queryAll(NOTION_TOKEN), prestataireId ? getPrestataireNiveau(NOTION_TOKEN, prestataireId) : null]);
+    const [pages, niveau] = await Promise.all([queryAll(NOTION_TOKEN, filtreMissions(prestataireId, now)), prestataireId ? getPrestataireNiveau(NOTION_TOKEN, prestataireId) : null]);
     const all = pages.map(mapMission);
 
     const aTraiter = all.filter(m =>
@@ -129,7 +177,7 @@ export default async function handler(req, res) {
     // infos logement (une seule fois par logement)
     const cache = {};
     const ids = [...new Set(aTraiter.map(m => m.logement).filter(Boolean))];
-    await Promise.all(ids.map(async id => { cache[id] = await getLogementInfo(NOTION_TOKEN, id); }));
+    await Promise.all(ids.map(async id => { cache[id] = await getLogementInfoCached(NOTION_TOKEN, id); }));
     const vide = { slug: "", logementNom: "", illustration: "", type: "", hero: "", adresse: "", forfaitMenage: "", dureeEstimee: "", niveauRequis: 3, attribution: "postuler" };
     const enrichir = m => ({ ...m, ...(m.logement ? cache[m.logement] : vide) });
 

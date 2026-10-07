@@ -1242,6 +1242,7 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
   var jr = joursAvant(mission.date);
   var urgente = jr>=0 && jr<=3;
   var [heroKo, setHeroKo] = useState(false);
+  var [heroOk, setHeroOk] = useState(false);
   var labelStyle = {fontFamily:DS.font.body,fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#0a6a70"};
   return (
     <div style={{background:DS.color.primaryDark,borderRadius:20,padding:"22px 22px 18px",color:"#fff",
@@ -1249,7 +1250,9 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
       display:"flex",flexDirection:"column",gap:16,userSelect:"none",boxSizing:"border-box"}}>
       {mission.hero&&!heroKo
         ?<div style={{position:"relative",margin:"-22px -22px 8px",height:200,borderRadius:"18px 18px 0 0",overflow:"hidden",background:"#0a6a70"}}>
-            <img src={mission.hero} alt="" draggable={false} loading="lazy" onError={function(){setHeroKo(true);}} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+            <img src={mission.hero} alt="" draggable={false} loading={currentIdx<2?"eager":"lazy"} decoding="async" fetchpriority={currentIdx===0?"high":"auto"}
+              onLoad={function(){setHeroOk(true);}} onError={function(){setHeroKo(true);}}
+              style={{width:"100%",height:"100%",objectFit:"cover",display:"block",opacity:heroOk?1:0,transition:"opacity .35s ease"}}/>
             <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 32%, rgba(8,81,87,0) 50%, rgba(8,81,87,0.35) 68%, rgba(8,81,87,0.75) 84%, rgba(8,81,87,0.95) 95%, #085157 100%)"}}/>
             <div style={{position:"absolute",top:14,left:14,right:14,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
               {urgente?<span style={{display:"inline-flex",alignItems:"center",gap:6,background:"#f59e0b",color:"#451a03",borderRadius:DS.radius.pill,padding:"4px 12px",fontFamily:DS.font.heading,fontSize:12,fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase"}}>
