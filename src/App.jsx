@@ -1194,24 +1194,32 @@ function formatDateFr(str){
   return d.toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 }
 
-/* Illustration du logement : propriété Notion « Type » des logements, sinon détection par le nom */
+/* Illustration du logement : propriété Notion « Type » des logements, sinon détection par le nom.
+   appartement indépendant -> villa.png ; maison moderne -> maison-campagne.png ;
+   appartement -> maison-ville.png ou immeuble.png (alterné, stable par logement) ; maison -> petite-maison.png */
+function hashStr(v){ var h=0; v=String(v||""); for(var i=0;i<v.length;i++){ h=(h*31+v.charCodeAt(i))|0; } return Math.abs(h); }
 function pickMaison(mission){
   var norm=function(v){return String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();};
-  var rules=[
-    [/appartement|immeuble|residence|duplex|triplex|loft|penthouse|attique|\bappart|\bapt\b/,"immeuble"],
-    [/maison de ville|townhouse|ville/,"maison-ville"],
-    [/villa|piscine|pavillon|moderne|contemporain/,"villa"],
-    [/campagne|ferme|\bmas\b|gite|grange|longere|chalet|montagne|village/,"maison-campagne"],
-    [/studio|t1|chambre|petite|cabane|tiny/,"petite-maison"],
-    [/maison/,"maison-campagne"]
-  ];
+  var appart=function(){ return hashStr(mission.logement||mission.logementNom||mission.id)%2 ? "immeuble" : "maison-ville"; };
   var sources=[mission.type, mission.logementNom||mission.nom];
   for(var i=0;i<sources.length;i++){
     var t=norm(sources[i]); if(!t) continue;
-    for(var j=0;j<rules.length;j++){ if(rules[j][0].test(t)) return rules[j][1]; }
+    if(/(appartement|appart|logement|studio)\s+independant|independant/.test(t)) return "villa";
+    if(/maison\s+moderne|moderne|contemporain/.test(t)) return "maison-campagne";
+    if(/appartement|appart\b|\bapt\b|immeuble|residence|studio|duplex|loft|t1|t2|t3/.test(t)) return appart();
+    if(/maison|villa|gite|chalet|pavillon/.test(t)) return "petite-maison";
   }
   return "petite-maison";
 }
+
+/* Urgence : ménage dans 0 à 3 jours (heure de Paris) */
+function joursAvant(date){
+  if(!date) return Infinity;
+  var auj=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Paris"});
+  var p=function(x){var a=String(x).slice(0,10).split("-");return Date.UTC(+a[0],a[1]-1,+a[2]);};
+  return Math.round((p(date)-p(auj))/86400000);
+}
+function libelleUrgence(j){ return j<=0?"Aujourd'hui":j===1?"Demain":"Dans "+j+" jours"; }
 
 function IconSvg(props){
   return (
@@ -1231,14 +1239,28 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
   }
   var titre = mission.logementNom || String(mission.nom||"").split(" — ")[0];
   var maison = pickMaison(mission);
+  var jr = joursAvant(mission.date);
+  var urgente = jr>=0 && jr<=3;
   var labelStyle = {fontFamily:DS.font.body,fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"#0a6a70"};
   return (
-    <div style={{background:DS.color.primaryDark,borderRadius:20,padding:22,color:"#fff",boxShadow:"0 1px 2px rgba(8,81,87,0.15), 0 12px 28px rgba(8,81,87,0.22)",display:"flex",flexDirection:"column",gap:16,userSelect:"none"}}>
-      {total>1&&<div style={{fontFamily:DS.font.heading,fontSize:12,fontWeight:600,color:"#99e0dd"}}>{currentIdx+1} / {total}</div>}
+    <div style={{background:DS.color.primaryDark,borderRadius:20,padding:22,color:"#fff",
+      border:urgente?"2px solid #f59e0b":"2px solid transparent",
+      boxShadow:urgente?"0 0 0 4px rgba(245,158,11,0.18), 0 12px 28px rgba(146,64,14,0.28)":"0 1px 2px rgba(8,81,87,0.15), 0 12px 28px rgba(8,81,87,0.22)",
+      display:"flex",flexDirection:"column",gap:16,userSelect:"none",height:"100%",boxSizing:"border-box"}}>
+      {(total>1||urgente)&&(
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",minHeight:26}}>
+          {urgente
+            ?<span style={{display:"inline-flex",alignItems:"center",gap:6,background:"#f59e0b",color:"#451a03",borderRadius:DS.radius.pill,padding:"4px 12px",fontFamily:DS.font.heading,fontSize:12,fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase"}}>
+                <span style={{width:7,height:7,borderRadius:4,background:"#451a03",animation:"izPulse 1.2s ease-in-out infinite"}}/>Urgent · {libelleUrgence(jr)}
+              </span>
+            :<span/>}
+          {total>1&&<span style={{fontFamily:DS.font.heading,fontSize:12,fontWeight:600,color:"#99e0dd"}}>{currentIdx+1} / {total}</span>}
+        </div>
+      )}
       <img src={"/illustrations/maisons/"+maison+".png"} alt="" draggable={false} style={{display:"block",width:220,maxWidth:"66%",height:"auto",margin:"-6px auto -10px",filter:"drop-shadow(0 10px 18px rgba(0,0,0,0.25))"}}/>
       <div style={{display:"flex",gap:16,alignItems:"stretch"}}>
         {mission.date&&(
-          <div style={{width:72,flexShrink:0,borderRadius:14,background:"#e0f5f5",color:DS.color.primaryDark,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 0"}}>
+          <div style={{width:72,flexShrink:0,borderRadius:14,background:urgente?"#fde68a":"#e0f5f5",color:urgente?"#78350f":DS.color.primaryDark,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"10px 0"}}>
             <div style={labelStyle}>{jourCourt}</div>
             <div style={{fontFamily:DS.font.heading,fontSize:34,fontWeight:700,lineHeight:1.05}}>{jourNum}</div>
             <div style={labelStyle}>{moisCourt}</div>
@@ -1298,86 +1320,64 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
 
 function StackedCarousel({missions, onAccepter, onRefuser, onPostuler, onRetirer}){
   var [activeIndex, setActiveIndex] = useState(0);
-  var [dragX, setDragX] = useState(0);
-  var [isDragging, setIsDragging] = useState(false);
-  var touchStartX = useRef(0);
+  var trackRef = useRef(null);
   var total = missions.length;
+
+  // carte la plus proche du centre = carte active
+  function onScroll(){
+    var el=trackRef.current; if(!el) return;
+    var kids=el.children, mid=el.scrollLeft+el.clientWidth/2, best=0, dist=Infinity;
+    for(var i=0;i<kids.length;i++){ var c=kids[i].offsetLeft+kids[i].offsetWidth/2; var d=Math.abs(c-mid); if(d<dist){dist=d;best=i;} }
+    if(best!==activeIndex) setActiveIndex(best);
+  }
+  function goTo(i){
+    var el=trackRef.current; if(!el) return;
+    i=Math.max(0,Math.min(total-1,i));
+    var k=el.children[i]; if(!k) return;
+    el.scrollTo({left:k.offsetLeft-(el.clientWidth-k.offsetWidth)/2,behavior:"smooth"});
+  }
+  useEffect(function(){ if(activeIndex>total-1) setActiveIndex(Math.max(0,total-1)); },[total]);
   if(total===0) return null;
 
-  function goNext(){ setActiveIndex(function(i){ return Math.min(i+1, total-1); }); }
-  function goPrev(){ setActiveIndex(function(i){ return Math.max(i-1, 0); }); }
-
-  function onTouchStart(e){ touchStartX.current = e.touches[0].clientX; setIsDragging(true); setDragX(0); }
-  function onTouchMove(e){ if(!isDragging) return; setDragX(e.touches[0].clientX - touchStartX.current); }
-  function onTouchEnd(){
-    setIsDragging(false);
-    if(dragX < -60 && activeIndex < total-1) goNext();
-    else if(dragX > 60 && activeIndex > 0) goPrev();
-    setDragX(0);
-  }
-  function onMouseDown(e){ touchStartX.current = e.clientX; setIsDragging(true); setDragX(0); }
-  function onMouseMove(e){ if(!isDragging) return; setDragX(e.clientX - touchStartX.current); }
-  function onMouseUp(){
-    setIsDragging(false);
-    if(dragX < -60 && activeIndex < total-1) goNext();
-    else if(dragX > 60 && activeIndex > 0) goPrev();
-    setDragX(0);
-  }
-
-  function handleAccepter(mission){ return onAccepter(mission).then(function(){ setActiveIndex(function(i){ return Math.min(i, missions.length-2); }); }); }
-  function handleRefuser(mission){ return onRefuser(mission).then(function(){ setActiveIndex(function(i){ return Math.min(i, missions.length-2); }); }); }
+  var arrow=function(dir){
+    var off=dir<0?activeIndex===0:activeIndex===total-1;
+    return (
+      <button aria-label={dir<0?"Mission précédente":"Mission suivante"} onClick={function(){goTo(activeIndex+dir);}} disabled={off}
+        style={{width:36,height:36,borderRadius:18,border:"1.5px solid "+DS.color.primaryBorder,background:"#fff",color:DS.color.primaryDark,cursor:off?"default":"pointer",opacity:off?0.35:1,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>
+        <IconSvg size={18} sw={2.2}>{dir<0?<path d="M15 6l-6 6 6 6"/>:<path d="M9 6l6 6-6 6"/>}</IconSvg>
+      </button>
+    );
+  };
 
   return (
-    <div style={{position:"relative",width:"100%",paddingBottom:40,touchAction:"pan-y"}}>
-      {/* Cartes empilées derrière */}
-      {[2,1].map(function(offset){
-        var idx = activeIndex + offset;
-        if(idx >= total) return null;
-        return (
-          <div key={idx} style={{
-            position:"absolute",
-            top:offset*12,
-            left:offset*8,
-            right:offset*8,
-            borderRadius:20,
-            background:DS.color.primaryDark,
-            height:320,
-            opacity:offset===1?0.55:0.3,
-            transform:"scale("+(1-offset*0.03)+")",
-            transformOrigin:"top center",
-            zIndex:10-offset,
-          }}/>
-        );
-      })}
-
-      {/* Carte active avec drag */}
-      <div
-        style={{position:"relative",zIndex:20,transform:"translateX("+dragX+"px) rotate("+(dragX*0.02)+"deg)",transition:isDragging?"none":"transform 0.3s ease",cursor:isDragging?"grabbing":"grab"}}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
-      >
-        <MissionCardRiche
-          mission={missions[activeIndex]}
-          total={total}
-          currentIdx={activeIndex}
-          onAccepter={handleAccepter}
-          onRefuser={handleRefuser}
-          onPostuler={onPostuler}
-          onRetirer={onRetirer}
-        />
+    <div style={{position:"relative",width:"100%",paddingBottom:24}}>
+      <style>{"@keyframes izPulse{0%,100%{opacity:1}50%{opacity:.25}} .iz-track::-webkit-scrollbar{display:none}"}</style>
+      <div ref={trackRef} className="iz-track" onScroll={onScroll}
+        style={{display:"flex",gap:12,overflowX:"auto",scrollSnapType:"x mandatory",WebkitOverflowScrolling:"touch",scrollbarWidth:"none",
+                margin:"0 -20px",padding:"6px 20px 10px",scrollPadding:"0 20px",overscrollBehaviorX:"contain"}}>
+        {missions.map(function(m,i){
+          var on=i===activeIndex;
+          return (
+            <div key={m.id} style={{flex:"0 0 "+(total>1?"88%":"100%"),scrollSnapAlign:"center",scrollSnapStop:"always",
+              transform:on?"scale(1)":"scale(0.94)",opacity:on?1:0.55,transition:"transform .3s ease, opacity .3s ease",transformOrigin:"center top"}}>
+              <MissionCardRiche mission={m} total={total} currentIdx={i}
+                onAccepter={onAccepter} onRefuser={onRefuser} onPostuler={onPostuler} onRetirer={onRetirer}/>
+            </div>
+          );
+        })}
       </div>
-
-      {/* Dots */}
       {total>1&&(
-        <div style={{display:"flex",justifyContent:"center",gap:6,marginTop:16,position:"relative",zIndex:30}}>
-          {missions.map(function(_,i){
-            return <button key={i} onClick={function(){setActiveIndex(i);}} style={{width:i===activeIndex?20:6,height:6,borderRadius:3,border:"none",background:i===activeIndex?DS.color.primary:DS.color.border,cursor:"pointer",padding:0,transition:"all 0.2s"}}/>;
-          })}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginTop:10}}>
+          {arrow(-1)}
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            {missions.map(function(m,i){
+              var urg=(function(){var j=joursAvant(m.date);return j>=0&&j<=3;})();
+              var on=i===activeIndex;
+              return <button key={i} aria-label={"Mission "+(i+1)} onClick={function(){goTo(i);}} style={{width:on?20:7,height:7,borderRadius:4,border:"none",padding:0,cursor:"pointer",transition:"all .2s",
+                background:on?(urg?"#f59e0b":DS.color.primary):(urg?"#fcd34d":DS.color.border)}}/>;
+            })}
+          </div>
+          {arrow(1)}
         </div>
       )}
     </div>
