@@ -1,0 +1,20 @@
+# Appelle un chemin de l'appli avec le secret (ex. /api/admin-missions?setup=dispo) et affiche la réponse.
+name: Appel sécurisé
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: "Chemin à appeler (ex. /api/admin-missions?setup=dispo)"
+        required: true
+jobs:
+  appel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          P: ${{ github.event.inputs.path }}
+        run: |
+          sep="?"; case "$P" in *\?*) sep="&";; esac
+          r=$(curl -s --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "https://agents.izinest.fr${P}${sep}secret=${CRON_SECRET}" | head -c 3000 | tr '\n' ' ')
+          echo "::notice title=reponse::$r"

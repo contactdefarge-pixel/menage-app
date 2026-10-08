@@ -26,7 +26,14 @@ async function setupColonnes(req, res) {
   if (!secret || req.query.secret !== secret) return res.status(401).json({ error: "Unauthorized" });
   const T = process.env.NOTION_TOKEN;
   const sel = names => ({ select: { options: names.map(name => ({ name })) } });
-  const jobs = [
+  const jours = { multi_select: { options: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"].map(name => ({ name })) } };
+  // ?setup=dispo : seulement les colonnes de disponibilité (sans retoucher les autres)
+  const jobs = req.query.setup === "dispo" ? [
+    ["Prestataires", PRESTATAIRES_DB, {
+      "Indispo toutes les semaines": jours, "Indispo semaines paires": jours, "Indispo semaines impaires": jours,
+      "Congés": { date: {} },
+    }],
+  ] : [
     ["Prestataires", PRESTATAIRES_DB, { "Niveau": sel(["1 - Prioritaire", "2 - Confirmée", "3 - Standard"]) }],
     ["Logements", LOGEMENTS_DB, {
       "Niveau requis": sel(["1 - Prioritaires uniquement", "2 - Prioritaires et confirmées", "3 - Toutes"]),

@@ -1,5 +1,5 @@
 import { getMissionDetails, buildIcs } from "../lib/mail.js";
-import { niveauNum, visibleDepuis } from "../lib/attribution.js";
+import { niveauNum, visibleDepuis, lireDispo, estDisponible } from "../lib/attribution.js";
 
 export const config = { maxDuration: 30 };
 
@@ -72,8 +72,8 @@ async function getPrestataireNiveau(token, id) {
     const r = await fetch(`https://api.notion.com/v1/pages/${id}`, { headers: H(token) });
     const data = await r.json();
     const n = data.properties?.["Niveau"]?.select?.name;
-    return n ? niveauNum(n, null) : null;   // null = niveau non renseigné
-  } catch (e) { return null; }
+    return { niveau: n ? niveauNum(n, null) : null, dispo: lireDispo(data.properties) };   // niveau null = non renseigné
+  } catch (e) { return { niveau: null, dispo: null }; }
 }
 
 function mapMission(page) {
@@ -166,7 +166,8 @@ export default async function handler(req, res) {
   const now = new Date();
 
   try {
-    const [pages, niveau] = await Promise.all([queryAll(NOTION_TOKEN, filtreMissions(prestataireId, now)), prestataireId ? getPrestataireNiveau(NOTION_TOKEN, prestataireId) : null]);
+    const [pages, infoPresta] = await Promise.all([queryAll(NOTION_TOKEN, filtreMissions(prestataireId, now)), prestataireId ? getPrestataireNiveau(NOTION_TOKEN, prestataireId) : { niveau: null, dispo: null }]);
+    const niveau = infoPresta.niveau, dispo = infoPresta.dispo;
     const all = pages.map(mapMission);
 
     const aTraiter = all.filter(m =>
@@ -186,6 +187,8 @@ export default async function handler(req, res) {
       .map(enrichir)
       .filter(m => {
         // horizon J+30, logement réservé à certains niveaux, avant-première selon le niveau
+        // jour d'indisponibilité ou congés : la mission ne lui est pas proposée
+        if (!estDisponible(dispo, m.date)) return false;
         const v = visibleDepuis(m, niveau, m.niveauRequis, now);
         return v !== null && now.getTime() >= v;
       })

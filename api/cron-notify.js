@@ -5,7 +5,7 @@
    - une mission n'est annoncée qu'une fois par prestataire (fenêtre = les 24 dernières heures).
    Appel manuel : /api/cron-notify?secret=<CRON_SECRET>&dry=1  (dry = aperçu sans envoi, window=<heures> pour élargir, all=1 = toutes les missions ouvertes à ton niveau). */
 import { sendEmail, APP_URL, dateCourte } from "../lib/mail.js";
-import { niveauNum, visibleDepuis, estUrgente } from "../lib/attribution.js";
+import { niveauNum, visibleDepuis, estUrgente, lireDispo, estDisponible } from "../lib/attribution.js";
 import { mailAutorise, traiterUrgences, diagPrestataires } from "../lib/urgent.js";
 
 const MISSIONS_DB     = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
     const prestPages = await queryAll(token, PRESTATAIRES_DB, {});
     const prestataires = prestPages.map(p => {
       const pr = p.properties || {};
-      return { id: p.id, nom: plainText(pr["Prénom/Nom"] || pr["Nom"]), email: pr["Email"]?.email || "", mail: mailAutorise(p),
+      return { id: p.id, nom: plainText(pr["Prénom/Nom"] || pr["Nom"]), email: pr["Email"]?.email || "", mail: mailAutorise(p), dispo: lireDispo(pr),
                niveau: pr["Niveau"]?.select?.name ? niveauNum(pr["Niveau"].select.name, null) : null };
     }).filter(p => p.email && p.mail);
 
@@ -134,6 +134,7 @@ export default async function handler(req, res) {
       const aAnnoncer = [];
       for (const m of missions) {
         if (m.refus.includes(presta.id) || m.refus.includes(presta.nom)) continue;
+        if (!estDisponible(presta.dispo, m.date)) continue;   // jour indisponible ou congés
         const lg = m.logement ? logements[m.logement] : { nom: "", niveauRequis: 3, forfait: "" };
         if (estUrgente(m.date, now)) {
           // dernière minute : déjà annoncée par e-mail immédiat à sa création ; sinon relance quotidienne tant qu'elle n'est pas pourvue
