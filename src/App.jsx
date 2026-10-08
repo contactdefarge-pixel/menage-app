@@ -754,6 +754,51 @@ function Tuile({span,bg,fg,icon,titre,children,border}){
     </div>
   );
 }
+/* ── Linge ──────────────────────────────────────────────────────────────
+   Prototype : ?linge=1 (panneau du bas, défaut), ?linge=4 (badge + bulle), ?linge=pivot (tuile qui pivote) */
+var LINGE_MODE=(function(){ try{ return new URLSearchParams(window.location.search).get("linge")||"1"; }catch(e){ return "1"; } })();
+function lignesLinge(v){ return plainOf(v).split("\n").map(function(l){return l.replace(/^[-•*\s]+/,"").trim();}).filter(Boolean); }
+function totalLinge(lignes){
+  var n=0, num=0;
+  lignes.forEach(function(l){ var m=l.match(/^(\d+)\s*[x×]?\s*/i); if(m){ n+=parseInt(m[1],10); num++; } else n+=1; });
+  return n;
+}
+
+function PanneauLinge({lignes,onClose}){
+  var [coches,setCoches]=useState({});
+  var nb=Object.keys(coches).filter(function(k){return coches[k];}).length;
+  var [vu,setVu]=useState(false);
+  useEffect(function(){ var t=setTimeout(function(){setVu(true);},10); return function(){clearTimeout(t);}; },[]);
+  function fermer(){ setVu(false); setTimeout(onClose,250); }
+  return (
+    <div onClick={fermer} style={{position:"fixed",inset:0,zIndex:900,background:vu?"rgba(5,40,44,0.45)":"rgba(5,40,44,0)",transition:"background .25s ease"}}>
+      <div onClick={function(e){e.stopPropagation();}} style={{position:"absolute",left:0,right:0,bottom:0,maxWidth:480,margin:"0 auto",background:"#fff",borderRadius:"22px 22px 0 0",padding:"10px 20px 26px",
+        transform:vu?"translateY(0)":"translateY(100%)",transition:"transform .28s cubic-bezier(.2,.8,.2,1)",boxShadow:"0 -10px 30px rgba(0,0,0,0.15)",maxHeight:"75vh",overflowY:"auto"}}>
+        <div style={{width:40,height:5,borderRadius:3,background:DS.color.border,margin:"0 auto 14px"}}/>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+          <div style={{width:36,height:36,borderRadius:10,background:DS.color.primary,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><Shirt size={18} strokeWidth={2}/></div>
+          <div style={{flex:1}}>
+            <div style={{fontFamily:DS.font.heading,fontSize:18,fontWeight:700,color:DS.color.primaryDark}}>Linge à récupérer</div>
+            <div style={{fontFamily:DS.font.body,fontSize:12,color:DS.color.textMuted}}>{nb} / {lignes.length} récupéré{nb>1?"s":""}</div>
+          </div>
+        </div>
+        <div style={{height:4,borderRadius:2,background:DS.color.primarySoft,margin:"12px 0 14px",overflow:"hidden"}}><div style={{height:"100%",width:(nb/lignes.length*100)+"%",background:DS.color.primary,transition:"width .2s"}}/></div>
+        {lignes.map(function(l,i){
+          var on=!!coches[i];
+          return (
+            <div key={i} onClick={function(){var c=Object.assign({},coches);c[i]=!on;setCoches(c);}} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 12px",borderRadius:12,marginBottom:6,cursor:"pointer",
+              background:on?DS.color.primarySoft:DS.color.primaryBg,border:"1.5px solid "+(on?DS.color.primary:"transparent"),transition:"all .15s"}}>
+              <span style={{width:22,height:22,borderRadius:7,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:on?DS.color.primary:"#fff",border:"1.5px solid "+(on?DS.color.primary:DS.color.primaryBorder),color:"#fff"}}>{on?<Check size={14} strokeWidth={3}/>:null}</span>
+              <span style={{fontFamily:DS.font.body,fontSize:15,color:DS.color.primaryDark,textDecoration:on?"line-through":"none",opacity:on?.7:1}}>{l}</span>
+            </div>
+          );
+        })}
+        <button onClick={fermer} style={{marginTop:10,width:"100%",height:48,borderRadius:DS.radius.md,border:"none",background:DS.color.primaryDark,color:"#fff",fontFamily:DS.font.heading,fontWeight:700,fontSize:15,cursor:"pointer"}}>Fermer</button>
+      </div>
+    </div>
+  );
+}
+
 /* Tuile qui pivote : recto = voyageurs, verso = linge à récupérer */
 function TuileFlip({span,front,back,bgFront,bgBack,fg,border}){
   var [flip,setFlip]=useState(false);
@@ -789,6 +834,9 @@ function GrilleInfos({logement}){
   var voyageurs=logement.voyageurs?logement.voyageurs+" max":"";
   var litsOk=Array.isArray(logement.lits)&&logement.lits.length>0;
   var lingeOk=plainOf(logement.linge).length>0;
+  var lignes=lignesLinge(logement.linge);
+  var [panneauLinge,setPanneauLinge]=useState(false);
+  var [bulleLinge,setBulleLinge]=useState(false);
   var accesTxt=plainOf(logement.acces);
   var cle=plainOf(logement.boiteCle);
   var forfait=plainOf(logement.forfaitMenage);
@@ -820,13 +868,33 @@ function GrilleInfos({logement}){
             {accesTxt?<div style={{fontSize:13,lineHeight:1.45}}>{rich(logement.acces)}</div>:null}
           </Tuile>
         )}
-        {(voyageurs||litsOk)&&!lingeOk&&(
+        {(voyageurs||litsOk)&&(!lingeOk||LINGE_MODE!=="pivot")&&(
           <Tuile span={(forfait||factur)?1:2} bg={DS.color.primarySoft} fg={T} icon={<IconUsers/>} titre="Voyageurs" border={BORD}>
             {voyageurs?<div style={{fontFamily:DS.font.heading,fontSize:22,fontWeight:700}}>{voyageurs}</div>:null}
             {litsOk?<div style={petit}><RichText value={logement.lits}/></div>:null}
+            {lingeOk&&LINGE_MODE!=="4"&&(
+              <button onClick={function(){setPanneauLinge(true);}} style={{marginTop:10,display:"inline-flex",alignItems:"center",gap:6,height:32,padding:"0 12px",whiteSpace:"nowrap",borderRadius:DS.radius.pill,border:"none",background:DS.color.primary,color:"#fff",fontFamily:DS.font.heading,fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                <Shirt size={14} strokeWidth={2.2}/>Linge · {lignes.length}
+              </button>
+            )}
+            {lingeOk&&LINGE_MODE==="4"&&(
+              <div style={{position:"relative",marginTop:10}}>
+                <button onClick={function(){setBulleLinge(!bulleLinge);}} style={{display:"inline-flex",alignItems:"center",gap:6,height:30,padding:"0 10px 0 6px",borderRadius:DS.radius.pill,border:"1.5px solid "+DS.color.primaryBorder,background:"#fff",color:T,fontFamily:DS.font.heading,fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                  <span style={{minWidth:20,height:20,borderRadius:10,background:DS.color.primary,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,padding:"0 5px"}}>{totalLinge(lignes)}</span>
+                  pièces de linge
+                </button>
+                {bulleLinge&&(
+                  <div onClick={function(){setBulleLinge(false);}} style={{position:"absolute",top:38,left:0,zIndex:50,width:230,background:DS.color.primaryDark,color:"#fff",borderRadius:14,padding:"12px 14px",boxShadow:"0 10px 24px rgba(8,81,87,0.3)"}}>
+                    <div style={{position:"absolute",top:-6,left:18,width:12,height:12,background:DS.color.primaryDark,transform:"rotate(45deg)"}}/>
+                    <div style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#99e0dd",marginBottom:6}}>Linge à récupérer</div>
+                    {lignes.map(function(l,i){return <div key={i} style={{fontFamily:DS.font.body,fontSize:13,lineHeight:1.5}}>• {l}</div>;})}
+                  </div>
+                )}
+              </div>
+            )}
           </Tuile>
         )}
-        {(voyageurs||litsOk||lingeOk)&&lingeOk&&(
+        {(voyageurs||litsOk||lingeOk)&&lingeOk&&LINGE_MODE==="pivot"&&(
           <TuileFlip span={(forfait||factur)?1:2} bgFront={DS.color.primarySoft} bgBack={DS.color.primary} fg={T} border={BORD}
             front={<React.Fragment>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -878,6 +946,7 @@ function GrilleInfos({logement}){
         {conso&&(
           <Tuile span={spanBas} bg="#fff" fg={T} icon={<IconBox/>} titre="Consommables" border={BORD}><div style={petit}>{rich(logement.consommables)}</div></Tuile>
         )}
+        {panneauLinge&&<PanneauLinge lignes={lignes} onClose={function(){setPanneauLinge(false);}}/>}
       </div>
   );
 }
@@ -999,6 +1068,30 @@ function Step5Consommables({data,setData,logement,onNext,onPrev,changes,acknowle
         </div>
         {selected.length>0?<div style={{marginTop:10,fontFamily:DS.font.body,fontSize:13,color:DS.color.primary,fontWeight:600}}>{selected.length} article(s) sélectionné(s)</div>:null}
       </div>
+      {lignesLinge(logement&&logement.linge).length>0&&(function(){
+        var ll=lignesLinge(logement.linge); var rec=data.lingeRecupere||[];
+        var tout=rec.length===ll.length;
+        function maj(next){ setData(Object.assign({},data,{lingeRecupere:next})); }
+        return (
+          <div style={{marginBottom:20}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+              <div style={{fontFamily:DS.font.heading,fontWeight:600,fontSize:11,color:DS.color.primary,textTransform:"uppercase",letterSpacing:"0.06em"}}>Linge récupéré</div>
+              <button onClick={function(){maj(tout?[]:ll.slice());}} style={{border:"none",background:"none",color:DS.color.primary,fontFamily:DS.font.heading,fontSize:12,fontWeight:700,cursor:"pointer",padding:0}}>{tout?"Tout décocher":"Tout cocher"}</button>
+            </div>
+            <div style={{fontFamily:DS.font.body,fontSize:12,color:DS.color.textFaint,marginBottom:10}}>Cochez le linge que vous emportez. Il sera indiqué dans le rapport.</div>
+            {ll.map(function(l){
+              var on=rec.indexOf(l)!==-1;
+              return (
+                <div key={l} onClick={function(){maj(on?rec.filter(function(x){return x!==l;}):rec.concat([l]));}} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:DS.radius.sm,marginBottom:6,cursor:"pointer",background:on?DS.color.primarySoft:DS.color.primaryBg,border:"1.5px solid "+(on?DS.color.primary:"transparent")}}>
+                  <span style={{width:20,height:20,borderRadius:6,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:on?DS.color.primary:"#fff",border:"1.5px solid "+(on?DS.color.primary:DS.color.primaryBorder),color:"#fff"}}>{on?<Check size={13} strokeWidth={3}/>:null}</span>
+                  <span style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark}}>{l}</span>
+                </div>
+              );
+            })}
+            <div style={{fontFamily:DS.font.body,fontSize:13,fontWeight:600,color:rec.length===ll.length?DS.color.success:DS.color.primaryMuted,marginTop:6}}>{rec.length} / {ll.length} récupéré{rec.length>1?"s":""}</div>
+          </div>
+        );
+      })()}
       <Field label="Consommables à prévoir" required><Textarea value={data.consommablesAPrevoir||""} onChange={function(v){setData(Object.assign({},data,{consommablesAPrevoir:v}));}} placeholder="Notez les consommables manquants à réapprovisionner." rows={3}/></Field>
       <Field label="Remarques sur le logement" required><Textarea value={data.remarques||""} onChange={function(v){setData(Object.assign({},data,{remarques:v}));}} placeholder="Interventions à prévoir, anomalies constatées…" rows={3}/></Field>
       <Field label="Heure de fin d'intervention" required><Input type="time" value={data.heureFin||""} onChange={function(v){setData(Object.assign({},data,{heureFin:v}));}}/></Field>
@@ -1134,6 +1227,7 @@ function Step7Recap({arrivee,etatLieux,consommables,photosArrivee,photos,onPrev,
       <div style={recap}><div style={recapLabel}>Intervention</div><div style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark,lineHeight:1.9}}><div>{arrivee.nom}</div><div>{arrivee.date} — {duree}</div><div>{arrivee.bien}</div></div></div>
       <div style={recap}><div style={recapLabel}>État des lieux</div><div style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark,lineHeight:1.9}}><div style={{color:DS.color.star,fontSize:18}}>{etoiles}</div><div>{etatLieux.observations}</div></div></div>
       {selected.length>0?<div style={recap}><div style={recapLabel}>Consommables à réapprovisionner</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{selected.map(function(c){return <span key={c} style={{background:DS.color.primarySoft,color:DS.color.primaryDark,borderRadius:DS.radius.pill,padding:"3px 12px",fontSize:13,fontWeight:600,fontFamily:DS.font.body}}>{c}</span>;})}</div></div>:null}
+      {(consommables.lingeRecupere||[]).length?<div style={recap}><div style={recapLabel}>Linge récupéré</div><div style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark}}>{consommables.lingeRecupere.join(", ")}</div></div>:null}
       {consommables.consommablesAPrevoir?<div style={recap}><div style={recapLabel}>Consommables à prévoir</div><div style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark}}>{consommables.consommablesAPrevoir}</div></div>:null}
       {consommables.remarques?<div style={recap}><div style={recapLabel}>Remarques</div><div style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark}}>{consommables.remarques}</div></div>:null}
       <div style={{background:DS.color.successBg,border:"1px solid "+DS.color.successBorder,borderRadius:DS.radius.md,padding:16,marginBottom:20}}>

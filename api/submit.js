@@ -92,7 +92,7 @@ export default async function handler(req, res) {
         rich_text: [{ text: { content: consommables.consommablesAPrevoir || "" } }],
       },
       "Remarques sur le logement": {
-        rich_text: [{ text: { content: consommables.remarques || "" } }],
+        rich_text: [{ text: { content: ((consommables.remarques || "") + ((consommables.lingeRecupere || []).length ? "\n\nLinge récupéré : " + consommables.lingeRecupere.join(", ") : "")).slice(0, 1990) } }],
       },
       "Note": {
         number: etatLieux.note || 0,
