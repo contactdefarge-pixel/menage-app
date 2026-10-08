@@ -1,6 +1,10 @@
 // api/logements.js
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
+  // liste des logements réservée à l'admin
+  if (!process.env.ADMIN_PASSWORD || (req.headers["x-admin-password"] || "") !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "Accès réservé à l'admin" });
+  }
   const NOTION_TOKEN = process.env.NOTION_TOKEN;
   const LOGEMENTS_DB = process.env.NOTION_LOGEMENTS_DB || "365d50aba52f801fb5fdf740a0aa78c1";
 

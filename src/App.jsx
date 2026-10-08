@@ -1796,7 +1796,7 @@ function PageAdmin({ongletInitial}){
         {pwd&&missions!==null&&(
           <div className="iz-track" style={{display:"flex",gap:4,overflowX:"auto",scrollbarWidth:"none"}}>
             {ONGLETS.map(function(o){ var on=o[0]===onglet; return (
-              <button key={o[0]} onClick={function(){setOnglet(o[0]); try{window.history.replaceState(null,"",o[0]==="logements"?"/logements":"/admin");}catch(e){}}}
+              <button key={o[0]} onClick={function(){setOnglet(o[0]); }}
                 style={{flexShrink:0,padding:"10px 14px",border:"none",borderBottom:"3px solid "+(on?DS.color.primary:"transparent"),background:"none",color:on?"#fff":"rgba(255,255,255,0.6)",fontFamily:DS.font.heading,fontWeight:700,fontSize:14,cursor:"pointer"}}>{o[1]}</button>
             ); })}
           </div>
@@ -2151,6 +2151,17 @@ function AdminLogements({pwd}){
 }
 
 
+function PageIntrouvable(){
+  return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:DS.color.surfaceAlt,fontFamily:DS.font.body,padding:20}}>
+      <div style={{textAlign:"center"}}>
+        <div style={{fontFamily:DS.font.heading,fontSize:22,fontWeight:700,color:DS.color.primaryDark,marginBottom:8}}>Page introuvable</div>
+        <a href="/" style={{color:DS.color.primary,fontWeight:700,textDecoration:"none"}}>Retour à l'accueil</a>
+      </div>
+    </div>
+  );
+}
+
 function PageAccueil(){
   var [logements,setLogements]=useState([]);
   var [loading,setLoading]=useState(true);
@@ -2275,9 +2286,10 @@ export default function App(){
 
   var pathParts=window.location.pathname.split("/").filter(Boolean);
   var pathSlug=pathParts[pathParts.length-1]||"";
-  // agents.izinest.fr = espace prestataire (cartes des missions) ; la liste des logements est sur /logements
+  // agents.izinest.fr = espace prestataire (cartes des missions) ; les logements sont dans /admin
   if(!pathSlug||pathSlug==="prestataire") return <PagePrestataire/>;
-  if(pathSlug==="logements") return <PageAdmin ongletInitial="logements"/>;
+  // l'ancienne liste publique des logements n'existe plus : elle est dans l'admin (onglet Logements)
+  if(pathSlug==="logements") return <PageIntrouvable/>;
   if(pathSlug==="admin") return <PageAdmin/>;
 
   return (
