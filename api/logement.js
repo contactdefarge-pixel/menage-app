@@ -70,6 +70,28 @@ function mapPage(page) {
   };
 }
 
+// « Linge » en relation vers une autre base : on lit le titre de chaque page liée
+// (et un éventuel nombre « Quantité » / « Qté » / premier champ nombre, affiché devant)
+async function lingeRelation(prop, token) {
+  const ids = (prop?.relation || []).map(r => r.id);
+  if (!ids.length) return { linge: [], diag: [] };
+  const H = { "Authorization": `Bearer ${token}`, "Notion-Version": "2022-06-28" };
+  const pages = await Promise.all(ids.map(id => fetch(`https://api.notion.com/v1/pages/${id}`, { headers: H }).then(r => r.json()).catch(() => null)));
+  const lignes = []; let diag = [];
+  for (const p of pages) {
+    if (!p || !p.properties) continue;
+    const props = p.properties;
+    if (!diag.length) diag = Object.keys(props).map(k => k + ":" + props[k].type);
+    const titreProp = Object.values(props).find(v => v.type === "title");
+    const titre = (titreProp?.title || []).map(t => t.plain_text).join("").trim();
+    const qKey = Object.keys(props).find(k => /quantit|qt[ée]|nombre/i.test(k) && props[k].type === "number") || Object.keys(props).find(k => props[k].type === "number");
+    const q = qKey ? props[qKey].number : null;
+    if (titre) lignes.push((q != null ? q + " × " : "") + titre);
+  }
+  const seg = (t) => ({ text: t, bold: false, italic: false, underline: false, strikethrough: false, code: false, color: null, href: null });
+  return { linge: lignes.length ? [seg(lignes.join("\n"))] : [], diag };
+}
+
 // « Linge » : texte riche, sélection(s) ou nombre -> texte riche (une ligne par élément)
 function lingeProp(prop) {
   if (!prop) return [];
@@ -119,6 +141,15 @@ export default async function handler(req, res) {
         slug: requestedSlug,
         available: logements.map((l) => ({ nom: l.nom, slug: l.slug })),
       });
+    }
+
+    // Linge en relation : résolution des pages liées (seulement pour le logement demandé)
+    const page = (data.results || []).find(pg => pg.id === logement.id);
+    const pl = page?.properties?.["Linge"];
+    if (pl && pl.type === "relation") {
+      const r = await lingeRelation(pl, NOTION_TOKEN);
+      logement.linge = r.linge;
+      logement._lingeDiag = (logement._lingeDiag || []).concat(r.diag.map(d => "lié/" + d));
     }
 
     return res.status(200).json({ success: true, logement });
