@@ -1,0 +1,27 @@
+# Crée une mission de test (sans Beds24) puis déclenche la vérification des urgences.
+name: Mission de test
+on:
+  workflow_dispatch:
+    inputs:
+      logement:
+        description: "Nom exact du logement (ex. Suite Pic du Midi)"
+        required: true
+      date:
+        description: "Date du ménage (AAAA-MM-JJ)"
+        required: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          LOGEMENT: ${{ github.event.inputs.logement }}
+          DATE: ${{ github.event.inputs.date }}
+        run: |
+          q=$(python3 -c "import urllib.parse,os;print(urllib.parse.urlencode({'testRoom':os.environ['LOGEMENT'],'testDate':os.environ['DATE']}))")
+          a=$(curl -s --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "https://agents.izinest.fr/api/sync-missions?$q" | head -c 1500)
+          echo "::notice title=creation::$a"
+          sleep 5
+          b=$(curl -s --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "https://agents.izinest.fr/api/cron-notify?urgent=1" | head -c 1500)
+          echo "::notice title=urgence::$b"
