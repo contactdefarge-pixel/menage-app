@@ -882,7 +882,7 @@ function GrilleInfos({logement}){
           <Tuile span={(voyageurs||litsOk)?1:2} bg={T} fg="#fff" icon={<IconEuro/>} titre="Forfait ménage">
             {forfait?<div style={{fontFamily:DS.font.heading,fontSize:26,fontWeight:700,lineHeight:1.1}}>{forfait}</div>:null}
             {factur?<div style={{marginTop:forfait?8:0}}>
-              <div style={{display:"flex",alignItems:"center",gap:6,fontSize:10,letterSpacing:"0.08em",textTransform:"uppercase",opacity:0.8}}><Receipt size={12} strokeWidth={2}/>Facturation à adresser à</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,fontSize:10,letterSpacing:"0.08em",textTransform:"uppercase",opacity:0.8}}><Receipt size={12} strokeWidth={2}/>Facturation à</div>
               <div style={{fontSize:13,fontWeight:600,marginTop:2}}>{factur}</div>
             </div>:null}
           </Tuile>

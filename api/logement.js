@@ -62,8 +62,8 @@ function mapPage(page) {
     poubelles:            richText(props["Poubelles"]),
     consommables:         richText(props["Consommables"]),
     consommablesALaisser: richText(props["Consommables à laisser"]),
-    // case Notion « Consommables à récupérer » : cochée = pas de stock sur place, la prestataire les apporte
-    consommablesARecuperer: !!props["Consommables à récupérer"]?.checkbox,
+    // champ Notion « Stock consommables » (« A récupérer … » ou « Sur place … ») : sert seulement à afficher le bouton, jamais affiché
+    consommablesARecuperer: /^\s*[aà]\s*r[ée]cup/i.test(stockTexte(props["Stock consommables"])),
     photosReference,
     pointsAttention:      richText(props["Points d'attention"]),
     proprietaire:         plainText(props["Propriétaire"]),
@@ -113,6 +113,14 @@ async function lingeRelation(prop, token, ctx) {
   }
   const seg = (t) => ({ text: t, bold: false, italic: false, underline: false, strikethrough: false, code: false, color: null, href: null });
   return { linge: lignes.length ? [seg(lignes.join("\n"))] : [], diag };
+}
+
+function stockTexte(prop) {
+  if (!prop) return "";
+  if (prop.select) return prop.select.name || "";
+  if (prop.status) return prop.status.name || "";
+  if (prop.multi_select) return prop.multi_select.map(o => o.name).join(" ");
+  return plainText(prop);
 }
 
 // « Linge » : texte riche, sélection(s) ou nombre -> texte riche (une ligne par élément)
