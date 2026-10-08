@@ -1751,7 +1751,8 @@ function PagePrestataire(){
 /* ─── ADMIN : validation des candidatures ─────────────────────────────── */
 var ADMIN_KEY="izinest_admin_pwd";
 var NIVEAUX={1:"Prioritaire",2:"Confirmée",3:"Standard"};
-function PageAdmin(){
+function PageAdmin({ongletInitial}){
+  var [onglet,setOnglet]=useState(ongletInitial||"candidatures");
   var [pwd,setPwd]=useState(function(){ try{return sessionStorage.getItem(ADMIN_KEY)||"";}catch(e){return "";} });
   var [saisie,setSaisie]=useState("");
   var [missions,setMissions]=useState(null);
@@ -1786,10 +1787,21 @@ function PageAdmin(){
       .catch(function(e){ showToast("Erreur : "+e.message); })
       .finally(function(){ setBusy(""); });
   }
+  var ONGLETS=[["candidatures","Candidatures"],["planning","Planning"],["courses","Courses"],["pressing","Pressing"],["logements","Logements"]];
   var head=(
-    <div style={{background:DS.color.primaryDark,padding:"20px 20px 16px",fontFamily:DS.font.heading}}>
-      <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.5)",marginBottom:4}}>izinest · Admin</div>
-      <div style={{fontSize:20,fontWeight:700,color:"#fff"}}>Candidatures</div>
+    <div style={{background:DS.color.primaryDark,padding:"20px 20px 0",fontFamily:DS.font.heading}}>
+      <div style={{maxWidth:1100,margin:"0 auto"}}>
+        <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.5)",marginBottom:4}}>izinest · Admin</div>
+        <div style={{fontSize:20,fontWeight:700,color:"#fff",marginBottom:14}}>{(ONGLETS.find(function(o){return o[0]===onglet;})||ONGLETS[0])[1]}</div>
+        {pwd&&missions!==null&&(
+          <div className="iz-track" style={{display:"flex",gap:4,overflowX:"auto",scrollbarWidth:"none"}}>
+            {ONGLETS.map(function(o){ var on=o[0]===onglet; return (
+              <button key={o[0]} onClick={function(){setOnglet(o[0]); try{window.history.replaceState(null,"",o[0]==="logements"?"/logements":"/admin");}catch(e){}}}
+                style={{flexShrink:0,padding:"10px 14px",border:"none",borderBottom:"3px solid "+(on?DS.color.primary:"transparent"),background:"none",color:on?"#fff":"rgba(255,255,255,0.6)",fontFamily:DS.font.heading,fontWeight:700,fontSize:14,cursor:"pointer"}}>{o[1]}</button>
+            ); })}
+          </div>
+        )}
+      </div>
     </div>
   );
   if(!pwd||missions===null){
@@ -1800,6 +1812,19 @@ function PageAdmin(){
           <input type="password" value={saisie} onChange={function(e){setSaisie(e.target.value);}} placeholder="Mot de passe admin" style={{width:"100%",boxSizing:"border-box",padding:"12px 14px",borderRadius:DS.radius.md,border:"1px solid "+DS.color.border,fontSize:15,fontFamily:DS.font.body,marginBottom:12}}/>
           {erreur?<div style={{color:"#b91c1c",fontSize:13,marginBottom:12}}>{erreur}</div>:null}
           <button onClick={function(){setPwd(saisie);}} style={{width:"100%",height:48,borderRadius:DS.radius.md,border:"none",background:DS.color.primary,color:"#fff",fontWeight:700,fontSize:15,fontFamily:DS.font.heading,cursor:"pointer"}}>Entrer</button>
+        </div>
+      </div>
+    );
+  }
+  if(onglet!=="candidatures"){
+    return (
+      <div style={{minHeight:"100vh",background:DS.color.surfaceAlt,fontFamily:DS.font.body}}>
+        {head}
+        <div style={{maxWidth:1100,margin:"0 auto",padding:"20px 16px 60px"}}>
+          {onglet==="planning"&&<AdminPlanning pwd={pwd}/>}
+          {onglet==="courses"&&<AdminCourses pwd={pwd}/>}
+          {onglet==="pressing"&&<AdminPressing pwd={pwd}/>}
+          {onglet==="logements"&&<AdminLogements pwd={pwd}/>}
         </div>
       </div>
     );
@@ -1854,6 +1879,272 @@ function PageAdmin(){
           </div>
         )}
         <button onClick={function(){charger(pwd);}} style={{marginTop:20,width:"100%",height:44,borderRadius:DS.radius.md,border:"1px solid "+DS.color.border,background:"none",color:DS.color.primaryDark,fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer"}}>Actualiser</button>
+      </div>
+    </div>
+  );
+}
+
+
+/* ── Admin : utilitaires ─────────────────────────────────────────────── */
+function apiAdmin(pwd, query, body){
+  return fetch("/api/admin-missions"+(query?"?"+query:""),{method:body?"POST":"GET",headers:{"Content-Type":"application/json","x-admin-password":pwd},body:body?JSON.stringify(body):undefined})
+    .then(function(r){return r.json().then(function(d){ if(!r.ok) throw new Error(d.error||"Erreur"); return d; });});
+}
+var carteAdmin={background:"#fff",border:"1px solid "+DS.color.border,borderRadius:DS.radius.lg,padding:16,boxShadow:"0 1px 2px rgba(8,81,87,0.05)"};
+var btnAdmin={height:36,padding:"0 14px",borderRadius:DS.radius.sm,border:"none",background:DS.color.primary,color:"#fff",fontWeight:700,fontSize:13,fontFamily:DS.font.heading,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6};
+var btnAdminVide={height:36,padding:"0 14px",borderRadius:DS.radius.sm,border:"1.5px solid "+DS.color.primaryBorder,background:"#fff",color:DS.color.primaryDark,fontWeight:600,fontSize:13,fontFamily:DS.font.heading,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6};
+function Chargement({erreur}){ return <div style={{textAlign:"center",padding:40,color:erreur?"#b91c1c":DS.color.textMuted,fontFamily:DS.font.body}}>{erreur||"Chargement…"}</div>; }
+function useLargeur(){ var [w,setW]=useState(window.innerWidth); useEffect(function(){ function f(){setW(window.innerWidth);} window.addEventListener("resize",f); return function(){window.removeEventListener("resize",f);}; },[]); return w; }
+var PALETTE_PRESTA=["#00bab3","#7c5cff","#f59e0b","#e5487a","#2f80ed","#16a34a","#c2410c","#0e7490"];
+function couleurPresta(nom){ return PALETTE_PRESTA[hashStr(nom)%PALETTE_PRESTA.length]; }
+function lundiDe(d){ var x=new Date(d); x.setHours(12,0,0,0); var j=(x.getDay()+6)%7; x.setDate(x.getDate()-j); return x.toISOString().slice(0,10); }
+function ajouterJours(iso,n){ var x=new Date(iso+"T12:00:00"); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); }
+
+/* ── Planning de la semaine ──────────────────────────────────────────── */
+function AdminPlanning({pwd}){
+  var [debut,setDebut]=useState(function(){return lundiDe(new Date());});
+  var [data,setData]=useState(null); var [err,setErr]=useState("");
+  var large=useLargeur()>=820;
+  useEffect(function(){ setData(null); setErr(""); apiAdmin(pwd,"vue=planning&debut="+debut).then(setData).catch(function(e){setErr(e.message);}); },[debut]);
+  var jours=[0,1,2,3,4,5,6].map(function(i){return ajouterJours(debut,i);});
+  var auj=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Paris"});
+  var titre=new Date(debut+"T12:00:00").toLocaleDateString("fr-FR",{day:"numeric",month:"long"})+" – "+new Date(ajouterJours(debut,6)+"T12:00:00").toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
+  var missions=(data&&data.missions)||[];
+  var prestas=[]; missions.forEach(function(m){ if(m.prestataire&&prestas.indexOf(m.prestataire)===-1) prestas.push(m.prestataire); });
+  var nbNonPourvues=missions.filter(function(m){return !m.prestataire;}).length;
+  function chip(m){
+    var c=m.prestataire?couleurPresta(m.prestataire):"#f59e0b";
+    return (
+      <a key={m.id} href={m.url} target="_blank" rel="noopener noreferrer" style={{display:"block",textDecoration:"none",background:m.prestataire?"#fff":"#fffbeb",border:"1px solid "+(m.prestataire?DS.color.border:"#fcd34d"),borderLeft:"4px solid "+c,borderRadius:10,padding:"8px 10px",marginBottom:6}}>
+        <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:13,color:DS.color.primaryDark,lineHeight:1.25}}>{m.logementNom||String(m.nom||"").split(" — ")[0]}</div>
+        <div style={{fontSize:12,marginTop:2,color:m.prestataire?c:"#b45309",fontWeight:600}}>{m.prestataire||("Non pourvue"+(m.candidats?" · "+m.candidats+" candidat"+(m.candidats>1?"s":""):""))}</div>
+      </a>
+    );
+  }
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:14}}>
+        <button style={btnAdminVide} onClick={function(){setDebut(ajouterJours(debut,-7));}}>←</button>
+        <button style={btnAdminVide} onClick={function(){setDebut(lundiDe(new Date()));}}>Cette semaine</button>
+        <button style={btnAdminVide} onClick={function(){setDebut(ajouterJours(debut,7));}}>→</button>
+        <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:16,color:DS.color.primaryDark,marginLeft:6}}>{titre}</div>
+      </div>
+      {data&&(
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+          <span style={{fontSize:12,fontWeight:700,fontFamily:DS.font.heading,padding:"4px 10px",borderRadius:99,background:DS.color.primarySoft,color:DS.color.primaryDark}}>{missions.length} mission{missions.length>1?"s":""}</span>
+          {nbNonPourvues>0&&<span style={{fontSize:12,fontWeight:700,fontFamily:DS.font.heading,padding:"4px 10px",borderRadius:99,background:"#fef3c7",color:"#92400e"}}>{nbNonPourvues} non pourvue{nbNonPourvues>1?"s":""}</span>}
+          {prestas.map(function(p){ return <span key={p} style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,fontWeight:600,padding:"4px 10px",borderRadius:99,background:"#fff",border:"1px solid "+DS.color.border,color:DS.color.primaryDark}}><span style={{width:8,height:8,borderRadius:4,background:couleurPresta(p)}}/>{p}</span>; })}
+        </div>
+      )}
+      {!data?<Chargement erreur={err}/>:(
+        <div style={{display:large?"grid":"block",gridTemplateColumns:"repeat(7, minmax(0,1fr))",gap:8}}>
+          {jours.map(function(j){
+            var dm=missions.filter(function(m){return m.date===j;});
+            var d=new Date(j+"T12:00:00"); var ajd=j===auj;
+            return (
+              <div key={j} style={{background:ajd?DS.color.primarySoft:"#fff",border:"1px solid "+(ajd?DS.color.primaryBorder:DS.color.border),borderRadius:12,padding:8,marginBottom:large?0:8,minHeight:large?160:0}}>
+                <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:8,padding:"2px 2px 0"}}>
+                  <span style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",color:DS.color.textMuted}}>{d.toLocaleDateString("fr-FR",{weekday:"short"}).replace(".","")}</span>
+                  <span style={{fontFamily:DS.font.heading,fontSize:18,fontWeight:700,color:DS.color.primaryDark}}>{d.getDate()}</span>
+                  {dm.length>0&&<span style={{marginLeft:"auto",fontSize:11,fontWeight:700,color:DS.color.primary}}>{dm.length}</span>}
+                </div>
+                {dm.length===0?<div style={{fontSize:12,color:DS.color.textFaint,padding:"2px 4px"}}>—</div>:dm.map(chip)}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Liste de courses (consommables à prévoir des rapports) ─────────── */
+function AdminCourses({pwd}){
+  var [data,setData]=useState(null); var [err,setErr]=useState(""); var [busy,setBusy]=useState(""); var [copie,setCopie]=useState("");
+  function charger(){ setErr(""); apiAdmin(pwd,"vue=courses").then(setData).catch(function(e){setErr(e.message);}); }
+  useEffect(charger,[]);
+  if(!data) return <Chargement erreur={err}/>;
+  var groupes={}; data.rapports.forEach(function(r){ (groupes[r.logement]=groupes[r.logement]||[]).push(r); });
+  var noms=Object.keys(groupes).sort();
+  function articles(liste){ var vus={}; var out=[]; liste.forEach(function(r){ r.texte.split(/[,\n;]+/).map(function(x){return x.trim();}).filter(Boolean).forEach(function(a){ var k=a.toLowerCase(); if(!vus[k]){vus[k]=1; out.push(a);} }); }); return out; }
+  function fait(nom){
+    if(!window.confirm("Marquer les courses de « "+nom+" » comme faites ?")) return;
+    setBusy(nom);
+    apiAdmin(pwd,null,{vue:"courses",ids:groupes[nom].map(function(r){return r.id;})}).then(charger).catch(function(e){alert(e.message);}).finally(function(){setBusy("");});
+  }
+  function copier(){
+    var t=noms.map(function(n){return n+" :\n"+articles(groupes[n]).map(function(a){return "  - "+a;}).join("\n");}).join("\n\n");
+    navigator.clipboard.writeText(t).then(function(){setCopie("ok");setTimeout(function(){setCopie("");},2000);});
+  }
+  if(noms.length===0) return <div style={Object.assign({},carteAdmin,{textAlign:"center",padding:40,color:DS.color.textMuted})}>Rien à acheter : aucun consommable signalé dans les rapports.</div>;
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginBottom:14}}>
+        <div style={{fontSize:14,color:DS.color.textMuted}}>{noms.length} logement{noms.length>1?"s":""} à réapprovisionner · d'après les rapports de ménage</div>
+        <button style={btnAdminVide} onClick={copier}>{copie?"Copié !":"Copier toute la liste"}</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(300px, 1fr))",gap:12}}>
+        {noms.map(function(n){
+          var liste=groupes[n];
+          return (
+            <div key={n} style={carteAdmin}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                <div style={{width:34,height:34,borderRadius:10,background:DS.color.primarySoft,color:DS.color.primaryDark,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Package size={18} strokeWidth={2}/></div>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:15,color:DS.color.primaryDark}}>{n}</div>
+                  <div style={{fontSize:12,color:DS.color.textMuted}}>{liste.length} rapport{liste.length>1?"s":""} · dernier le {formatDateFr(liste[0].date)}</div>
+                </div>
+              </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+                {articles(liste).map(function(a){ return <span key={a} style={{fontSize:13,padding:"5px 10px",borderRadius:99,background:DS.color.primaryBg,border:"1px solid "+DS.color.primaryBorder,color:DS.color.primaryDark}}>{a}</span>; })}
+              </div>
+              <details style={{marginBottom:12}}>
+                <summary style={{fontSize:12,color:DS.color.primary,fontWeight:700,cursor:"pointer"}}>Détail des rapports</summary>
+                {liste.map(function(r){ return <div key={r.id} style={{fontSize:12,color:DS.color.textMuted,marginTop:6}}><a href={r.url} target="_blank" rel="noopener noreferrer" style={{color:DS.color.primaryDark,fontWeight:600}}>{formatDateFr(r.date)}</a>{r.prestataire?" · "+r.prestataire:""} — {r.texte}</div>; })}
+              </details>
+              <button disabled={busy===n} style={Object.assign({},btnAdmin,{width:"100%"})} onClick={function(){fait(n);}}><Check size={15} strokeWidth={2.6}/>{busy===n?"…":"Courses faites"}</button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Suivi du linge au pressing ──────────────────────────────────────── */
+var STATUTS_PRESSING=["À déposer","Au pressing","Prêt à récupérer","Récupéré"];
+function AdminPressing({pwd}){
+  var [data,setData]=useState(null); var [err,setErr]=useState(""); var [logs,setLogs]=useState([]);
+  var [form,setForm]=useState({logement:"",articles:"",notes:""}); var [busy,setBusy]=useState(""); var [ouvert,setOuvert]=useState(false);
+  function charger(){ setErr(""); apiAdmin(pwd,"vue=pressing").then(setData).catch(function(e){setErr(e.message);}); }
+  useEffect(function(){ charger(); apiAdmin(pwd,"vue=logements").then(function(d){setLogs(d.logements||[]);}).catch(function(){}); },[]);
+  function preremplir(){
+    var l=logs.find(function(x){return x.nom===form.logement;}); if(!l) return;
+    setBusy("pre");
+    fetch("/api/logement?slug="+encodeURIComponent(l.slug)).then(function(r){return r.json();}).then(function(d){
+      var t=plainOf((d.logement||{}).linge); setForm(Object.assign({},form,{articles:t||form.articles}));
+      if(!t) alert("Aucun linge renseigné pour ce logement.");
+    }).finally(function(){setBusy("");});
+  }
+  function creer(){
+    if(!form.logement||!form.articles.trim()){ alert("Choisissez un logement et indiquez les articles."); return; }
+    setBusy("creer");
+    apiAdmin(pwd,null,{vue:"pressing_creer",logement:form.logement,articles:form.articles,notes:form.notes}).then(function(){ setForm({logement:"",articles:"",notes:""}); setOuvert(false); charger(); }).catch(function(e){alert(e.message);}).finally(function(){setBusy("");});
+  }
+  function statut(lot,s){ setBusy(lot.id); apiAdmin(pwd,null,{vue:"pressing_statut",id:lot.id,statut:s}).then(charger).catch(function(e){alert(e.message);}).finally(function(){setBusy("");}); }
+  function suppr(lot){ if(!window.confirm("Supprimer ce lot ?")) return; setBusy(lot.id); apiAdmin(pwd,null,{vue:"pressing_suppr",id:lot.id}).then(charger).catch(function(e){alert(e.message);}).finally(function(){setBusy("");}); }
+  var champ={width:"100%",boxSizing:"border-box",padding:"10px 12px",borderRadius:DS.radius.sm,border:"1.5px solid "+DS.color.border,fontSize:14,fontFamily:DS.font.body,marginBottom:10,background:"#fff"};
+  if(!data) return <Chargement erreur={err}/>;
+  var couleurs={"À déposer":"#f59e0b","Au pressing":"#2f80ed","Prêt à récupérer":"#7c5cff","Récupéré":"#16a34a"};
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,gap:10,flexWrap:"wrap"}}>
+        <div style={{fontSize:14,color:DS.color.textMuted}}>Suivi des lots de linge envoyés au pressing</div>
+        <button style={btnAdmin} onClick={function(){setOuvert(!ouvert);}}>{ouvert?"Fermer":"+ Nouveau lot"}</button>
+      </div>
+      {ouvert&&(
+        <div style={Object.assign({},carteAdmin,{marginBottom:16,maxWidth:560})}>
+          <select value={form.logement} onChange={function(e){setForm(Object.assign({},form,{logement:e.target.value}));}} style={champ}>
+            <option value="">Logement…</option>
+            {logs.map(function(l){return <option key={l.id} value={l.nom}>{l.nom}</option>;})}
+          </select>
+          <textarea rows={6} value={form.articles} onChange={function(e){setForm(Object.assign({},form,{articles:e.target.value}));}} placeholder={"Articles (un par ligne)\nex. 2 × Drap de bain"} style={Object.assign({},champ,{resize:"vertical"})}/>
+          <input value={form.notes} onChange={function(e){setForm(Object.assign({},form,{notes:e.target.value}));}} placeholder="Notes (facultatif)" style={champ}/>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <button style={btnAdminVide} disabled={!form.logement||busy==="pre"} onClick={preremplir}>{busy==="pre"?"…":"Reprendre le linge du logement"}</button>
+            <button style={btnAdmin} disabled={busy==="creer"} onClick={creer}>{busy==="creer"?"…":"Créer le lot"}</button>
+          </div>
+        </div>
+      )}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(240px, 1fr))",gap:12}}>
+        {STATUTS_PRESSING.map(function(s,i){
+          var lots=data.lots.filter(function(l){return l.statut===s;});
+          if(s==="Récupéré") lots=lots.slice(0,10);
+          return (
+            <div key={s} style={{background:"rgba(255,255,255,0.6)",border:"1px solid "+DS.color.border,borderRadius:14,padding:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,margin:"2px 4px 10px"}}>
+                <span style={{width:9,height:9,borderRadius:5,background:couleurs[s]}}/>
+                <span style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:13,color:DS.color.primaryDark}}>{s}</span>
+                <span style={{marginLeft:"auto",fontSize:12,fontWeight:700,color:DS.color.textMuted}}>{lots.length}</span>
+              </div>
+              {lots.length===0&&<div style={{fontSize:12,color:DS.color.textFaint,padding:"4px 6px 8px"}}>Aucun lot</div>}
+              {lots.map(function(l){
+                return (
+                  <div key={l.id} style={Object.assign({},carteAdmin,{padding:12,marginBottom:8})}>
+                    <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:14,color:DS.color.primaryDark}}>{l.logement||l.lot}</div>
+                    <div style={{fontSize:11,color:DS.color.textMuted,marginBottom:6}}>{l.depose?"Déposé le "+formatDateFr(l.depose):"Créé le "+formatDateFr(l.cree)}{l.recupere?" · récupéré le "+formatDateFr(l.recupere):""}</div>
+                    <div style={{fontSize:12,color:DS.color.primaryDark,whiteSpace:"pre-line",lineHeight:1.45,marginBottom:l.notes?6:10}}>{l.articles}</div>
+                    {l.notes&&<div style={{fontSize:12,color:DS.color.textMuted,fontStyle:"italic",marginBottom:10}}>{l.notes}</div>}
+                    <div style={{display:"flex",gap:6}}>
+                      {i<STATUTS_PRESSING.length-1&&<button disabled={busy===l.id} style={Object.assign({},btnAdmin,{flex:1,height:32,fontSize:12})} onClick={function(){statut(l,STATUTS_PRESSING[i+1]);}}>{busy===l.id?"…":"→ "+STATUTS_PRESSING[i+1]}</button>}
+                      <button disabled={busy===l.id} title="Supprimer" style={Object.assign({},btnAdminVide,{height:32,padding:"0 10px",fontSize:12})} onClick={function(){suppr(l);}}><Trash2 size={14}/></button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Logements ───────────────────────────────────────────────────────── */
+function AdminLogements({pwd}){
+  var [data,setData]=useState(null); var [err,setErr]=useState(""); var [q,setQ]=useState(""); var [filtre,setFiltre]=useState("");
+  useEffect(function(){ apiAdmin(pwd,"vue=logements").then(setData).catch(function(e){setErr(e.message);}); },[]);
+  if(!data) return <Chargement erreur={err}/>;
+  var types=[]; data.logements.forEach(function(l){ if(l.type&&types.indexOf(l.type)===-1) types.push(l.type); });
+  var nq=String(q).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+  var liste=data.logements.filter(function(l){
+    if(filtre&&l.type!==filtre) return false;
+    if(!nq) return true;
+    return (l.nom+" "+l.adresse+" "+l.proprietaire).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().indexOf(nq)!==-1;
+  });
+  var pill=function(t,bg,fg){return <span style={{fontSize:11,fontWeight:700,fontFamily:DS.font.heading,padding:"3px 8px",borderRadius:99,background:bg,color:fg,whiteSpace:"nowrap"}}>{t}</span>;};
+  return (
+    <div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14}}>
+        <input value={q} onChange={function(e){setQ(e.target.value);}} placeholder="Rechercher un logement, une adresse, un propriétaire…" style={{flex:"1 1 260px",padding:"10px 14px",borderRadius:DS.radius.md,border:"1.5px solid "+DS.color.border,fontSize:14,fontFamily:DS.font.body,background:"#fff"}}/>
+        <select value={filtre} onChange={function(e){setFiltre(e.target.value);}} style={{padding:"10px 12px",borderRadius:DS.radius.md,border:"1.5px solid "+DS.color.border,fontSize:14,fontFamily:DS.font.body,background:"#fff"}}>
+          <option value="">Tous les types</option>
+          {types.map(function(t){return <option key={t} value={t}>{t}</option>;})}
+        </select>
+      </div>
+      <div style={{fontSize:13,color:DS.color.textMuted,marginBottom:10}}>{liste.length} logement{liste.length>1?"s":""}</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(260px, 1fr))",gap:12}}>
+        {liste.map(function(l){
+          return (
+            <div key={l.id} style={Object.assign({},carteAdmin,{padding:0,overflow:"hidden",display:"flex",flexDirection:"column"})}>
+              <div style={{height:130,background:DS.color.primarySoft,position:"relative"}}>
+                {l.hero
+                  ?<img src={l.hero} alt="" loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+                  :<img src={"/illustrations/maisons/"+pickMaison({type:l.type,logementNom:l.nom,logement:l.id})+".png"} alt="" style={{height:"100%",display:"block",margin:"0 auto",opacity:.9}}/>}
+                {l.type&&<span style={{position:"absolute",top:10,left:10}}>{pill(l.type,"rgba(255,255,255,0.92)",DS.color.primaryDark)}</span>}
+              </div>
+              <div style={{padding:14,display:"flex",flexDirection:"column",gap:8,flex:1}}>
+                <div>
+                  <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:16,color:DS.color.primaryDark}}>{l.nom}</div>
+                  {l.adresse&&<div style={{fontSize:12,color:DS.color.textMuted,marginTop:2}}>{l.adresse}</div>}
+                </div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+                  {l.voyageurs!==""&&pill(l.voyageurs+" voyageurs",DS.color.primaryBg,DS.color.primaryDark)}
+                  {l.forfait&&pill(l.forfait,DS.color.primaryDark,"#fff")}
+                  {pill("Niveau "+l.niveauRequis,DS.color.primaryBg,DS.color.primaryDark)}
+                  {pill(l.attribution,DS.color.primaryBg,DS.color.primaryDark)}
+                  {l.stockARecuperer&&pill("Consommables à apporter","#fef3c7","#92400e")}
+                  {l.lingeLie>0&&pill("Linge : "+l.lingeLie+" articles",DS.color.primaryBg,DS.color.primaryDark)}
+                </div>
+                {l.proprietaire&&<div style={{fontSize:12,color:DS.color.textMuted}}>Facturation à {l.proprietaire}</div>}
+                <div style={{display:"flex",gap:6,marginTop:"auto",paddingTop:4}}>
+                  <a href={"/"+l.slug} style={Object.assign({},btnAdmin,{flex:1,textDecoration:"none"})}>Formulaire</a>
+                  <a href={l.url} target="_blank" rel="noopener noreferrer" style={Object.assign({},btnAdminVide,{textDecoration:"none"})}>Notion</a>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1986,7 +2277,7 @@ export default function App(){
   var pathSlug=pathParts[pathParts.length-1]||"";
   // agents.izinest.fr = espace prestataire (cartes des missions) ; la liste des logements est sur /logements
   if(!pathSlug||pathSlug==="prestataire") return <PagePrestataire/>;
-  if(pathSlug==="logements") return <PageAccueil/>;
+  if(pathSlug==="logements") return <PageAdmin ongletInitial="logements"/>;
   if(pathSlug==="admin") return <PageAdmin/>;
 
   return (

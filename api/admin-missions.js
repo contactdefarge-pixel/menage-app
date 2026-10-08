@@ -1,5 +1,8 @@
 import { traiterUrgences, PROP_URGENCE } from "../lib/urgent.js";
+import { vuePlanning, vueCourses, coursesFaites, vuePressing, pressingCreer, pressingStatut, pressingSupprimer, vueLogements } from "../lib/admin-vues.js";
 import { getMissionDetails, getPrestataire, emailConfirmation, notifierAnnulation, sendEmail } from "../lib/mail.js";
+
+export const config = { maxDuration: 30 };
 
 const MISSIONS_DB     = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const PRESTATAIRES_DB = "3d7d50ab-a52f-8012-a15d-e9d59a968f8f";
@@ -63,6 +66,24 @@ export default async function handler(req, res) {
 
   const T = process.env.NOTION_TOKEN;
   try {
+    // vues complémentaires de la page admin
+    if (req.method === "GET" && req.query.vue) {
+      const v = req.query.vue;
+      if (v === "planning")  return res.status(200).json(await vuePlanning(T, req.query.debut));
+      if (v === "courses")   return res.status(200).json(await vueCourses(T));
+      if (v === "pressing")  return res.status(200).json(await vuePressing(T));
+      if (v === "logements") return res.status(200).json(await vueLogements(T));
+      return res.status(400).json({ error: "Vue inconnue" });
+    }
+    if (req.method === "POST" && (req.body || {}).vue) {
+      const b = req.body;
+      if (b.vue === "courses")          return res.status(200).json(await coursesFaites(T, b.ids));
+      if (b.vue === "pressing_creer")   return res.status(200).json(await pressingCreer(T, b));
+      if (b.vue === "pressing_statut")  return res.status(200).json(await pressingStatut(T, b));
+      if (b.vue === "pressing_suppr")   return res.status(200).json(await pressingSupprimer(T, b));
+      return res.status(400).json({ error: "Action inconnue" });
+    }
+
     if (req.method === "GET") {
       try { await traiterUrgences(T); } catch (e) {}
       const r = await fetch(`https://api.notion.com/v1/databases/${MISSIONS_DB}/query`, {
