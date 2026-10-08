@@ -1380,7 +1380,7 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
    3 variantes à comparer : ajouter ?vide=1, ?vide=2 ou ?vide=3 à l'adresse pour forcer l'affichage. */
 var VIDE_PARAM=(function(){ try{ return new URLSearchParams(window.location.search).get("vide")||""; }catch(e){ return ""; } })();
 var VIDE_FORCE=/^[123]$/.test(VIDE_PARAM);
-var VIDE_VARIANTE=VIDE_FORCE?+VIDE_PARAM:1;
+var VIDE_VARIANTE=VIDE_FORCE?+VIDE_PARAM:2;
 
 function EtatVide({variante,prochaine,onAgenda,onActualiser}){
   var H=DS.font.heading, Bf=DS.font.body;
@@ -1423,6 +1423,16 @@ function EtatVide({variante,prochaine,onAgenda,onActualiser}){
         </div>
         <div style={{fontFamily:H,fontSize:19,fontWeight:700,color:DS.color.primaryDark,marginBottom:6}}>Pas de mission disponible</div>
         <div style={{fontFamily:Bf,fontSize:13.5,lineHeight:1.5,color:DS.color.textMuted,marginBottom:18}}>Les nouvelles missions apparaîtront ici. On vous prévient par e-mail.</div>
+        {dateProchaine
+          ?<div onClick={onAgenda} style={{display:"flex",alignItems:"center",gap:12,background:DS.color.primaryDark,borderRadius:14,padding:"12px 14px",cursor:"pointer",marginBottom:12,textAlign:"left",color:"#fff"}}>
+              <div style={{width:40,height:40,borderRadius:10,background:"#e0f5f5",color:DS.color.primaryDark,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><CalendarX2 size={20} strokeWidth={2}/></div>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{fontFamily:Bf,fontSize:11,color:"#99e0dd",textTransform:"uppercase",letterSpacing:".08em"}}>Votre prochaine mission</div>
+                <div style={{fontFamily:H,fontSize:15,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{(prochaine.logementNom||String(prochaine.nom||"").split(" — ")[0])} · {dateProchaine}</div>
+              </div>
+              <IconSvg size={18} sw={2.2}><path d="M9 6l6 6-6 6"/></IconSvg>
+            </div>
+          :null}
         <button onClick={onActualiser} style={Object.assign({},btnVide,{width:"100%"})}>{ico(<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>)}Vérifier à nouveau</button>
       </div>
     </div>
