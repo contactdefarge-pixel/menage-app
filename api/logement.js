@@ -70,7 +70,32 @@ function mapPage(page) {
 }
 
 // « Linge » en relation vers une autre base : on lit le titre de chaque page liée
-async function lingeRelation(prop, token) {
+// Quantités à récupérer selon les règles izinest :
+//  par lit : 1 drap plat, 1 housse de couette, 2 taies — par voyageur : 1 drap de bain, 1 serviette, 1 peignoir (si lié)
+//  par logement : 1 tapis de bain par salle de bain, 2 torchons, 1 serviette invité
+function nbLits(txt) {
+  const t = String(txt || "").toLowerCase();
+  let n = 0, trouve = false;
+  t.replace(/(\d+)\s*(?:x\s*)?[a-zéèêàç' -]*?lit/g, (m, d) => { n += parseInt(d, 10); trouve = true; return m; });
+  if (!trouve) n = (t.match(/lit/g) || []).length;
+  return n;
+}
+function quantiteLinge(article, ctx) {
+  const a = article.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const { lits, voyageurs, sdb } = ctx;
+  if (/taie/.test(a)) return lits ? lits * 2 : null;
+  if (/housse/.test(a)) return lits || null;
+  if (/drap\s+de\s+bain/.test(a)) return voyageurs || null;
+  if (/drap/.test(a)) return lits || null;
+  if (/serviette\s+invit/.test(a)) return 1;
+  if (/serviette/.test(a)) return voyageurs || null;
+  if (/peignoir/.test(a)) return voyageurs || null;
+  if (/tapis/.test(a)) return sdb || 1;
+  if (/torchon/.test(a)) return 2;
+  return null;
+}
+
+async function lingeRelation(prop, token, ctx) {
   const ids = (prop?.relation || []).map(r => r.id);
   if (!ids.length) return { linge: [], diag: [] };
   const H = { "Authorization": `Bearer ${token}`, "Notion-Version": "2022-06-28" };
@@ -82,7 +107,7 @@ async function lingeRelation(prop, token) {
     if (!diag.length) diag = Object.keys(props).map(k => k + ":" + props[k].type);
     const titreProp = Object.values(props).find(v => v.type === "title");
     const titre = (titreProp?.title || []).map(t => t.plain_text).join("").trim();
-    if (titre) lignes.push(titre);
+    if (titre) { const q = ctx ? quantiteLinge(titre, ctx) : null; lignes.push((q ? q + " × " : "") + titre); }
   }
   const seg = (t) => ({ text: t, bold: false, italic: false, underline: false, strikethrough: false, code: false, color: null, href: null });
   return { linge: lignes.length ? [seg(lignes.join("\n"))] : [], diag };
@@ -143,7 +168,15 @@ export default async function handler(req, res) {
     const page = (data.results || []).find(pg => pg.id === logement.id);
     const pl = page?.properties?.["Linge"];
     if (pl && pl.type === "relation") {
-      const r = await lingeRelation(pl, NOTION_TOKEN);
+      const pr = page.properties || {};
+      const sdbKey = Object.keys(pr).find(k => /salles?\s*de\s*bain|sdb/i.test(k));
+      const sdbVal = sdbKey ? (pr[sdbKey].number ?? parseInt(plainText(pr[sdbKey]), 10)) : null;
+      const ctx = {
+        lits: nbLits((logement.lits || []).map(x => x.text).join(" ")),
+        voyageurs: parseInt(String(logement.voyageurs || "").match(/\d+/)?.[0] || "0", 10),
+        sdb: Number.isFinite(sdbVal) && sdbVal > 0 ? sdbVal : 1,
+      };
+      const r = await lingeRelation(pl, NOTION_TOKEN, ctx);
       logement.linge = r.linge;
     }
 

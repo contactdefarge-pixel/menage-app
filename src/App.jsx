@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import exifr from "exifr";
-import { MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut, Shirt, RotateCcw, CalendarX2, Coffee, Sparkles } from "lucide-react";
+import { MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut, CalendarX2, Coffee, Sparkles } from "lucide-react";
 
 /* ─── DESIGN SYSTEM ─────────────────────────────────────────────────── */
 var DS = {
@@ -754,9 +754,18 @@ function Tuile({span,bg,fg,icon,titre,children,border}){
     </div>
   );
 }
-/* ── Linge ──────────────────────────────────────────────────────────────
-   Prototype : ?linge=1 (panneau du bas, défaut), ?linge=4 (badge + bulle), ?linge=pivot (tuile qui pivote) */
-var LINGE_MODE=(function(){ try{ return new URLSearchParams(window.location.search).get("linge")||"1"; }catch(e){ return "1"; } })();
+/* ── Linge à récupérer : bouton dans la tuile Voyageurs -> panneau du bas avec cases à cocher ── */
+function IconLinge({size}){
+  size=size||16;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 15h16a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z"/>
+      <path d="M5 10h14a1 1 0 0 1 1 1v4H4v-4a1 1 0 0 1 1-1z"/>
+      <path d="M6 5h12a1 1 0 0 1 1 1v4H5V6a1 1 0 0 1 1-1z"/>
+      <path d="M16 15v5M15 10v5M14 5v5"/>
+    </svg>
+  );
+}
 function lignesLinge(v){ return plainOf(v).split("\n").map(function(l){return l.replace(/^[-•*\s]+/,"").trim();}).filter(Boolean); }
 function totalLinge(lignes){
   var n=0, num=0;
@@ -776,7 +785,7 @@ function PanneauLinge({lignes,onClose}){
         transform:vu?"translateY(0)":"translateY(100%)",transition:"transform .28s cubic-bezier(.2,.8,.2,1)",boxShadow:"0 -10px 30px rgba(0,0,0,0.15)",maxHeight:"75vh",overflowY:"auto"}}>
         <div style={{width:40,height:5,borderRadius:3,background:DS.color.border,margin:"0 auto 14px"}}/>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
-          <div style={{width:36,height:36,borderRadius:10,background:DS.color.primary,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><Shirt size={18} strokeWidth={2}/></div>
+          <div style={{width:36,height:36,borderRadius:10,background:DS.color.primary,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><IconLinge size={19}/></div>
           <div style={{flex:1}}>
             <div style={{fontFamily:DS.font.heading,fontSize:18,fontWeight:700,color:DS.color.primaryDark}}>Linge à récupérer</div>
             <div style={{fontFamily:DS.font.body,fontSize:12,color:DS.color.textMuted}}>{nb} / {lignes.length} récupéré{nb>1?"s":""}</div>
@@ -794,23 +803,6 @@ function PanneauLinge({lignes,onClose}){
           );
         })}
         <button onClick={fermer} style={{marginTop:10,width:"100%",height:48,borderRadius:DS.radius.md,border:"none",background:DS.color.primaryDark,color:"#fff",fontFamily:DS.font.heading,fontWeight:700,fontSize:15,cursor:"pointer"}}>Fermer</button>
-      </div>
-    </div>
-  );
-}
-
-/* Tuile qui pivote : recto = voyageurs, verso = linge à récupérer */
-function TuileFlip({span,front,back,bgFront,bgBack,fg,border}){
-  var [flip,setFlip]=useState(false);
-  var face=function(bg,content,dos){
-    return <div style={{gridArea:"1 / 1",background:bg,color:dos?"#fff":fg,borderRadius:DS.radius.xl,padding:14,boxShadow:"0 1px 2px rgba(8,81,87,0.08)",border:dos?"1.5px solid "+bg:border,
-      backfaceVisibility:"hidden",WebkitBackfaceVisibility:"hidden",transform:dos?"rotateY(180deg)":"none",minWidth:0,boxSizing:"border-box"}}>{content}</div>;
-  };
-  return (
-    <div onClick={function(){setFlip(!flip);}} role="button" aria-pressed={flip} style={{gridColumn:"span "+span,perspective:900,cursor:"pointer",minWidth:0}}>
-      <div style={{display:"grid",transformStyle:"preserve-3d",transition:"transform .5s cubic-bezier(.4,.2,.2,1)",transform:flip?"rotateY(180deg)":"none",height:"100%"}}>
-        {face(bgFront,front,false)}
-        {face(bgBack,back,true)}
       </div>
     </div>
   );
@@ -836,7 +828,6 @@ function GrilleInfos({logement}){
   var lingeOk=plainOf(logement.linge).length>0;
   var lignes=lignesLinge(logement.linge);
   var [panneauLinge,setPanneauLinge]=useState(false);
-  var [bulleLinge,setBulleLinge]=useState(false);
   var accesTxt=plainOf(logement.acces);
   var cle=plainOf(logement.boiteCle);
   var forfait=plainOf(logement.forfaitMenage);
@@ -868,55 +859,16 @@ function GrilleInfos({logement}){
             {accesTxt?<div style={{fontSize:13,lineHeight:1.45}}>{rich(logement.acces)}</div>:null}
           </Tuile>
         )}
-        {(voyageurs||litsOk)&&(!lingeOk||LINGE_MODE!=="pivot")&&(
+        {(voyageurs||litsOk)&&(
           <Tuile span={(forfait||factur)?1:2} bg={DS.color.primarySoft} fg={T} icon={<IconUsers/>} titre="Voyageurs" border={BORD}>
             {voyageurs?<div style={{fontFamily:DS.font.heading,fontSize:22,fontWeight:700}}>{voyageurs}</div>:null}
             {litsOk?<div style={petit}><RichText value={logement.lits}/></div>:null}
-            {lingeOk&&LINGE_MODE!=="4"&&(
+            {lingeOk&&(
               <button onClick={function(){setPanneauLinge(true);}} style={{marginTop:10,display:"inline-flex",alignItems:"center",gap:6,height:32,padding:"0 12px",whiteSpace:"nowrap",borderRadius:DS.radius.pill,border:"none",background:DS.color.primary,color:"#fff",fontFamily:DS.font.heading,fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                <Shirt size={14} strokeWidth={2.2}/>Linge · {lignes.length}
+                <IconLinge size={15}/>Linge · {totalLinge(lignes)}
               </button>
             )}
-            {lingeOk&&LINGE_MODE==="4"&&(
-              <div style={{position:"relative",marginTop:10}}>
-                <button onClick={function(){setBulleLinge(!bulleLinge);}} style={{display:"inline-flex",alignItems:"center",gap:6,height:30,padding:"0 10px 0 6px",borderRadius:DS.radius.pill,border:"1.5px solid "+DS.color.primaryBorder,background:"#fff",color:T,fontFamily:DS.font.heading,fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                  <span style={{minWidth:20,height:20,borderRadius:10,background:DS.color.primary,color:"#fff",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:11,padding:"0 5px"}}>{totalLinge(lignes)}</span>
-                  pièces de linge
-                </button>
-                {bulleLinge&&(
-                  <div onClick={function(){setBulleLinge(false);}} style={{position:"absolute",top:38,left:0,zIndex:50,width:230,background:DS.color.primaryDark,color:"#fff",borderRadius:14,padding:"12px 14px",boxShadow:"0 10px 24px rgba(8,81,87,0.3)"}}>
-                    <div style={{position:"absolute",top:-6,left:18,width:12,height:12,background:DS.color.primaryDark,transform:"rotate(45deg)"}}/>
-                    <div style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#99e0dd",marginBottom:6}}>Linge à récupérer</div>
-                    {lignes.map(function(l,i){return <div key={i} style={{fontFamily:DS.font.body,fontSize:13,lineHeight:1.5}}>• {l}</div>;})}
-                  </div>
-                )}
-              </div>
-            )}
           </Tuile>
-        )}
-        {(voyageurs||litsOk||lingeOk)&&lingeOk&&LINGE_MODE==="pivot"&&(
-          <TuileFlip span={(forfait||factur)?1:2} bgFront={DS.color.primarySoft} bgBack={DS.color.primary} fg={T} border={BORD}
-            front={<React.Fragment>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{display:"inline-flex"}}><IconUsers/></span>
-                <span style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",flex:1}}>Voyageurs</span>
-                <span aria-label="Voir le linge" style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:26,height:26,borderRadius:13,background:DS.color.primary,color:"#fff",flexShrink:0}}><Shirt size={14} strokeWidth={2.2}/></span>
-              </div>
-              <div style={{marginTop:8,fontFamily:DS.font.body}}>
-                {voyageurs?<div style={{fontFamily:DS.font.heading,fontSize:22,fontWeight:700}}>{voyageurs}</div>:null}
-                {litsOk?<div style={petit}><RichText value={logement.lits}/></div>:null}
-                <div style={{marginTop:6,fontSize:11,fontWeight:600,color:DS.color.primary}}>Touchez pour voir le linge</div>
-              </div>
-            </React.Fragment>}
-            back={<React.Fragment>
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <Shirt size={18} strokeWidth={2}/>
-                <span style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",flex:1}}>Linge à récupérer</span>
-                <RotateCcw size={15} strokeWidth={2.2} style={{opacity:.85}}/>
-              </div>
-              <div style={{marginTop:8,fontFamily:DS.font.body,fontSize:13,lineHeight:1.45}}><RichText value={logement.linge}/></div>
-            </React.Fragment>}
-          />
         )}
         {(forfait||factur)&&(
           <Tuile span={(voyageurs||litsOk)?1:2} bg={T} fg="#fff" icon={<IconEuro/>} titre="Forfait ménage">
@@ -1068,30 +1020,7 @@ function Step5Consommables({data,setData,logement,onNext,onPrev,changes,acknowle
         </div>
         {selected.length>0?<div style={{marginTop:10,fontFamily:DS.font.body,fontSize:13,color:DS.color.primary,fontWeight:600}}>{selected.length} article(s) sélectionné(s)</div>:null}
       </div>
-      {lignesLinge(logement&&logement.linge).length>0&&(function(){
-        var ll=lignesLinge(logement.linge); var rec=data.lingeRecupere||[];
-        var tout=rec.length===ll.length;
-        function maj(next){ setData(Object.assign({},data,{lingeRecupere:next})); }
-        return (
-          <div style={{marginBottom:20}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-              <div style={{fontFamily:DS.font.heading,fontWeight:600,fontSize:11,color:DS.color.primary,textTransform:"uppercase",letterSpacing:"0.06em"}}>Linge récupéré</div>
-              <button onClick={function(){maj(tout?[]:ll.slice());}} style={{border:"none",background:"none",color:DS.color.primary,fontFamily:DS.font.heading,fontSize:12,fontWeight:700,cursor:"pointer",padding:0}}>{tout?"Tout décocher":"Tout cocher"}</button>
-            </div>
-            <div style={{fontFamily:DS.font.body,fontSize:12,color:DS.color.textFaint,marginBottom:10}}>Cochez le linge que vous emportez. Il sera indiqué dans le rapport.</div>
-            {ll.map(function(l){
-              var on=rec.indexOf(l)!==-1;
-              return (
-                <div key={l} onClick={function(){maj(on?rec.filter(function(x){return x!==l;}):rec.concat([l]));}} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:DS.radius.sm,marginBottom:6,cursor:"pointer",background:on?DS.color.primarySoft:DS.color.primaryBg,border:"1.5px solid "+(on?DS.color.primary:"transparent")}}>
-                  <span style={{width:20,height:20,borderRadius:6,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:on?DS.color.primary:"#fff",border:"1.5px solid "+(on?DS.color.primary:DS.color.primaryBorder),color:"#fff"}}>{on?<Check size={13} strokeWidth={3}/>:null}</span>
-                  <span style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark}}>{l}</span>
-                </div>
-              );
-            })}
-            <div style={{fontFamily:DS.font.body,fontSize:13,fontWeight:600,color:rec.length===ll.length?DS.color.success:DS.color.primaryMuted,marginTop:6}}>{rec.length} / {ll.length} récupéré{rec.length>1?"s":""}</div>
-          </div>
-        );
-      })()}
+
       <Field label="Consommables à prévoir" required><Textarea value={data.consommablesAPrevoir||""} onChange={function(v){setData(Object.assign({},data,{consommablesAPrevoir:v}));}} placeholder="Notez les consommables manquants à réapprovisionner." rows={3}/></Field>
       <Field label="Remarques sur le logement" required><Textarea value={data.remarques||""} onChange={function(v){setData(Object.assign({},data,{remarques:v}));}} placeholder="Interventions à prévoir, anomalies constatées…" rows={3}/></Field>
       <Field label="Heure de fin d'intervention" required><Input type="time" value={data.heureFin||""} onChange={function(v){setData(Object.assign({},data,{heureFin:v}));}}/></Field>
@@ -1227,7 +1156,6 @@ function Step7Recap({arrivee,etatLieux,consommables,photosArrivee,photos,onPrev,
       <div style={recap}><div style={recapLabel}>Intervention</div><div style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark,lineHeight:1.9}}><div>{arrivee.nom}</div><div>{arrivee.date} — {duree}</div><div>{arrivee.bien}</div></div></div>
       <div style={recap}><div style={recapLabel}>État des lieux</div><div style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark,lineHeight:1.9}}><div style={{color:DS.color.star,fontSize:18}}>{etoiles}</div><div>{etatLieux.observations}</div></div></div>
       {selected.length>0?<div style={recap}><div style={recapLabel}>Consommables à réapprovisionner</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{selected.map(function(c){return <span key={c} style={{background:DS.color.primarySoft,color:DS.color.primaryDark,borderRadius:DS.radius.pill,padding:"3px 12px",fontSize:13,fontWeight:600,fontFamily:DS.font.body}}>{c}</span>;})}</div></div>:null}
-      {(consommables.lingeRecupere||[]).length?<div style={recap}><div style={recapLabel}>Linge récupéré</div><div style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark}}>{consommables.lingeRecupere.join(", ")}</div></div>:null}
       {consommables.consommablesAPrevoir?<div style={recap}><div style={recapLabel}>Consommables à prévoir</div><div style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark}}>{consommables.consommablesAPrevoir}</div></div>:null}
       {consommables.remarques?<div style={recap}><div style={recapLabel}>Remarques</div><div style={{fontFamily:DS.font.body,fontSize:14,color:DS.color.primaryDark}}>{consommables.remarques}</div></div>:null}
       <div style={{background:DS.color.successBg,border:"1px solid "+DS.color.successBorder,borderRadius:DS.radius.md,padding:16,marginBottom:20}}>
