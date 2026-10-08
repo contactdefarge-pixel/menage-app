@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import exifr from "exifr";
-import { MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut } from "lucide-react";
+import { MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut, CalendarX2, Coffee, Sparkles } from "lucide-react";
 
 /* ─── DESIGN SYSTEM ─────────────────────────────────────────────────── */
 var DS = {
@@ -1334,6 +1334,89 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
   );
 }
 
+/* ── État vide (aucune mission disponible) ─────────────────────────────
+   3 variantes à comparer : ajouter ?vide=1, ?vide=2 ou ?vide=3 à l'adresse pour forcer l'affichage. */
+var VIDE_PARAM=(function(){ try{ return new URLSearchParams(window.location.search).get("vide")||""; }catch(e){ return ""; } })();
+var VIDE_FORCE=/^[123]$/.test(VIDE_PARAM);
+var VIDE_VARIANTE=VIDE_FORCE?+VIDE_PARAM:2;
+
+function EtatVide({variante,prochaine,onAgenda,onActualiser}){
+  var H=DS.font.heading, Bf=DS.font.body;
+  var dateProchaine=prochaine&&prochaine.date?new Date(prochaine.date).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"}):"";
+  var btnPlein={height:46,padding:"0 18px",borderRadius:DS.radius.md,border:"none",background:DS.color.primaryDark,color:"#fff",fontFamily:H,fontWeight:700,fontSize:14,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8};
+  var btnVide={height:46,padding:"0 18px",borderRadius:DS.radius.md,border:"1.5px solid "+DS.color.primaryBorder,background:"#fff",color:DS.color.primaryDark,fontFamily:H,fontWeight:600,fontSize:14,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:8};
+  var ico=function(el){return <IconSvg size={16} sw={2.2}>{el}</IconSvg>;};
+
+  /* 1 — Message centré avec pictogramme */
+  if(variante===1) return (
+    <div style={{textAlign:"center",padding:"40px 12px 24px"}}>
+      <div style={{position:"relative",width:112,height:112,margin:"0 auto 22px"}}>
+        <div style={{position:"absolute",inset:0,borderRadius:"50%",background:DS.color.primarySoft}}/>
+        <div style={{position:"absolute",inset:16,borderRadius:"50%",background:"#fff",border:"1.5px solid "+DS.color.primaryBorder,display:"flex",alignItems:"center",justifyContent:"center",color:DS.color.primary}}>
+          <CalendarX2 size={38} strokeWidth={1.8}/>
+        </div>
+        <span style={{position:"absolute",top:6,right:2,color:DS.color.primary}}><Sparkles size={20} strokeWidth={2}/></span>
+      </div>
+      <div style={{fontFamily:H,fontSize:20,fontWeight:700,color:DS.color.primaryDark,marginBottom:8}}>Aucune mission pour le moment</div>
+      <div style={{fontFamily:Bf,fontSize:14,lineHeight:1.55,color:DS.color.textMuted,maxWidth:300,margin:"0 auto 22px"}}>
+        Vous recevrez un e-mail dès qu'une nouvelle mission s'ouvre pour vous. Les missions sont publiées jusqu'à 30 jours à l'avance.
+      </div>
+      <div style={{display:"flex",gap:10,justifyContent:"center",flexWrap:"wrap"}}>
+        <button onClick={onActualiser} style={btnVide}>{ico(<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>)}Actualiser</button>
+        <button onClick={onAgenda} style={btnPlein}>Mon agenda</button>
+      </div>
+    </div>
+  );
+
+  /* 2 — Carte fantôme à la place des cartes de missions */
+  if(variante===2) return (
+    <div style={{position:"relative",paddingTop:16}}>
+      <div style={{position:"absolute",top:0,left:16,right:16,height:60,borderRadius:20,border:"1.5px dashed "+DS.color.primaryBorder,opacity:.5}}/>
+      <div style={{position:"absolute",top:8,left:8,right:8,height:60,borderRadius:20,border:"1.5px dashed "+DS.color.primaryBorder,opacity:.8}}/>
+      <div style={{position:"relative",borderRadius:20,border:"2px dashed "+DS.color.primaryBorder,background:"rgba(255,255,255,0.85)",padding:"28px 22px 22px",textAlign:"center"}}>
+        <div style={{height:110,borderRadius:14,background:"repeating-linear-gradient(135deg, #f0fafa 0 10px, #e6f6f5 10px 20px)",marginBottom:18,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <span style={{display:"inline-flex",alignItems:"center",gap:8,background:DS.color.primaryDark,color:"#fff",borderRadius:DS.radius.pill,padding:"7px 14px",fontFamily:H,fontSize:12,fontWeight:700,letterSpacing:".06em",textTransform:"uppercase"}}>
+            <Coffee size={14} strokeWidth={2.2}/>Rien de prévu
+          </span>
+        </div>
+        <div style={{fontFamily:H,fontSize:19,fontWeight:700,color:DS.color.primaryDark,marginBottom:6}}>Pas de mission disponible</div>
+        <div style={{fontFamily:Bf,fontSize:13.5,lineHeight:1.5,color:DS.color.textMuted,marginBottom:18}}>Les nouvelles missions apparaîtront ici. On vous prévient par e-mail.</div>
+        {dateProchaine
+          ?<div onClick={onAgenda} style={{display:"flex",alignItems:"center",gap:12,background:DS.color.primaryDark,borderRadius:14,padding:"12px 14px",cursor:"pointer",marginBottom:12,textAlign:"left",color:"#fff"}}>
+              <div style={{width:40,height:40,borderRadius:10,background:"#e0f5f5",color:DS.color.primaryDark,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><CalendarX2 size={20} strokeWidth={2}/></div>
+              <div style={{minWidth:0,flex:1}}>
+                <div style={{fontFamily:Bf,fontSize:11,color:"#99e0dd",textTransform:"uppercase",letterSpacing:".08em"}}>Votre prochaine mission</div>
+                <div style={{fontFamily:H,fontSize:15,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{(prochaine.logementNom||String(prochaine.nom||"").split(" — ")[0])} · {dateProchaine}</div>
+              </div>
+              <IconSvg size={18} sw={2.2}><path d="M9 6l6 6-6 6"/></IconSvg>
+            </div>
+          :null}
+        <button onClick={onActualiser} style={Object.assign({},btnVide,{width:"100%"})}>{ico(<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>)}Vérifier à nouveau</button>
+      </div>
+    </div>
+  );
+
+  /* 3 — Carte sombre « tout est calme » + prochaine mission de l'agenda */
+  return (
+    <div style={{background:DS.color.primaryDark,borderRadius:20,padding:"24px 22px 20px",color:"#fff",boxShadow:"0 12px 28px rgba(8,81,87,0.22)",overflow:"hidden",position:"relative"}}>
+      <img src="/illustrations/maisons/petite-maison.png" alt="" style={{position:"absolute",right:-28,top:-10,width:170,opacity:.22,pointerEvents:"none"}}/>
+      <div style={{fontFamily:H,fontSize:11,fontWeight:700,letterSpacing:".12em",textTransform:"uppercase",color:"#99e0dd",marginBottom:10}}>Missions disponibles</div>
+      <div style={{fontFamily:H,fontSize:26,fontWeight:700,lineHeight:1.1,marginBottom:8,maxWidth:230}}>Tout est calme pour l'instant</div>
+      <div style={{fontFamily:Bf,fontSize:14,lineHeight:1.5,color:"#cdeeed",marginBottom:20,maxWidth:280}}>Aucune mission ouverte à la candidature. Vous serez prévenue par e-mail.</div>
+      {dateProchaine
+        ?<div onClick={onAgenda} style={{display:"flex",alignItems:"center",gap:12,background:"rgba(255,255,255,0.1)",borderRadius:14,padding:"12px 14px",cursor:"pointer",marginBottom:14}}>
+            <div style={{width:40,height:40,borderRadius:10,background:"#e0f5f5",color:DS.color.primaryDark,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><CalendarX2 size={20} strokeWidth={2}/></div>
+            <div style={{minWidth:0,flex:1}}>
+              <div style={{fontFamily:Bf,fontSize:11,color:"#99e0dd",textTransform:"uppercase",letterSpacing:".08em"}}>Votre prochaine mission</div>
+              <div style={{fontFamily:H,fontSize:15,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{(prochaine.logementNom||String(prochaine.nom||"").split(" — ")[0])} · {dateProchaine}</div>
+            </div>
+          </div>
+        :null}
+      <button onClick={onActualiser} style={{width:"100%",height:46,borderRadius:DS.radius.md,border:"1.5px solid rgba(255,255,255,0.45)",background:"transparent",color:"#fff",fontFamily:H,fontWeight:600,fontSize:14,cursor:"pointer"}}>Actualiser</button>
+    </div>
+  );
+}
+
 function StackedCarousel({missions, onAccepter, onRefuser, onPostuler, onRetirer}){
   var [activeIndex, setActiveIndex] = useState(0);
   var trackRef = useRef(null);
@@ -1550,8 +1633,8 @@ function AgendaPrestataire({prestataire, onLogout}){
         {loading?<div style={{textAlign:"center",padding:32,color:DS.color.textMuted}}>Chargement…</div>:null}
 
         {!loading&&tab==="disponibles"&&(
-          disponibles.length===0
-            ?<div style={{textAlign:"center",padding:32,color:DS.color.textMuted,fontFamily:DS.font.body}}>Aucune mission disponible pour le moment.</div>
+          (disponibles.length===0||VIDE_FORCE)
+            ?<EtatVide variante={VIDE_VARIANTE} prochaine={missionsFutures[0]} onAgenda={function(){setTab("agenda");}} onActualiser={loadMissions}/>
             :<StackedCarousel
                 missions={disponibles}
                 onAccepter={function(m){return handleAction(m,"accepter");}}
