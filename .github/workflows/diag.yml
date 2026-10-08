@@ -1,0 +1,16 @@
+# Outil de diagnostic : appelle une URL de l'appli et affiche la réponse en annotation
+name: Diagnostic
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: "Chemin à appeler (ex. /api/logement?slug=...)"
+        required: true
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: |
+          r=$(curl -s --max-time 60 "https://agents.izinest.fr${{ github.event.inputs.path }}" | python3 -c "import sys,json;d=json.load(sys.stdin);l=d.get('logement',d);print(json.dumps({k:l.get(k) for k in ('nom','linge','_lingeDiag','error')},ensure_ascii=False))" 2>&1 | head -c 3000)
+          echo "::notice title=diag::$r"
