@@ -31,6 +31,7 @@ async function setupColonnes(req, res) {
     ["Logements", LOGEMENTS_DB, {
       "Niveau requis": sel(["1 - Prioritaires uniquement", "2 - Prioritaires et confirmées", "3 - Toutes"]),
       "Attribution": sel(["Direct", "Postuler"]),
+      "Consommables à récupérer": { checkbox: {} },
     }],
     ["Missions", MISSIONS_DB, { "Candidats": { relation: { database_id: PRESTATAIRES_DB, single_property: {} } }, [PROP_URGENCE]: { checkbox: {} } }],
   ];

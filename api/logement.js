@@ -62,6 +62,8 @@ function mapPage(page) {
     poubelles:            richText(props["Poubelles"]),
     consommables:         richText(props["Consommables"]),
     consommablesALaisser: richText(props["Consommables à laisser"]),
+    // case Notion « Consommables à récupérer » : cochée = pas de stock sur place, la prestataire les apporte
+    consommablesARecuperer: !!props["Consommables à récupérer"]?.checkbox,
     photosReference,
     pointsAttention:      richText(props["Points d'attention"]),
     proprietaire:         plainText(props["Propriétaire"]),

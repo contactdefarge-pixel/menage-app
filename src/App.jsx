@@ -171,7 +171,7 @@ function normalizeLogement(raw) {
     adresse:raw.adresse||"", wifi:rt(raw.wifi), voyageurs:raw.voyageurs||"",
     chambres:raw.chambres||"", lits:rt(raw.lits), linge:rt(raw.linge), acces:rt(raw.acces),
     boiteCle:raw.boiteCle||"", poubelles:rt(raw.poubelles),
-    consommables:rt(raw.consommables), consommablesALaisser:rt(raw.consommablesALaisser),
+    consommables:rt(raw.consommables), consommablesALaisser:rt(raw.consommablesALaisser), consommablesARecuperer:!!raw.consommablesARecuperer,
     photosReference:raw.photosReference||[], pointsAttention:rt(raw.pointsAttention),
     proprietaire:raw.proprietaire||"", forfaitMenage:raw.forfaitMenage||"",
   };
@@ -755,6 +755,12 @@ function Tuile({span,bg,fg,icon,titre,children,border}){
   );
 }
 /* ── Linge à récupérer : bouton dans la tuile Voyageurs -> panneau du bas avec cases à cocher ── */
+function lignesConso(v){
+  return parseConsommablesALaisser(v).map(function(c){
+    var n=c.qt?c.qt.replace(/^x/i,""):"";
+    return (n?n+" × ":"")+c.label+(c.comment?" ("+c.comment+")":"");
+  });
+}
 function IconLinge({size}){
   size=size||16;
   return (
@@ -773,7 +779,7 @@ function totalLinge(lignes){
   return n;
 }
 
-function PanneauLinge({lignes,onClose}){
+function PanneauLinge({lignes,onClose,titre,icone}){
   var [coches,setCoches]=useState({});
   var nb=Object.keys(coches).filter(function(k){return coches[k];}).length;
   var [vu,setVu]=useState(false);
@@ -785,9 +791,9 @@ function PanneauLinge({lignes,onClose}){
         transform:vu?"translateY(0)":"translateY(100%)",transition:"transform .28s cubic-bezier(.2,.8,.2,1)",boxShadow:"0 -10px 30px rgba(0,0,0,0.15)",maxHeight:"75vh",overflowY:"auto"}}>
         <div style={{width:40,height:5,borderRadius:3,background:DS.color.border,margin:"0 auto 14px"}}/>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
-          <div style={{width:36,height:36,borderRadius:10,background:DS.color.primary,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><IconLinge size={19}/></div>
+          <div style={{width:36,height:36,borderRadius:10,background:DS.color.primary,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{icone||<IconLinge size={19}/>}</div>
           <div style={{flex:1}}>
-            <div style={{fontFamily:DS.font.heading,fontSize:18,fontWeight:700,color:DS.color.primaryDark}}>Linge à récupérer</div>
+            <div style={{fontFamily:DS.font.heading,fontSize:18,fontWeight:700,color:DS.color.primaryDark}}>{titre||"Linge à récupérer"}</div>
             <div style={{fontFamily:DS.font.body,fontSize:12,color:DS.color.textMuted}}>{nb} / {lignes.length} récupéré{nb>1?"s":""}</div>
           </div>
         </div>
@@ -828,6 +834,7 @@ function GrilleInfos({logement}){
   var lingeOk=plainOf(logement.linge).length>0;
   var lignes=lignesLinge(logement.linge);
   var [panneauLinge,setPanneauLinge]=useState(false);
+  var [panneauConso,setPanneauConso]=useState(false);
   var accesTxt=plainOf(logement.acces);
   var cle=plainOf(logement.boiteCle);
   var forfait=plainOf(logement.forfaitMenage);
@@ -841,7 +848,8 @@ function GrilleInfos({logement}){
   var BORD="1.5px solid "+DS.color.primaryBorder;
   var rich=function(v){ return Array.isArray(v)?<RichText value={v}/>:<FormattedText>{v}</FormattedText>; };
   var petit={fontSize:12,lineHeight:1.45,color:"#2c4b4e"};
-  var spanBas=(poub&&conso)?1:2;
+  var consoRecup=logement.consommablesARecuperer?lignesConso(logement.consommablesALaisser):[];
+  var spanBas=(poub&&(conso||consoRecup.length))?1:2;
   return (
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         {adresse&&(
@@ -895,10 +903,18 @@ function GrilleInfos({logement}){
         {poub&&(
           <Tuile span={spanBas} bg="#fff" fg={T} icon={<IconTrash/>} titre="Poubelles" border={BORD}><div style={petit}>{rich(logement.poubelles)}</div></Tuile>
         )}
-        {conso&&(
-          <Tuile span={spanBas} bg="#fff" fg={T} icon={<IconBox/>} titre="Consommables" border={BORD}><div style={petit}>{rich(logement.consommables)}</div></Tuile>
+        {(conso||consoRecup.length>0)&&(
+          <Tuile span={spanBas} bg="#fff" fg={T} icon={<IconBox/>} titre="Consommables" border={BORD}>
+            <div style={petit}>{rich(logement.consommables)}</div>
+            {consoRecup.length>0&&(
+              <button onClick={function(){setPanneauConso(true);}} style={{marginTop:10,display:"inline-flex",alignItems:"center",gap:6,height:32,padding:"0 12px",whiteSpace:"nowrap",borderRadius:DS.radius.pill,border:"none",background:DS.color.primary,color:"#fff",fontFamily:DS.font.heading,fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                <Package size={14} strokeWidth={2.2}/>À récupérer · {totalLinge(consoRecup)}
+              </button>
+            )}
+          </Tuile>
         )}
         {panneauLinge&&<PanneauLinge lignes={lignes} onClose={function(){setPanneauLinge(false);}}/>}
+        {panneauConso&&<PanneauLinge lignes={consoRecup} titre="Consommables à récupérer" icone={<Package size={19} strokeWidth={2}/>} onClose={function(){setPanneauConso(false);}}/>}
       </div>
   );
 }
