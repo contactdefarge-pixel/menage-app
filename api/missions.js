@@ -87,6 +87,7 @@ function mapMission(page) {
     logement:    (props["Logement"]?.relation    || [])[0]?.id || null,
     candidats:   (props["Candidats"]?.relation   || []).map(r => r.id),
     refus:       (props["Refus"]?.multi_select   || []).map(r => r.name),
+    prime:       props["Prime"]?.number || 0,
     cree:        page.created_time,
   };
 }

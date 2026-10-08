@@ -1,5 +1,5 @@
-import { traiterUrgences, PROP_URGENCE } from "../lib/urgent.js";
-import { vuePlanning, vueCourses, coursesFaites, vuePressing, pressingCreer, pressingStatut, pressingSupprimer, vueLogements } from "../lib/admin-vues.js";
+import { traiterUrgences, PROP_URGENCE, relancerMission } from "../lib/urgent.js";
+import { vuePlanning, vueCourses, coursesFaites, vuePressing, pressingCreer, pressingStatut, pressingSupprimer, vueLogements, vueReleve, definirPrime } from "../lib/admin-vues.js";
 import { getMissionDetails, getPrestataire, emailConfirmation, notifierAnnulation, sendEmail } from "../lib/mail.js";
 
 export const config = { maxDuration: 30 };
@@ -73,6 +73,7 @@ export default async function handler(req, res) {
       if (v === "courses")   return res.status(200).json(await vueCourses(T));
       if (v === "pressing")  return res.status(200).json(await vuePressing(T));
       if (v === "logements") return res.status(200).json(await vueLogements(T));
+      if (v === "releve")    return res.status(200).json(await vueReleve(T, req.query.mois));
       return res.status(400).json({ error: "Vue inconnue" });
     }
     if (req.method === "POST" && (req.body || {}).vue) {
@@ -81,6 +82,8 @@ export default async function handler(req, res) {
       if (b.vue === "pressing_creer")   return res.status(200).json(await pressingCreer(T, b));
       if (b.vue === "pressing_statut")  return res.status(200).json(await pressingStatut(T, b));
       if (b.vue === "pressing_suppr")   return res.status(200).json(await pressingSupprimer(T, b));
+      if (b.vue === "prime")            return res.status(200).json(await definirPrime(T, b));
+      if (b.vue === "relance")          return res.status(200).json(await relancerMission(T, b.id));
       return res.status(400).json({ error: "Action inconnue" });
     }
 
@@ -105,7 +108,7 @@ export default async function handler(req, res) {
         }));
         return { id: p.id, nom: plain(pr["Nom"]), date: pr["Date"]?.date?.start || "",
           logementNom: log ? plain(log.properties?.["Nom"]) : "", attribution: /direct/i.test(log?.properties?.["Attribution"]?.select?.name || "") ? "direct" : "postuler",
-          candidats: cands };
+          candidats: cands, prime: pr["Prime"]?.number || 0, url: p.url };
       }));
       // missions déjà attribuées (à venir) : possibilité de les annuler
       const r2 = await fetch(`https://api.notion.com/v1/databases/${MISSIONS_DB}/query`, {

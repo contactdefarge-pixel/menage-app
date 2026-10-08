@@ -6,7 +6,7 @@
    Appel manuel : /api/cron-notify?secret=<CRON_SECRET>&dry=1  (dry = aperçu sans envoi, window=<heures> pour élargir, all=1 = toutes les missions ouvertes à ton niveau). */
 import { sendEmail, APP_URL, dateCourte } from "../lib/mail.js";
 import { niveauNum, visibleDepuis, estUrgente, lireDispo, estDisponible } from "../lib/attribution.js";
-import { mailAutorise, traiterUrgences, diagPrestataires } from "../lib/urgent.js";
+import { mailAutorise, traiterUrgences, traiterNonPourvues, diagPrestataires } from "../lib/urgent.js";
 
 const MISSIONS_DB     = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const PRESTATAIRES_DB = "3d7d50ab-a52f-8012-a15d-e9d59a968f8f";
@@ -80,8 +80,10 @@ export default async function handler(req, res) {
   if (!okSecret && req.query.urgent) {
     try {
       const u = await traiterUrgences(process.env.NOTION_TOKEN, { dry: !!req.query.dry });
+      const np = await traiterNonPourvues(process.env.NOTION_TOKEN, { dry: !!req.query.dry }).catch(e => ({ erreur: e.message }));
       return res.status(200).json({ success: true, urgentes: (u.missions || []).length, missions: u.missions || [], envoyes: u.envoyes || 0,
         erreur: u.erreur || ((u.erreurs || [])[0] || "").replace(/^[^:]*:\s*/, "") || undefined,
+        nonPourvues: np.alertes || np.erreur,
         diagnostic: req.query.diag ? await diagPrestataires(process.env.NOTION_TOKEN) : undefined });
     } catch (e) { return res.status(500).json({ error: e.message }); }
   }
@@ -95,7 +97,7 @@ export default async function handler(req, res) {
 
   try {
     // ?urgent=1 (avec secret) : uniquement les urgences
-    if (req.query.urgent) return res.status(200).json({ success: true, urgence: await traiterUrgences(token, { dry }) });
+    if (req.query.urgent) return res.status(200).json({ success: true, urgence: await traiterUrgences(token, { dry }), nonPourvues: await traiterNonPourvues(token, { dry }) });
 
     // 1. missions à pourvoir
     const pages = await queryAll(token, MISSIONS_DB, {

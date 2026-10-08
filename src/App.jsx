@@ -1380,7 +1380,10 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
                 <span>{mission.dureeEstimee}</span>
               </span>
             :<span/>}
-          {mission.forfaitMenage&&<div style={{fontFamily:DS.font.heading,fontSize:40,fontWeight:700,lineHeight:1}}>{mission.forfaitMenage}</div>}
+          {mission.forfaitMenage&&<div style={{textAlign:"right"}}>
+            {mission.prime>0&&<div style={{display:"inline-block",marginBottom:6,background:"#f59e0b",color:"#451a03",borderRadius:99,padding:"3px 10px",fontFamily:DS.font.heading,fontSize:12,fontWeight:700}}>+ {mission.prime} € de prime</div>}
+            <div style={{fontFamily:DS.font.heading,fontSize:40,fontWeight:700,lineHeight:1}}>{mission.forfaitMenage}</div>
+          </div>}
         </div>
       )}
       {mission.attribution==="postuler"
@@ -1778,6 +1781,17 @@ function PageAdmin({ongletInitial}){
       .catch(function(e){ showToast("Erreur : "+e.message); })
       .finally(function(){ setBusy(""); });
   }
+  function relancer(m){
+    if(!window.confirm("Renvoyer l'e-mail de la mission "+(m.logementNom||m.nom)+" aux prestataires disponibles ?")) return;
+    setBusy("r"+m.id);
+    apiAdmin(pwd,null,{vue:"relance",id:m.id}).then(function(d){ showToast("Relance envoyée à "+d.envoyes+" prestataire"+(d.envoyes>1?"s":"")); }).catch(function(e){ showToast("Erreur : "+e.message); }).finally(function(){ setBusy(""); });
+  }
+  function prime(m){
+    var v=window.prompt("Prime affichée sur la carte (en €, vide ou 0 pour retirer) :", m.prime||"");
+    if(v===null) return;
+    setBusy("p"+m.id);
+    apiAdmin(pwd,null,{vue:"prime",id:m.id,prime:String(v).replace(",",".")}).then(function(){ showToast("Prime enregistrée"); charger(pwd); }).catch(function(e){ showToast("Erreur : "+e.message); }).finally(function(){ setBusy(""); });
+  }
   function annuler(a){
     if(!window.confirm("Annuler la mission "+(a.logementNom||a.nom)+" du "+formatDateFr(a.date)+" ?\n"+a.prestataire+" sera prévenue par e-mail. La mission sera supprimée.")) return;
     setBusy("x"+a.id);
@@ -1787,7 +1801,7 @@ function PageAdmin({ongletInitial}){
       .catch(function(e){ showToast("Erreur : "+e.message); })
       .finally(function(){ setBusy(""); });
   }
-  var ONGLETS=[["candidatures","Candidatures"],["planning","Planning"],["courses","Courses"],["pressing","Pressing"],["logements","Logements"]];
+  var ONGLETS=[["candidatures","Candidatures"],["planning","Planning"],["courses","Courses"],["pressing","Pressing"],["logements","Logements"],["releves","Relevés"]];
   var head=(
     <div style={{background:DS.color.primaryDark,padding:"20px 20px 0",fontFamily:DS.font.heading}}>
       <div style={{maxWidth:1100,margin:"0 auto"}}>
@@ -1825,6 +1839,7 @@ function PageAdmin({ongletInitial}){
           {onglet==="courses"&&<AdminCourses pwd={pwd}/>}
           {onglet==="pressing"&&<AdminPressing pwd={pwd}/>}
           {onglet==="logements"&&<AdminLogements pwd={pwd}/>}
+          {onglet==="releves"&&<AdminReleves pwd={pwd}/>}
         </div>
       </div>
     );
@@ -1858,8 +1873,17 @@ function PageAdmin({ongletInitial}){
         })}
         {sans.length>0&&(
           <div style={{marginTop:24}}>
-            <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:13,color:DS.color.textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>En attente de candidature</div>
-            {sans.map(function(m){ return <div key={m.id} style={{padding:"10px 0",borderTop:"1px solid "+DS.color.border,fontSize:14,color:DS.color.primaryDark}}>{m.logementNom||m.nom} <span style={{color:DS.color.textMuted}}>· {formatDateFr(m.date)}</span></div>; })}
+            <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:13,color:DS.color.textMuted,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:8}}>Sans candidat</div>
+            {sans.map(function(m){ return (
+              <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",padding:"10px 0",borderTop:"1px solid "+DS.color.border,fontSize:14,color:DS.color.primaryDark}}>
+                <div style={{flex:"1 1 180px",minWidth:0}}>
+                  <div style={{fontFamily:DS.font.heading,fontWeight:600}}>{m.logementNom||m.nom}{m.prime>0&&<span style={{marginLeft:8,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:99,background:"#fef3c7",color:"#92400e"}}>+{m.prime} € prime</span>}</div>
+                  <div style={{fontSize:12,color:DS.color.textMuted}}>{formatDateFr(m.date)}</div>
+                </div>
+                <button disabled={busy==="r"+m.id} onClick={function(){relancer(m);}} style={btnAdminVide}>{busy==="r"+m.id?"…":"Relancer"}</button>
+                <button disabled={busy==="p"+m.id} onClick={function(){prime(m);}} style={btnAdminVide}>{busy==="p"+m.id?"…":(m.prime>0?"Prime : "+m.prime+" €":"+ Prime")}</button>
+              </div>
+            ); })}
           </div>
         )}
         {attribuees.length>0&&(
@@ -2146,6 +2170,80 @@ function AdminLogements({pwd}){
           );
         })}
       </div>
+    </div>
+  );
+}
+
+
+/* ── Relevé mensuel par prestataire ──────────────────────────────────── */
+function AdminReleves({pwd}){
+  var [mois,setMois]=useState(function(){ var d=new Date(); return d.toLocaleDateString("sv-SE",{timeZone:"Europe/Paris"}).slice(0,7); });
+  var [data,setData]=useState(null); var [err,setErr]=useState("");
+  useEffect(function(){ setData(null); setErr(""); apiAdmin(pwd,"vue=releve&mois="+mois).then(setData).catch(function(e){setErr(e.message);}); },[mois]);
+  function decaler(n){ var p=mois.split("-").map(Number); var d=new Date(Date.UTC(p[0],p[1]-1+n,1)); setMois(d.toISOString().slice(0,7)); }
+  var libMois=new Date(mois+"-15T12:00:00").toLocaleDateString("fr-FR",{month:"long",year:"numeric"});
+  var eur=function(n){ return (Math.round(n*100)/100).toLocaleString("fr-FR",{minimumFractionDigits:0,maximumFractionDigits:2})+" €"; };
+  var groupes={}; ((data&&data.lignes)||[]).forEach(function(l){ (groupes[l.prestataire]=groupes[l.prestataire]||[]).push(l); });
+  var noms=Object.keys(groupes).sort();
+  var total=function(ls,avenir){ return ls.filter(function(l){return avenir||!l.aVenir;}).reduce(function(a,l){return a+(l.forfait||0)+(l.prime||0);},0); };
+  function csv(ls,nom){
+    var rows=[["Prestataire","Date","Logement","Forfait (€)","Prime (€)","Total (€)","Statut"]].concat(ls.map(function(l){return [l.prestataire,l.date,l.logement,l.forfait||0,l.prime||0,(l.forfait||0)+(l.prime||0),l.aVenir?"À venir":"Effectuée"];}));
+    var txt="﻿"+rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(";");}).join("\n");
+    var a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([txt],{type:"text/csv;charset=utf-8"})); a.download="releve-"+mois+(nom?"-"+slugify(nom):"")+".csv"; a.click();
+  }
+  function pdf(nom){
+    var ls=groupes[nom].filter(function(l){return !l.aVenir;});
+    var w=window.open("","_blank"); if(!w){ alert("Autorisez les fenêtres pop-up pour imprimer."); return; }
+    var lignes=ls.map(function(l){return "<tr><td>"+new Date(l.date+"T12:00:00").toLocaleDateString("fr-FR")+"</td><td>"+l.logement+"</td><td class=n>"+eur(l.forfait||0)+"</td><td class=n>"+(l.prime?eur(l.prime):"—")+"</td><td class=n><b>"+eur((l.forfait||0)+(l.prime||0))+"</b></td></tr>";}).join("");
+    w.document.write("<!doctype html><html lang=fr><head><meta charset=utf-8><title>Relevé "+nom+" — "+libMois+"</title><style>body{font-family:Arial,sans-serif;color:#0f2e31;margin:40px}h1{font-size:22px;margin:0 0 4px;color:#085157}.s{color:#5b8f93;margin:0 0 24px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 10px;border-bottom:1px solid #e2ecee;text-align:left}th{background:#f0fafa;color:#085157;font-size:11px;text-transform:uppercase;letter-spacing:.05em}.n{text-align:right}tfoot td{font-weight:700;font-size:15px;border-top:2px solid #085157}.f{margin-top:30px;font-size:11px;color:#94b8bb}</style></head><body>"
+      +"<h1>Relevé de missions — "+nom+"</h1><p class=s>izinest · "+libMois+" · "+ls.length+" mission"+(ls.length>1?"s":"")+" effectuée"+(ls.length>1?"s":"")+"</p>"
+      +"<table><thead><tr><th>Date</th><th>Logement</th><th class=n>Forfait</th><th class=n>Prime</th><th class=n>Total</th></tr></thead><tbody>"+lignes+"</tbody><tfoot><tr><td colspan=4>Total du mois</td><td class=n>"+eur(total(ls))+"</td></tr></tfoot></table>"
+      +"<p class=f>Document généré le "+new Date().toLocaleDateString("fr-FR")+" depuis agents.izinest.fr</p><script>window.onload=function(){window.print();}<\/script></body></html>");
+    w.document.close();
+  }
+  return (
+    <div>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:14}}>
+        <button style={btnAdminVide} onClick={function(){decaler(-1);}}>←</button>
+        <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:18,color:DS.color.primaryDark,minWidth:150,textAlign:"center",textTransform:"capitalize"}}>{libMois}</div>
+        <button style={btnAdminVide} onClick={function(){decaler(1);}}>→</button>
+        {data&&data.lignes.length>0&&<button style={Object.assign({},btnAdminVide,{marginLeft:"auto"})} onClick={function(){csv(data.lignes);}}>Tout exporter (CSV)</button>}
+      </div>
+      {!data?<Chargement erreur={err}/>:noms.length===0?<div style={Object.assign({},carteAdmin,{textAlign:"center",padding:40,color:DS.color.textMuted})}>Aucune mission attribuée sur ce mois.</div>:(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(340px, 1fr))",gap:12}}>
+          {noms.map(function(n){
+            var ls=groupes[n]; var faites=ls.filter(function(l){return !l.aVenir;}); var avenir=ls.length-faites.length;
+            return (
+              <div key={n} style={carteAdmin}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:10}}>
+                  <div>
+                    <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:16,color:DS.color.primaryDark}}>{n}</div>
+                    <div style={{fontSize:12,color:DS.color.textMuted}}>{faites.length} effectuée{faites.length>1?"s":""}{avenir?" · "+avenir+" à venir":""}</div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:24,color:DS.color.primaryDark,lineHeight:1}}>{eur(total(ls))}</div>
+                    {avenir>0&&<div style={{fontSize:11,color:DS.color.textMuted,marginTop:4}}>{eur(total(ls,true))} avec les missions à venir</div>}
+                  </div>
+                </div>
+                <div style={{borderTop:"1px solid "+DS.color.border}}>
+                  {ls.map(function(l){ return (
+                    <div key={l.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:"1px solid "+DS.color.border,fontSize:13,opacity:l.aVenir?.55:1}}>
+                      <span style={{width:52,flexShrink:0,color:DS.color.textMuted}}>{new Date(l.date+"T12:00:00").toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"})}</span>
+                      <a href={l.url} target="_blank" rel="noopener noreferrer" style={{flex:1,minWidth:0,color:DS.color.primaryDark,textDecoration:"none",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.logement}</a>
+                      {l.prime>0&&<span style={{fontSize:11,fontWeight:700,color:"#b45309"}}>+{eur(l.prime)}</span>}
+                      <span style={{width:62,textAlign:"right",fontWeight:700,color:DS.color.primaryDark}}>{eur((l.forfait||0)+(l.prime||0))}</span>
+                    </div>
+                  ); })}
+                </div>
+                <div style={{display:"flex",gap:8,marginTop:12}}>
+                  <button style={Object.assign({},btnAdmin,{flex:1})} onClick={function(){pdf(n);}}>PDF / Imprimer</button>
+                  <button style={btnAdminVide} onClick={function(){csv(ls,n);}}>CSV</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
