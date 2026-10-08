@@ -1381,7 +1381,6 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
               </span>
             :<span/>}
           {mission.forfaitMenage&&<div style={{textAlign:"right"}}>
-            {mission.prime>0&&<div style={{display:"inline-block",marginBottom:6,background:"#f59e0b",color:"#451a03",borderRadius:99,padding:"3px 10px",fontFamily:DS.font.heading,fontSize:12,fontWeight:700}}>+ {mission.prime} € de prime</div>}
             <div style={{fontFamily:DS.font.heading,fontSize:40,fontWeight:700,lineHeight:1}}>{mission.forfaitMenage}</div>
           </div>}
         </div>
@@ -1877,11 +1876,10 @@ function PageAdmin({ongletInitial}){
             {sans.map(function(m){ return (
               <div key={m.id} style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",padding:"10px 0",borderTop:"1px solid "+DS.color.border,fontSize:14,color:DS.color.primaryDark}}>
                 <div style={{flex:"1 1 180px",minWidth:0}}>
-                  <div style={{fontFamily:DS.font.heading,fontWeight:600}}>{m.logementNom||m.nom}{m.prime>0&&<span style={{marginLeft:8,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:99,background:"#fef3c7",color:"#92400e"}}>+{m.prime} € prime</span>}</div>
+                  <div style={{fontFamily:DS.font.heading,fontWeight:600}}>{m.logementNom||m.nom}</div>
                   <div style={{fontSize:12,color:DS.color.textMuted}}>{formatDateFr(m.date)}</div>
                 </div>
                 <button disabled={busy==="r"+m.id} onClick={function(){relancer(m);}} style={btnAdminVide}>{busy==="r"+m.id?"…":"Relancer"}</button>
-                <button disabled={busy==="p"+m.id} onClick={function(){prime(m);}} style={btnAdminVide}>{busy==="p"+m.id?"…":(m.prime>0?"Prime : "+m.prime+" €":"+ Prime")}</button>
               </div>
             ); })}
           </div>
