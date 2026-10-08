@@ -56,6 +56,8 @@ function mapPage(page) {
     voyageurs:            plainText(props["Nombre de voyageurs"]),
     chambres:             plainText(props["Nombre de chambres"]),
     lits:                 richText(props["Types de lits"]),
+    linge:                lingeProp(props["Linge"] || props[Object.keys(props).find(k => k.trim().toLowerCase() === "linge")]),
+    _lingeDiag:           Object.keys(props).filter(k => /linge/i.test(k)).map(k => k + ":" + props[k].type),
     acces:                richText(props["Accès logement"]),
     boiteCle:             plainText(props["Boite à clé"]),
     poubelles:            richText(props["Poubelles"]),
@@ -66,6 +68,16 @@ function mapPage(page) {
     proprietaire:         plainText(props["Propriétaire"]),
     forfaitMenage:        props["Forfait ménage"]?.number != null ? props["Forfait ménage"].number + " €" : "",
   };
+}
+
+// « Linge » : texte riche, sélection(s) ou nombre -> texte riche (une ligne par élément)
+function lingeProp(prop) {
+  if (!prop) return [];
+  const seg = (t) => ({ text: t, bold: false, italic: false, underline: false, strikethrough: false, code: false, color: null, href: null });
+  if (prop.multi_select) return prop.multi_select.length ? [seg(prop.multi_select.map(o => o.name).join("\n"))] : [];
+  if (prop.select) return prop.select ? [seg(prop.select.name)] : [];
+  if (prop.type === "number") return prop.number != null ? [seg(String(prop.number))] : [];
+  return richText(prop);
 }
 
 export default async function handler(req, res) {
