@@ -1,0 +1,22 @@
+# E-mail quotidien des nouvelles missions à 18h (heure de Paris), été comme hiver.
+# Deux horaires UTC sont programmés ; seul celui qui tombe à 18h à Paris envoie. Nécessite le secret GitHub CRON_SECRET.
+name: Mail quotidien 18h
+on:
+  schedule:
+    - cron: "0 16 * * *"   # 18h l'été (UTC+2)
+    - cron: "0 17 * * *"   # 18h l'hiver (UTC+1)
+  workflow_dispatch: {}
+jobs:
+  mail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SLOT: ${{ github.event.schedule }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "::warning::Secret CRON_SECRET manquant"; exit 0; fi
+          off=$(TZ=Europe/Paris date +%z)
+          if [ "$SLOT" = "0 16 * * *" ] && [ "$off" != "+0200" ]; then echo "heure d'hiver : envoi au créneau suivant"; exit 0; fi
+          if [ "$SLOT" = "0 17 * * *" ] && [ "$off" != "+0100" ]; then echo "heure d'été : déjà envoyé"; exit 0; fi
+          curl -fsS --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "https://agents.izinest.fr/api/cron-notify"

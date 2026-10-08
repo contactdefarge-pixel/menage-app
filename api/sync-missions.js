@@ -5,6 +5,8 @@ import { traiterUrgences } from "../lib/urgent.js";
 const MISSIONS_DB  = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const LOGEMENTS_DB = "365d50ab-a52f-801f-b5fd-f740a0aa78c1";
 const WINDOW_DAYS  = 90;
+// Repartir de zéro : seules les réservations faites après cette date créent des missions (surchargeable : variable Vercel MISSIONS_DEPUIS)
+const MISSIONS_DEPUIS = process.env.MISSIONS_DEPUIS || "2026-10-08T18:30:00Z";
 
 function plainText(prop) {
   if (!prop) return "";
@@ -76,6 +78,7 @@ async function getBeds24Bookings(token, from, to) {
         roomName:     room.roomName || "",
         propertyName: room.propertyName || "",
         label:        `${b.firstName || ""} ${b.lastName || ""}`.trim(),
+        reserveLe:    b.bookingTime || b.bookingDate || "",
       });
     }
     if (!data.pages || !data.pages.nextPageExists) break;
@@ -160,6 +163,22 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  // ?purge=1 : vide la base Missions (archive toutes les pages ; récupérables 30 jours dans la corbeille Notion)
+  if (req.query?.purge === "1") {
+    const t0 = Date.now(); let archivees = 0, restantes = 0;
+    for (;;) {
+      const data = await notion(`databases/${MISSIONS_DB}/query`, "POST", { page_size: 50 });
+      const pages = data.results || [];
+      if (!pages.length) break;
+      for (const p of pages) {
+        if (Date.now() - t0 > 50000) { restantes = -1; break; }
+        await notion(`pages/${p.id}`, "PATCH", { archived: true }); archivees++;
+      }
+      if (restantes === -1) break;
+    }
+    return res.status(200).json({ success: true, archivees, termine: restantes !== -1, info: restantes === -1 ? "Il en reste : relancez le même lien." : "Base Missions vide." });
+  }
+
   // ?dry=1 : simule sans rien créer ni supprimer
   const dry = req.query?.dry === "1";
   const reset = req.query?.reset === "1";
@@ -212,7 +231,9 @@ export default async function handler(req, res) {
 
     // Créer les missions manquantes
     const knownIds = new Set(reset ? [] : missions.map(m => m.beds24Id).filter(Boolean));
-    const toCreate = bookings.filter(b => !knownIds.has(b.bookId));
+    const depuis = Date.parse(MISSIONS_DEPUIS);
+    const anciennes = bookings.filter(b => !b.reserveLe || Date.parse(b.reserveLe) < depuis).length;
+    const toCreate = bookings.filter(b => !knownIds.has(b.bookId) && b.reserveLe && Date.parse(b.reserveLe) >= depuis);
 
     // Réparer les missions créées avec un titre de type « 725859 — 2026-10-12 » (roomId au lieu du nom)
     const byId = new Map(bookings.map(b => [b.bookId, b]));
@@ -265,6 +286,8 @@ export default async function handler(req, res) {
       wouldCreate: dry ? toCreate.map(b => `${missionTitle(b)} (#${b.bookId})`) : undefined,
       wouldDelete: dry ? toDelete.map(m => `${m.nom} (#${m.beds24Id})`) : undefined,
       urgentes: urgentes.map(u => u.titre),
+      reservationsAnterieuresIgnorees: anciennes,
+      exemplesDateReservation: dry ? bookings.slice(0, 3).map(b => b.reserveLe || "(absente)") : undefined,
       urgence,
       unmatchedLogements: [...new Set(unmatched)],
     });

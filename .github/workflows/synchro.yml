@@ -1,0 +1,17 @@
+# Toutes les 15 minutes : synchro Beds24 -> Missions (les nouvelles réservations créent leurs missions,
+# et une mission à J+0..J+3 déclenche aussitôt l'e-mail urgent). Nécessite le secret GitHub CRON_SECRET.
+name: Synchro réservations
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "::warning::Secret CRON_SECRET manquant"; exit 0; fi
+          curl -fsS --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "https://agents.izinest.fr/api/sync-missions" > /dev/null
