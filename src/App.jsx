@@ -1179,6 +1179,7 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
   var [pret,setPret]=useState(false);
   var [superpose,setSuperpose]=useState(false);
   var [grand,setGrand]=useState(false);
+  var [portrait,setPortrait]=useState(false);
   var [flash,setFlash]=useState(false);
   useEffect(function(){
     var annule=false;
@@ -1232,8 +1233,8 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
       </div>
       {/* vignette de référence */}
       {ref&&(
-        <div onClick={function(){setGrand(!grand);}} style={{position:"absolute",top:"calc(env(safe-area-inset-top) + 86px)",right:12,width:grand?"78%":"44%",maxWidth:grand?520:240,transition:"width .2s",borderRadius:12,overflow:"hidden",border:"2px solid #fff",boxShadow:"0 6px 18px rgba(0,0,0,.4)",cursor:"pointer"}}>
-          <img src={ref.moyen||ref.url} alt="Référence" style={{width:"100%",display:"block"}}/>
+        <div onClick={function(){setGrand(!grand);}} style={{position:"absolute",top:"calc(env(safe-area-inset-top) + 86px)",right:12,width:grand?(portrait?"60%":"78%"):(portrait?"32%":"44%"),maxWidth:grand?520:(portrait?170:240),transition:"width .2s",borderRadius:12,overflow:"hidden",border:"2px solid #fff",boxShadow:"0 6px 18px rgba(0,0,0,.4)",cursor:"pointer"}}>
+          <img src={ref.moyen||ref.url} alt="Référence" onLoad={function(e){ setPortrait(e.currentTarget.naturalHeight>e.currentTarget.naturalWidth); }} style={{width:"100%",display:"block"}}/>
           <div style={{position:"absolute",left:0,right:0,bottom:0,background:noir,fontSize:10,fontWeight:700,textAlign:"center",padding:"3px 0",textTransform:"uppercase",letterSpacing:".06em"}}>Référence{faites[ref.nom]?" · faite":""}</div>
         </div>
       )}
