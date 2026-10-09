@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import exifr from "exifr";
-import { MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut, CalendarX2, Coffee, Sparkles } from "lucide-react";
+import { CircleCheck, MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut, CalendarX2, Coffee, Sparkles } from "lucide-react";
 
 /* ─── DESIGN SYSTEM ─────────────────────────────────────────────────── */
 var DS = {
@@ -1155,6 +1155,20 @@ function PhotoModule({photos,setPhotos,title,subtitle,infoTitle,infoItems,emptyL
   );
 }
 
+/* ── Photos du brouillon conservées dans le téléphone (IndexedDB) : elles survivent à une actualisation ── */
+var IDB_PHOTOS="izinest_photos";
+function idbOuvrir(){ return new Promise(function(res,rej){ try{ var r=indexedDB.open(IDB_PHOTOS,1); r.onupgradeneeded=function(){ r.result.createObjectStore("p",{keyPath:"id"}); }; r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);}; }catch(e){rej(e);} }); }
+function idbTx(mode,fn){ return idbOuvrir().then(function(db){ return new Promise(function(res,rej){ var tx=db.transaction("p",mode); var st=tx.objectStore("p"); var out=fn(st); tx.oncomplete=function(){res(out&&out.result!==undefined?out.result:out);}; tx.onerror=function(){rej(tx.error);}; }); }); }
+function idbPhotosTout(){ return idbTx("readonly",function(st){return st.getAll();}).catch(function(){return [];}); }
+function idbPhotoPut(rec){ return idbTx("readwrite",function(st){st.put(rec);}).catch(function(){}); }
+function idbPhotoSuppr(id){ return idbTx("readwrite",function(st){st.delete(id);}).catch(function(){}); }
+function idbPhotosVider(){ return idbTx("readwrite",function(st){st.clear();}).catch(function(){}); }
+function recVersPhoto(r){ var f=new File([r.blob],r.name||"photo.jpg",{type:r.blob.type||"image/jpeg"}); return {id:r.id,file:f,preview:URL.createObjectURL(f),name:r.name,ref:r.ref||""}; }
+
+/* horodatage en arrière-plan, une photo après l'autre */
+var fileTraitement=Promise.resolve();
+function traiterEnFond(file,cb){ fileTraitement=fileTraitement.then(function(){ return processPhoto(file).then(cb).catch(function(){ cb(file); }); }); }
+
 /* ── Prise de photos guidée : caméra en plein écran, photo de référence en vignette ou en superposition ── */
 function CameraGuidee({references,photos,setPhotos,onClose}){
   var videoRef=useRef(null), streamRef=useRef(null);
@@ -1166,7 +1180,6 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
   var [superpose,setSuperpose]=useState(false);
   var [grand,setGrand]=useState(false);
   var [flash,setFlash]=useState(false);
-  var [enCours,setEnCours]=useState(false);
   useEffect(function(){
     var annule=false;
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ setErreur("Caméra indisponible sur cet appareil. Utilisez l'import depuis la galerie."); return; }
@@ -1178,31 +1191,35 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
   var ref=references[idx]||null;
   var nbFaites=references.filter(function(r){return faites[r.nom];}).length;
   function suivante(depuis){ for(var k=1;k<=references.length;k++){ var j=(depuis+k)%references.length; if(!faites[references[j].nom]&&j!==depuis) return j; } return -1; }
+  // précharge des images de référence (versions légères)
+  useEffect(function(){ references.forEach(function(r){ var a=new Image(); a.src=r.moyen||r.url; var b=new Image(); b.src=r.mini||r.url; }); },[]);
   function declencher(){
-    var v=videoRef.current; if(!v||!v.videoWidth||enCours) return;
-    setEnCours(true); setFlash(true); setTimeout(function(){setFlash(false);},150);
+    var v=videoRef.current; if(!v||!v.videoWidth) return;
+    setFlash(true); setTimeout(function(){setFlash(false);},120);
     var c=document.createElement("canvas"); c.width=v.videoWidth; c.height=v.videoHeight;
     c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+    var refNom=ref?ref.nom:"";
+    var n=suivante(idx);
+    faites[refNom]=true;
+    if(n===-1) setTimeout(function(){onClose(true);},250); else setIdx(n);
     c.toBlob(function(blob){
-      var nom=(ref?ref.nom.replace(/\.[^.]+$/,""):"photo")+"-"+Date.now()+".jpg";
-      var file=new File([blob],nom,{type:"image/jpeg"});
-      processPhoto(file).then(function(stamped){
-        var item={id:Math.random().toString(36).slice(2),file:stamped,preview:URL.createObjectURL(stamped),name:nom,ref:ref?ref.nom:""};
-        // une seule photo par référence : la nouvelle remplace l'ancienne
-        setPhotos(function(prev){ return prev.filter(function(p){return !(ref&&p.ref===ref.nom);}).concat([item]); });
-        faites[ref?ref.nom:""]=true;
-        var n=suivante(idx);
-        if(n===-1){ setEnCours(false); onClose(true); return; }
-        setIdx(n); setEnCours(false);
+      var nom=(refNom?refNom.replace(/\.[^.]+$/,""):"photo")+"-"+Date.now()+".jpg";
+      var brut=new File([blob],nom,{type:"image/jpeg"});
+      var id=Math.random().toString(36).slice(2);
+      var item={id:id,file:brut,preview:URL.createObjectURL(brut),name:nom,ref:refNom,traitement:true};
+      // une seule photo par référence : la nouvelle remplace l'ancienne
+      setPhotos(function(prev){ return prev.filter(function(p){return !(refNom&&p.ref===refNom);}).concat([item]); });
+      traiterEnFond(brut,function(stamped){
+        setPhotos(function(prev){ return prev.map(function(p){ return p.id===id?Object.assign({},p,{file:stamped,preview:URL.createObjectURL(stamped),traitement:false}):p; }); });
       });
-    },"image/jpeg",0.92);
+    },"image/jpeg",0.9);
   }
   var noir="rgba(0,0,0,0.55)";
   var rond={width:44,height:44,borderRadius:22,border:"none",background:noir,color:"#fff",fontFamily:DS.font.heading,fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"};
   return (
     <div style={{position:"fixed",inset:0,zIndex:2000,background:"#000",color:"#fff",fontFamily:DS.font.body,overflow:"hidden"}}>
       <video ref={videoRef} playsInline muted autoPlay style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
-      {ref&&superpose&&<img src={ref.url} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:.38,pointerEvents:"none"}}/>}
+      {ref&&superpose&&<img src={ref.moyen||ref.url} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:.38,pointerEvents:"none"}}/>}
       {flash&&<div style={{position:"absolute",inset:0,background:"#fff",opacity:.7}}/>}
       {/* en-tête */}
       <div style={{position:"absolute",top:0,left:0,right:0,padding:"calc(env(safe-area-inset-top) + 12px) 14px 30px",background:"linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,0))",display:"flex",alignItems:"flex-start",gap:10}}>
@@ -1215,26 +1232,33 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
       </div>
       {/* vignette de référence */}
       {ref&&(
-        <div onClick={function(){setGrand(!grand);}} style={{position:"absolute",top:"calc(env(safe-area-inset-top) + 86px)",right:12,width:grand?"70%":112,transition:"width .2s",borderRadius:12,overflow:"hidden",border:"2px solid #fff",boxShadow:"0 6px 18px rgba(0,0,0,.4)",cursor:"pointer"}}>
-          <img src={ref.url} alt="Référence" style={{width:"100%",display:"block"}}/>
-          <div style={{position:"absolute",left:0,right:0,bottom:0,background:noir,fontSize:10,fontWeight:700,textAlign:"center",padding:"3px 0",textTransform:"uppercase",letterSpacing:".06em"}}>Référence{faites[ref.nom]?" · ✓ faite":""}</div>
+        <div onClick={function(){setGrand(!grand);}} style={{position:"absolute",top:"calc(env(safe-area-inset-top) + 86px)",right:12,width:grand?"78%":"44%",maxWidth:grand?520:240,transition:"width .2s",borderRadius:12,overflow:"hidden",border:"2px solid #fff",boxShadow:"0 6px 18px rgba(0,0,0,.4)",cursor:"pointer"}}>
+          <img src={ref.moyen||ref.url} alt="Référence" style={{width:"100%",display:"block"}}/>
+          <div style={{position:"absolute",left:0,right:0,bottom:0,background:noir,fontSize:10,fontWeight:700,textAlign:"center",padding:"3px 0",textTransform:"uppercase",letterSpacing:".06em"}}>Référence{faites[ref.nom]?" · faite":""}</div>
         </div>
       )}
       {erreur&&<div style={{position:"absolute",left:20,right:20,top:"40%",background:"rgba(0,0,0,.8)",borderRadius:14,padding:18,textAlign:"center",fontSize:14,lineHeight:1.5}}>{erreur}</div>}
-      {!erreur&&!pret&&<div style={{position:"absolute",left:0,right:0,top:"45%",textAlign:"center",fontSize:14,opacity:.8}}>Ouverture de la caméra…</div>}
+      {!erreur&&!pret&&(
+        <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,background:"#000"}}>
+          <style>{"@keyframes izSpin{to{transform:rotate(360deg)}}"}</style>
+          <div style={{width:54,height:54,borderRadius:27,border:"4px solid rgba(255,255,255,.2)",borderTopColor:DS.color.primary,animation:"izSpin .8s linear infinite"}}/>
+          <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:16}}>Ouverture de la caméra…</div>
+          <div style={{fontSize:13,opacity:.7,maxWidth:260,textAlign:"center"}}>Autorisez l'accès à la caméra si le téléphone le demande.</div>
+        </div>
+      )}
       {/* commandes */}
       <div style={{position:"absolute",left:0,right:0,bottom:0,padding:"30px 20px calc(env(safe-area-inset-bottom) + 20px)",background:"linear-gradient(0deg, rgba(0,0,0,.7), rgba(0,0,0,0))"}}>
         <div style={{display:"flex",gap:6,overflowX:"auto",marginBottom:16,scrollbarWidth:"none"}} className="iz-track">
           {references.map(function(r,i){ var on=i===idx; return (
             <div key={r.nom} onClick={function(){setIdx(i);}} style={{position:"relative",flexShrink:0,width:44,height:44,borderRadius:8,overflow:"hidden",border:"2px solid "+(on?"#fff":"transparent"),opacity:on?1:.75,cursor:"pointer"}}>
-              <img src={r.url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-              {faites[r.nom]&&<div style={{position:"absolute",inset:0,background:"rgba(0,186,179,.55)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>✓</div>}
+              <img src={r.mini||r.url} alt="" decoding="async" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+              {faites[r.nom]&&<div style={{position:"absolute",inset:0,background:"rgba(0,186,179,.55)",display:"flex",alignItems:"center",justifyContent:"center"}}><Check size={20} strokeWidth={3}/></div>}
             </div>
           ); })}
         </div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <button onClick={function(){setSuperpose(!superpose);}} style={Object.assign({},rond,{width:"auto",padding:"0 14px",background:superpose?DS.color.primary:noir})}>Superposer</button>
-          <button onClick={declencher} disabled={!pret||enCours} aria-label="Prendre la photo" style={{width:76,height:76,borderRadius:38,border:"5px solid #fff",background:enCours?"rgba(255,255,255,.4)":"rgba(255,255,255,.9)",cursor:"pointer",boxShadow:"0 0 0 3px rgba(0,0,0,.25)"}}/>
+          <button onClick={declencher} disabled={!pret} aria-label="Prendre la photo" style={{width:76,height:76,borderRadius:38,border:"5px solid #fff",background:"rgba(255,255,255,.9)",cursor:"pointer",boxShadow:"0 0 0 3px rgba(0,0,0,.25)",transform:flash?"scale(.9)":"none",transition:"transform .1s"}}/>
           <button onClick={function(){ var n=suivante(idx); if(n===-1) n=(idx+1)%references.length; setIdx(n); }} style={Object.assign({},rond,{width:"auto",padding:"0 14px"})}>Passer</button>
         </div>
       </div>
@@ -1248,7 +1272,8 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
   var [showWarning,setShowWarning]=useState(false);
   var expectedCount=logement&&logement.photosReference?logement.photosReference.length:0;
   function handleNext(){ if(expectedCount>0&&photos.length<expectedCount){setShowWarning(true);}else{onNext();} }
-  var suivantLabel="Suivant ("+photos.length+" photo"+(photos.length>1?"s":"")+")";
+  var enTraitement=photos.filter(function(p){return p.traitement;}).length;
+  var suivantLabel=enTraitement?"Traitement des photos… ("+enTraitement+")":"Suivant ("+photos.length+" photo"+(photos.length>1?"s":"")+")";
   var groupes=grouperPhotos(logement&&logement.photosReference);
   var [camera,setCamera]=useState(false);
   var refsOrdonnees=[]; groupes.forEach(function(e){ e[1].photos.forEach(function(p){ refsOrdonnees.push(p); }); });
@@ -1258,7 +1283,7 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
     <div>
       {camera&&<CameraGuidee references={refsOrdonnees} photos={photos} setPhotos={setPhotos} onClose={function(){setCamera(false);}}/>}
       {refsOrdonnees.length>0&&(
-        <button onClick={function(){setCamera(true);}} style={{width:"100%",display:"flex",alignItems:"center",gap:14,padding:"14px 16px",marginBottom:22,borderRadius:DS.radius.lg,border:"none",background:DS.color.primaryDark,color:"#fff",cursor:"pointer",textAlign:"left"}}>
+        <button onClick={function(){setCamera(true);}} onPointerDown={function(e){e.currentTarget.style.opacity=".75";}} style={{width:"100%",display:"flex",alignItems:"center",gap:14,padding:"14px 16px",marginBottom:22,borderRadius:DS.radius.lg,border:"none",background:DS.color.primaryDark,color:"#fff",cursor:"pointer",textAlign:"left"}}>
           <span style={{fontSize:26}}>📸</span>
           <span style={{flex:1}}>
             <span style={{display:"block",fontFamily:DS.font.heading,fontWeight:700,fontSize:15}}>Prendre les photos avec le guide</span>
@@ -1285,9 +1310,9 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
                     var fait=faitesRef[p.nom];
                     return (
                       <div key={i} style={{position:"relative",breakInside:"avoid",marginBottom:8}}>
-                        <img src={p.url} alt={p.nom} loading="lazy" style={{width:"100%",borderRadius:DS.radius.sm,border:isNew?"2px solid #f59e0b":"1.5px solid "+DS.color.primaryBorder,display:"block"}}/>
+                        <img src={p.moyen||p.url} alt={p.nom} loading="lazy" style={{width:"100%",borderRadius:DS.radius.sm,border:isNew?"2px solid #f59e0b":"1.5px solid "+DS.color.primaryBorder,display:"block"}}/>
                         {isNew?<div style={{position:"absolute",top:6,left:6,background:"#f59e0b",color:"#fff",fontFamily:DS.font.heading,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:DS.radius.pill}}>Nouveau</div>:null}
-                        {fait?<div style={{position:"absolute",top:6,right:6,background:DS.color.primary,color:"#fff",fontFamily:DS.font.heading,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:DS.radius.pill}}>✓ Faite</div>:null}
+                        {fait?<div style={{position:"absolute",top:6,right:6,display:"flex",alignItems:"center",gap:4,background:DS.color.primary,color:"#fff",fontFamily:DS.font.heading,fontSize:11,fontWeight:700,padding:"3px 8px 3px 5px",borderRadius:DS.radius.pill}}><CircleCheck size={14} strokeWidth={2.4}/>Faite</div>:null}
                       </div>
                     );
                   })}
@@ -1300,7 +1325,7 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
       <PhotoModule photos={photos} setPhotos={setPhotos} title="Photos de fin de ménage" subtitle="Sélectionnez toutes vos photos en une seule fois." infoTitle="Photos attendues" infoItems={PIECES} emptyLabel="Sélectionner les photos" addLabel="Ajouter d'autres photos" required={true} onProcessingChange={setIsProcessing}/>
       <ChangeBanner changes={changes||[]} stepIndex={5} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
       <ChangeBannerSpacer changes={changes||[]} stepIndex={5} acknowledged={acknowledged}/>
-      <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn><Btn onClick={handleNext} disabled={photos.length===0||isProcessing||!!(changes&&changes.some(function(c){return c.step===5;})&&!acknowledged)}>{suivantLabel}</Btn></div>
+      <div style={{display:"flex",gap:10}}><Btn secondary onClick={onPrev} disabled={isProcessing}>Retour</Btn><Btn onClick={handleNext} disabled={photos.length===0||isProcessing||enTraitement>0||!!(changes&&changes.some(function(c){return c.step===5;})&&!acknowledged)}>{suivantLabel}</Btn></div>
     </div>
   );
 }
@@ -2455,6 +2480,19 @@ export default function App(){
   var [consommables,setConsommables]=useState(INIT_CONSO);
   var [photosArrivee,setPhotosArrivee]=useState([]);
   var [photos,setPhotos]=useState([]);
+  // photos du brouillon conservées dans le téléphone
+  var photosSauvees=useRef({});
+  useEffect(function(){
+    var actuelles={};
+    [["arrivee",photosArrivee],["fin",photos]].forEach(function(pair){
+      pair[1].forEach(function(p){
+        if(p.traitement) return;
+        actuelles[p.id]=1;
+        if(photosSauvees.current[p.id]!==p.file){ photosSauvees.current[p.id]=p.file; idbPhotoPut({id:p.id,kind:pair[0],name:p.name,ref:p.ref||"",blob:p.file}); }
+      });
+    });
+    Object.keys(photosSauvees.current).forEach(function(id){ if(!actuelles[id]){ delete photosSauvees.current[id]; idbPhotoSuppr(id); } });
+  },[photos,photosArrivee]);
   var [done,setDone]=useState(false);
   var [sending,setSending]=useState(false);
   var [sendError,setSendError]=useState("");
@@ -2487,7 +2525,9 @@ export default function App(){
   },[logement]);
 
   useEffect(function(){
-    try{var raw=localStorage.getItem(STORAGE_KEY);if(raw){var draft=JSON.parse(raw);if(draft&&draft.step>0){setSavedDraft(draft);setShowResume(true);}}}catch(e){}
+    var aReprendre=false;
+    try{var raw=localStorage.getItem(STORAGE_KEY);if(raw){var draft=JSON.parse(raw);if(draft&&draft.step>0){aReprendre=true;setSavedDraft(draft);setShowResume(true);}}}catch(e){}
+    if(!aReprendre) idbPhotosVider();   // pas de brouillon : on repart sans anciennes photos
   },[]);
 
   useEffect(function(){
@@ -2502,8 +2542,15 @@ export default function App(){
     return function(){window.removeEventListener("beforeunload",onBeforeUnload);};
   },[sending]);
 
-  function handleResume(){setStep(savedDraft.step);setArrivee(savedDraft.arrivee||INIT_ARRIVEE);setAttention(savedDraft.attention||INIT_ATTENTION);setEtatLieux(savedDraft.etatLieux||INIT_ETAT);setConsommables(savedDraft.consommables||INIT_CONSO);setShowResume(false);}
-  function handleRestart(){localStorage.removeItem(STORAGE_KEY);setShowResume(false);}
+  function handleResume(){
+    idbPhotosTout().then(function(recs){
+      recs.forEach(function(r){ photosSauvees.current[r.id]=true; });
+      var a=recs.filter(function(r){return r.kind==="arrivee";}).map(recVersPhoto), f=recs.filter(function(r){return r.kind==="fin";}).map(recVersPhoto);
+      a.forEach(function(p){photosSauvees.current[p.id]=p.file;}); f.forEach(function(p){photosSauvees.current[p.id]=p.file;});
+      if(a.length) setPhotosArrivee(a); if(f.length) setPhotos(f);
+    });
+    setStep(savedDraft.step);setArrivee(savedDraft.arrivee||INIT_ARRIVEE);setAttention(savedDraft.attention||INIT_ATTENTION);setEtatLieux(savedDraft.etatLieux||INIT_ETAT);setConsommables(savedDraft.consommables||INIT_CONSO);setShowResume(false);}
+  function handleRestart(){localStorage.removeItem(STORAGE_KEY);idbPhotosVider();photosSauvees.current={};setShowResume(false);}
   function next(){setStep(function(s){return Math.min(s+1,TOTAL-1);});}
   function prev(){setStep(function(s){return Math.max(s-1,0);});}
 
@@ -2520,7 +2567,7 @@ export default function App(){
         var vF=resultsFin.filter(function(r){return r!==null;});
         fetch("/api/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({arrivee:arrivee,etatLieux:etatLieux,consommables:consommables,photosArrivee:vA,photos:vF,photosAttendues:(logement&&logement.photosReference?logement.photosReference.length:0),aApporter:(logement&&logement.consommablesARecuperer&&logement.aApporter)?{items:logement.aApporter.items,rapportIds:(logement.aApporter.rapports||[]).map(function(r){return r.id;})}:null})})
           .then(function(res){return res.json();})
-          .then(function(data){setSending(false);if(data.success){localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(PHOTO_ANALYSES_KEY);setDone(true);}else setSendError("Erreur lors de l'envoi. Réessayez.");})
+          .then(function(data){setSending(false);if(data.success){localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(PHOTO_ANALYSES_KEY);idbPhotosVider();photosSauvees.current={};setDone(true);}else setSendError("Erreur lors de l'envoi. Réessayez.");})
           .catch(function(){setSending(false);setSendError("Erreur réseau. Vérifiez votre connexion.");});
         return;
       }

@@ -120,6 +120,30 @@ function filtreMissions(prestataireId, now) {
   return prestataireId ? { or: [dispo, { property: "Prestataire", relation: { contains: prestataireId } }] } : dispo;
 }
 
+async function servirRefPhoto(req, res, token) {
+  const id = String(req.query.refphoto || "").replace(/[^a-f0-9-]/gi, "");
+  const nom = String(req.query.n || "");
+  const w = Math.min(1400, Math.max(80, parseInt(req.query.w, 10) || 600));
+  try {
+    const page = await (await fetch(`https://api.notion.com/v1/pages/${id}`, { headers: H(token) })).json();
+    const f = (page.properties?.["Photos fin de ménage"]?.files || []).find(x => (x.name || "") === nom);
+    const url = f ? (f.type === "external" ? f.external.url : f.file?.url) : "";
+    if (!url) return res.status(404).send("Photo introuvable");
+    const src = await fetch(url);
+    if (!src.ok) return res.status(502).send("Photo inaccessible");
+    const buf = Buffer.from(await src.arrayBuffer());
+    let out = buf, type = src.headers.get("content-type") || "image/jpeg";
+    try {
+      const sharp = (await import("sharp")).default;
+      out = await sharp(buf).rotate().resize({ width: w, withoutEnlargement: true }).webp({ quality: w <= 300 ? 60 : 72 }).toBuffer();
+      type = "image/webp";
+    } catch (e) { console.error("refphoto sharp:", e.message); }
+    res.setHeader("Content-Type", type);
+    res.setHeader("Cache-Control", "public, max-age=86400, s-maxage=2592000, stale-while-revalidate=604800");
+    return res.status(200).send(out);
+  } catch (e) { return res.status(500).send("Erreur photo"); }
+}
+
 async function servirHero(req, res, token) {
   const id = String(req.query.hero || "").replace(/[^a-f0-9-]/gi, "");
   try {
@@ -152,6 +176,8 @@ export default async function handler(req, res) {
 
   // ?hero=<id logement> : image de couverture optimisée
   if (req.query.hero) return servirHero(req, res, NOTION_TOKEN);
+  // ?refphoto=<id logement>&n=<nom du fichier>&w=<largeur> : photo de référence redimensionnée
+  if (req.query.refphoto) return servirRefPhoto(req, res, NOTION_TOKEN);
 
   // ?ics=<id mission> : fichier calendrier (bouton « Apple Agenda » des e-mails)
   if (req.query.ics) {

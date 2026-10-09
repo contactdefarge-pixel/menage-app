@@ -43,9 +43,14 @@ function mapPage(page) {
   const props = page.properties || {};
   const nom = plainText(props["Nom"]);
 
+  // miniatures servies par /api/missions?refphoto=… (redimensionnées et mises en cache par Vercel)
+  const v = encodeURIComponent(page.last_edited_time || "");
+  const proxy = (nom, w) => `/api/missions?refphoto=${page.id}&n=${encodeURIComponent(nom)}&w=${w}&v=${v}`;
   const photosReference = (props["Photos fin de ménage"]?.files || []).map(f => ({
     url: f.type === "external" ? f.external.url : f.file?.url,
     nom: f.name || "",
+    mini: proxy(f.name || "", 200),
+    moyen: proxy(f.name || "", 900),
   })).filter(f => f.url);
 
   return {
