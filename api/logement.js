@@ -44,14 +44,13 @@ function mapPage(page) {
   const nom = plainText(props["Nom"]);
 
   // miniatures servies par /api/missions?refphoto=… (redimensionnées et mises en cache par Vercel)
-  const v = encodeURIComponent(page.last_edited_time || "");
-  const proxy = (nom, w) => `/api/missions?refphoto=${page.id}&n=${encodeURIComponent(nom)}&w=${w}&v=${v}`;
-  const photosReference = (props["Photos fin de ménage"]?.files || []).map(f => ({
-    url: f.type === "external" ? f.external.url : f.file?.url,
-    nom: f.name || "",
-    mini: proxy(f.name || "", 200),
-    moyen: proxy(f.name || "", 900),
-  })).filter(f => f.url);
+  // clé de cache = identité du fichier (stable tant que la photo n'est pas remplacée), pas la date de modif du logement
+  const cle = (u) => { const b = String(u || "").split("?")[0]; let h = 0; for (let i = 0; i < b.length; i++) h = (h * 31 + b.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+  const proxy = (nom, w, u) => `/api/missions?refphoto=${page.id}&n=${encodeURIComponent(nom)}&w=${w}&v=${cle(u)}`;
+  const photosReference = (props["Photos fin de ménage"]?.files || []).map(f => {
+    const url = f.type === "external" ? f.external.url : f.file?.url;
+    return { url, nom: f.name || "", mini: proxy(f.name || "", 200, url), moyen: proxy(f.name || "", 900, url) };
+  }).filter(f => f.url);
 
   return {
     id:    page.id,

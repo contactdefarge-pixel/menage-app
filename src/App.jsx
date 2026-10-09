@@ -2522,7 +2522,8 @@ export default function App(){
   },[]);
 
   useEffect(function(){
-    if(logement&&logement.photosReference){logement.photosReference.forEach(function(p){var img=new Image();img.src=p.url;});}
+    // préchargement des versions légères dès l'ouverture du formulaire : prêtes à l'étape photos
+    if(logement&&logement.photosReference){logement.photosReference.forEach(function(p){var a=new Image();a.src=p.moyen||p.url;var b=new Image();b.src=p.mini||p.url;});}
   },[logement]);
 
   useEffect(function(){
