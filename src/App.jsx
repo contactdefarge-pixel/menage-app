@@ -1155,6 +1155,94 @@ function PhotoModule({photos,setPhotos,title,subtitle,infoTitle,infoItems,emptyL
   );
 }
 
+/* ── Prise de photos guidée : caméra en plein écran, photo de référence en vignette ou en superposition ── */
+function CameraGuidee({references,photos,setPhotos,onClose}){
+  var videoRef=useRef(null), streamRef=useRef(null);
+  var faites={}; photos.forEach(function(p){ if(p.ref) faites[p.ref]=true; });
+  var premier=references.findIndex(function(r){return !faites[r.nom];});
+  var [idx,setIdx]=useState(premier===-1?0:premier);
+  var [erreur,setErreur]=useState("");
+  var [pret,setPret]=useState(false);
+  var [superpose,setSuperpose]=useState(false);
+  var [grand,setGrand]=useState(false);
+  var [flash,setFlash]=useState(false);
+  var [enCours,setEnCours]=useState(false);
+  useEffect(function(){
+    var annule=false;
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ setErreur("Caméra indisponible sur cet appareil. Utilisez l'import depuis la galerie."); return; }
+    navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1440}}})
+      .then(function(st){ if(annule){st.getTracks().forEach(function(t){t.stop();});return;} streamRef.current=st; if(videoRef.current){videoRef.current.srcObject=st; videoRef.current.play().catch(function(){});} setPret(true); })
+      .catch(function(){ setErreur("Accès à la caméra refusé. Autorisez la caméra pour ce site dans les réglages, ou utilisez l'import depuis la galerie."); });
+    return function(){ annule=true; if(streamRef.current) streamRef.current.getTracks().forEach(function(t){t.stop();}); };
+  },[]);
+  var ref=references[idx]||null;
+  var nbFaites=references.filter(function(r){return faites[r.nom];}).length;
+  function suivante(depuis){ for(var k=1;k<=references.length;k++){ var j=(depuis+k)%references.length; if(!faites[references[j].nom]&&j!==depuis) return j; } return -1; }
+  function declencher(){
+    var v=videoRef.current; if(!v||!v.videoWidth||enCours) return;
+    setEnCours(true); setFlash(true); setTimeout(function(){setFlash(false);},150);
+    var c=document.createElement("canvas"); c.width=v.videoWidth; c.height=v.videoHeight;
+    c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+    c.toBlob(function(blob){
+      var nom=(ref?ref.nom.replace(/\.[^.]+$/,""):"photo")+"-"+Date.now()+".jpg";
+      var file=new File([blob],nom,{type:"image/jpeg"});
+      processPhoto(file).then(function(stamped){
+        var item={id:Math.random().toString(36).slice(2),file:stamped,preview:URL.createObjectURL(stamped),name:nom,ref:ref?ref.nom:""};
+        // une seule photo par référence : la nouvelle remplace l'ancienne
+        setPhotos(function(prev){ return prev.filter(function(p){return !(ref&&p.ref===ref.nom);}).concat([item]); });
+        faites[ref?ref.nom:""]=true;
+        var n=suivante(idx);
+        if(n===-1){ setEnCours(false); onClose(true); return; }
+        setIdx(n); setEnCours(false);
+      });
+    },"image/jpeg",0.92);
+  }
+  var noir="rgba(0,0,0,0.55)";
+  var rond={width:44,height:44,borderRadius:22,border:"none",background:noir,color:"#fff",fontFamily:DS.font.heading,fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"};
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:2000,background:"#000",color:"#fff",fontFamily:DS.font.body,overflow:"hidden"}}>
+      <video ref={videoRef} playsInline muted autoPlay style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
+      {ref&&superpose&&<img src={ref.url} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:.38,pointerEvents:"none"}}/>}
+      {flash&&<div style={{position:"absolute",inset:0,background:"#fff",opacity:.7}}/>}
+      {/* en-tête */}
+      <div style={{position:"absolute",top:0,left:0,right:0,padding:"calc(env(safe-area-inset-top) + 12px) 14px 30px",background:"linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,0))",display:"flex",alignItems:"flex-start",gap:10}}>
+        <button onClick={function(){onClose(false);}} style={rond} aria-label="Fermer">✕</button>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:16}}>{ref?libellePiece(ref.nom):"Photos"}</div>
+          <div style={{fontSize:12,opacity:.85}}>Photo {idx+1} / {references.length} · {nbFaites} faite{nbFaites>1?"s":""}</div>
+          <div style={{height:4,borderRadius:2,background:"rgba(255,255,255,.25)",marginTop:6,overflow:"hidden"}}><div style={{height:"100%",width:(nbFaites/Math.max(1,references.length)*100)+"%",background:DS.color.primary}}/></div>
+        </div>
+      </div>
+      {/* vignette de référence */}
+      {ref&&(
+        <div onClick={function(){setGrand(!grand);}} style={{position:"absolute",top:"calc(env(safe-area-inset-top) + 86px)",right:12,width:grand?"70%":112,transition:"width .2s",borderRadius:12,overflow:"hidden",border:"2px solid #fff",boxShadow:"0 6px 18px rgba(0,0,0,.4)",cursor:"pointer"}}>
+          <img src={ref.url} alt="Référence" style={{width:"100%",display:"block"}}/>
+          <div style={{position:"absolute",left:0,right:0,bottom:0,background:noir,fontSize:10,fontWeight:700,textAlign:"center",padding:"3px 0",textTransform:"uppercase",letterSpacing:".06em"}}>Référence{faites[ref.nom]?" · ✓ faite":""}</div>
+        </div>
+      )}
+      {erreur&&<div style={{position:"absolute",left:20,right:20,top:"40%",background:"rgba(0,0,0,.8)",borderRadius:14,padding:18,textAlign:"center",fontSize:14,lineHeight:1.5}}>{erreur}</div>}
+      {!erreur&&!pret&&<div style={{position:"absolute",left:0,right:0,top:"45%",textAlign:"center",fontSize:14,opacity:.8}}>Ouverture de la caméra…</div>}
+      {/* commandes */}
+      <div style={{position:"absolute",left:0,right:0,bottom:0,padding:"30px 20px calc(env(safe-area-inset-bottom) + 20px)",background:"linear-gradient(0deg, rgba(0,0,0,.7), rgba(0,0,0,0))"}}>
+        <div style={{display:"flex",gap:6,overflowX:"auto",marginBottom:16,scrollbarWidth:"none"}} className="iz-track">
+          {references.map(function(r,i){ var on=i===idx; return (
+            <div key={r.nom} onClick={function(){setIdx(i);}} style={{position:"relative",flexShrink:0,width:44,height:44,borderRadius:8,overflow:"hidden",border:"2px solid "+(on?"#fff":"transparent"),opacity:on?1:.75,cursor:"pointer"}}>
+              <img src={r.url} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+              {faites[r.nom]&&<div style={{position:"absolute",inset:0,background:"rgba(0,186,179,.55)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>✓</div>}
+            </div>
+          ); })}
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <button onClick={function(){setSuperpose(!superpose);}} style={Object.assign({},rond,{width:"auto",padding:"0 14px",background:superpose?DS.color.primary:noir})}>Superposer</button>
+          <button onClick={declencher} disabled={!pret||enCours} aria-label="Prendre la photo" style={{width:76,height:76,borderRadius:38,border:"5px solid #fff",background:enCours?"rgba(255,255,255,.4)":"rgba(255,255,255,.9)",cursor:"pointer",boxShadow:"0 0 0 3px rgba(0,0,0,.25)"}}/>
+          <button onClick={function(){ var n=suivante(idx); if(n===-1) n=(idx+1)%references.length; setIdx(n); }} style={Object.assign({},rond,{width:"auto",padding:"0 14px"})}>Passer</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledged,onAcknowledge}){
   var [isProcessing,setIsProcessing]=useState(false);
   var [showWarning,setShowWarning]=useState(false);
@@ -1162,8 +1250,23 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
   function handleNext(){ if(expectedCount>0&&photos.length<expectedCount){setShowWarning(true);}else{onNext();} }
   var suivantLabel="Suivant ("+photos.length+" photo"+(photos.length>1?"s":"")+")";
   var groupes=grouperPhotos(logement&&logement.photosReference);
+  var [camera,setCamera]=useState(false);
+  var refsOrdonnees=[]; groupes.forEach(function(e){ e[1].photos.forEach(function(p){ refsOrdonnees.push(p); }); });
+  var faitesRef={}; photos.forEach(function(p){ if(p.ref) faitesRef[p.ref]=true; });
+  var nbRefFaites=refsOrdonnees.filter(function(r){return faitesRef[r.nom];}).length;
   return (
     <div>
+      {camera&&<CameraGuidee references={refsOrdonnees} photos={photos} setPhotos={setPhotos} onClose={function(){setCamera(false);}}/>}
+      {refsOrdonnees.length>0&&(
+        <button onClick={function(){setCamera(true);}} style={{width:"100%",display:"flex",alignItems:"center",gap:14,padding:"14px 16px",marginBottom:22,borderRadius:DS.radius.lg,border:"none",background:DS.color.primaryDark,color:"#fff",cursor:"pointer",textAlign:"left"}}>
+          <span style={{fontSize:26}}>📸</span>
+          <span style={{flex:1}}>
+            <span style={{display:"block",fontFamily:DS.font.heading,fontWeight:700,fontSize:15}}>Prendre les photos avec le guide</span>
+            <span style={{display:"block",fontFamily:DS.font.body,fontSize:12,opacity:.8,marginTop:2}}>La caméra s'ouvre avec la photo de référence à reproduire · {nbRefFaites} / {refsOrdonnees.length} faites</span>
+          </span>
+          <span style={{fontSize:18}}>→</span>
+        </button>
+      )}
       {showWarning?<PhotoWarningModal expected={expectedCount} actual={photos.length} onConfirm={function(){setShowWarning(false);onNext();}} onCancel={function(){setShowWarning(false);}}/>:null}
       {groupes.length>0?(
         <div style={{marginBottom:28}}>
@@ -1179,10 +1282,12 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
                 <div style={{columns:2,gap:8}}>
                   {groupe.photos.map(function(p,i){
                     var isNew=changes&&changes.some(function(c){return c.newPhotos&&c.newPhotos.indexOf(p.nom)!==-1;});
+                    var fait=faitesRef[p.nom];
                     return (
                       <div key={i} style={{position:"relative",breakInside:"avoid",marginBottom:8}}>
                         <img src={p.url} alt={p.nom} loading="lazy" style={{width:"100%",borderRadius:DS.radius.sm,border:isNew?"2px solid #f59e0b":"1.5px solid "+DS.color.primaryBorder,display:"block"}}/>
                         {isNew?<div style={{position:"absolute",top:6,left:6,background:"#f59e0b",color:"#fff",fontFamily:DS.font.heading,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:DS.radius.pill}}>Nouveau</div>:null}
+                        {fait?<div style={{position:"absolute",top:6,right:6,background:DS.color.primary,color:"#fff",fontFamily:DS.font.heading,fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:DS.radius.pill}}>✓ Faite</div>:null}
                       </div>
                     );
                   })}
