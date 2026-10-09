@@ -91,7 +91,9 @@ var STEP_LABELS = { 0:"Informations du logement", 2:"Points d attention", 4:"Con
 
 function hashString(str){ var s=String(str||""),h=0; for(var i=0;i<s.length;i++){h=((h<<5)-h)+s.charCodeAt(i);h|=0;} return h.toString(36); }
 function hashField(val){ if(Array.isArray(val)) return hashString(val.map(function(v){return JSON.stringify(v);}).join("|")); return hashString(val); }
-function buildHashes(logement){ var r={}; WATCHED_FIELDS.forEach(function(f){r[f.key]=hashField(logement[f.key]);}); return r; }
+function photoId(p){ var u=String((p&&p.url)||"").split("?")[0]; return u||String((p&&p.nom)||""); }
+function libellePiece(nom){ var parsed=parseNomPhoto(nom); var def=trouverDef(parsed.nomPiece); var l=def?def.label:(parsed.nomPiece||"Autre"); l=l.charAt(0).toUpperCase()+l.slice(1); return parsed.numero?l+" "+parsed.numero:l; }
+function buildHashes(logement){ var r={}; WATCHED_FIELDS.forEach(function(f){ r[f.key]= f.key==="photosReference" ? hashString((logement.photosReference||[]).map(photoId).sort().join("|")) : hashField(logement[f.key]); }); return r; }
 function getStoredHashes(slug){ try{var a=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}");return a[slug]||null;}catch(e){return null;} }
 function saveHashes(slug,hashes,logement){
   try{
@@ -99,9 +101,9 @@ function saveHashes(slug,hashes,logement){
     a[slug]=hashes;
     // Also store photo names for per-piece change detection
     if(logement&&logement.photosReference){
-      var names={};
-      (logement.photosReference||[]).forEach(function(p){names[p.nom]=1;});
-      a[slug]._photoNames=names;
+      var ids={};
+      (logement.photosReference||[]).forEach(function(p){ids[photoId(p)]=p.nom;});
+      a[slug]._photoIds=ids;
     }
     localStorage.setItem(HASHES_KEY,JSON.stringify(a));
   }catch(e){}
@@ -114,20 +116,23 @@ function detectChanges(slug,logement){
   WATCHED_FIELDS.forEach(function(f){
     if(f.key==="photosReference"){
       if(stored[f.key]===undefined||stored[f.key]===current[f.key]) return;
-      // Detect which pieces have new photos
-      var storedNames={};
-      try{ var sp=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}"); var spn=sp[slug]&&sp[slug]._photoNames; if(spn) storedNames=spn; }catch(e){}
-      var newPhotos=(logement.photosReference||[]).filter(function(p){ return !storedNames[p.nom]; });
-      var newPieces={};
-      newPhotos.forEach(function(p){
-        var parsed=parseNomPhoto(p.nom);
-        var def=trouverDef(parsed.nomPiece);
-        var label=def?(parsed.numero?def.label+" "+parsed.numero:def.label):(parsed.nomPiece||"Autre");
-        if(!newPieces[label]) newPieces[label]=[];
-        newPieces[label].push(p.nom);
-      });
-      var pieceDetails=Object.keys(newPieces).map(function(k){return k+" ("+newPieces[k].length+" photo"+(newPieces[k].length>1?"s":"")+")";}).join(", ");
-      changed.push({key:f.key,label:pieceDetails?"Photos de référence — "+pieceDetails:"Photos de référence",step:f.step,newPhotos:newPhotos.map(function(p){return p.nom;})});
+      var avant=null;
+      try{ var sp=JSON.parse(localStorage.getItem(HASHES_KEY)||"{}"); avant=sp[slug]&&sp[slug]._photoIds; }catch(e){}
+      if(!avant) return; // ancienne version de l'appli : pas de base de comparaison fiable
+      var maintenant={}; (logement.photosReference||[]).forEach(function(p){maintenant[photoId(p)]=p.nom;});
+      var ajout=(logement.photosReference||[]).filter(function(p){return !avant[photoId(p)];});
+      var retraits=Object.keys(avant).filter(function(id){return !maintenant[id];}).map(function(id){return avant[id];});
+      var parPiece={};
+      ajout.forEach(function(p){ var k=libellePiece(p.nom); (parPiece[k]=parPiece[k]||{n:0,r:0}).n++; });
+      retraits.forEach(function(nom){ var k=libellePiece(nom); (parPiece[k]=parPiece[k]||{n:0,r:0}).r++; });
+      var pieces=Object.keys(parPiece);
+      if(!pieces.length) return;
+      var detail=pieces.map(function(k){ var x=parPiece[k];
+        if(x.n&&x.r&&x.n===x.r) return k+" : "+x.n+" photo"+(x.n>1?"s":"")+" remplacée"+(x.n>1?"s":"");
+        var t=[]; if(x.n) t.push(x.n+" nouvelle"+(x.n>1?"s":"")); if(x.r) t.push(x.r+" retirée"+(x.r>1?"s":""));
+        return k+" : "+t.join(", ");
+      }).join(" · ");
+      changed.push({key:f.key,label:"Photos de référence — "+detail,step:f.step,newPhotos:ajout.map(function(p){return p.nom;}),pieces:pieces});
     } else {
       if(stored[f.key]!==undefined&&stored[f.key]!==current[f.key]) changed.push({key:f.key,label:f.label,step:f.step});
     }
@@ -755,10 +760,11 @@ function Tuile({span,bg,fg,icon,titre,children,border}){
   );
 }
 /* ── Linge à récupérer : bouton dans la tuile Voyageurs -> panneau du bas avec cases à cocher ── */
+function majuscule(t){ t=String(t||"").trim(); return t?t.charAt(0).toUpperCase()+t.slice(1):t; }
 function lignesConso(v){
   return parseConsommablesALaisser(v).map(function(c){
     var n=c.qt?c.qt.replace(/^x/i,""):"";
-    return (n?n+" × ":"")+c.label+(c.comment?" ("+c.comment+")":"");
+    return (n?n+" × ":"")+majuscule(c.label)+(c.comment?" ("+c.comment+")":"");
   });
 }
 function IconLinge({size}){
@@ -932,7 +938,7 @@ function GrilleInfos({logement}){
           </Tuile>
         )}
         {panneauLinge&&<PanneauLinge lignes={lignes} onClose={function(){setPanneauLinge(false);}}/>}
-        {panneauConso&&<PanneauLinge lignes={consoRecup} avant={consoStock} avantTitre="Signalé au dernier ménage · stock izinest" titre="Consommables à récupérer" icone={<Package size={19} strokeWidth={2}/>} onClose={function(){setPanneauConso(false);}}/>}
+        {panneauConso&&<PanneauLinge lignes={consoRecup} avant={consoStock} avantTitre="Signalé au dernier ménage" titre="Consommables à récupérer" icone={<Package size={19} strokeWidth={2}/>} onClose={function(){setPanneauConso(false);}}/>}
       </div>
   );
 }
@@ -1167,7 +1173,9 @@ function Step6Photos({photos,setPhotos,logement,onNext,onPrev,changes,acknowledg
             var pieceKey=entry[0],groupe=entry[1];
             return (
               <div key={pieceKey} style={{marginBottom:16}}>
-                <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:15,color:DS.color.primaryDark,marginBottom:8}}>{groupe.label}</div>
+                <div style={{display:"flex",alignItems:"center",gap:8,fontFamily:DS.font.heading,fontWeight:700,fontSize:15,color:DS.color.primaryDark,marginBottom:8}}>{groupe.label}
+                  {changes&&changes.some(function(c){return c.pieces&&c.pieces.indexOf(groupe.label)!==-1;})&&<span style={{background:"#f59e0b",color:"#fff",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:99}}>Mise à jour</span>}
+                </div>
                 <div style={{columns:2,gap:8}}>
                   {groupe.photos.map(function(p,i){
                     var isNew=changes&&changes.some(function(c){return c.newPhotos&&c.newPhotos.indexOf(p.nom)!==-1;});
@@ -2027,7 +2035,7 @@ function AdminCourses({pwd}){
   if(!data) return <Chargement erreur={err}/>;
   var groupes={}; data.rapports.forEach(function(r){ (groupes[r.logement]=groupes[r.logement]||[]).push(r); });
   var noms=Object.keys(groupes).sort();
-  function articles(liste){ var vus={}; var out=[]; liste.forEach(function(r){ r.texte.split(/[,\n;]+/).map(function(x){return x.trim();}).filter(Boolean).forEach(function(a){ var k=a.toLowerCase(); if(!vus[k]){vus[k]=1; out.push(a);} }); }); return out; }
+  function articles(liste){ var vus={}; var out=[]; liste.forEach(function(r){ r.texte.split(/[,\n;]+/).map(function(x){return majuscule(x);}).filter(Boolean).forEach(function(a){ var k=a.toLowerCase(); if(!vus[k]){vus[k]=1; out.push(a);} }); }); return out; }
   function fait(nom){
     if(!window.confirm("Marquer les courses de « "+nom+" » comme faites ?")) return;
     setBusy(nom);

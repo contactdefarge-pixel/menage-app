@@ -1,6 +1,6 @@
 import { sendEmail, APP_URL } from "../lib/mail.js";
 import { ADMIN_EMAIL } from "../lib/urgent.js";
-import { marquerTraites } from "../lib/consommables.js";
+import { marquerTraites, articles } from "../lib/consommables.js";
 export const config = {
   api: { bodyParser: { sizeLimit: "50mb" } },
 };
@@ -25,7 +25,8 @@ export default async function handler(req, res) {
     const { arrivee, etatLieux, consommables, photosArrivee, photos, photosAttendues, aApporter } = body;
     // consommables à apporter (stock izinest) : ce qui n'a pas été apporté est reporté sur ce rapport
     const nonApportes = (aApporter?.items || []).filter(a => !(consommables?.apportes || []).includes(a));
-    const aPrevoir = [consommables?.consommablesAPrevoir || "", nonApportes.join(", ")].filter(x => x.trim()).join(", ");
+    // format homogène : un article par élément, majuscule en début, sans doublon
+    const aPrevoir = articles([consommables?.consommablesAPrevoir || "", nonApportes.join(", ")]).join(", ");
 
     // ── Calcul durée ──────────────────────────────────────────────────────────
     function calcDuree(debut, fin) {
