@@ -2365,7 +2365,7 @@ export default function App(){
       if(startIndex>=allPhotos.length){
         var vA=resultsArrivee.filter(function(r){return r!==null;});
         var vF=resultsFin.filter(function(r){return r!==null;});
-        fetch("/api/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({arrivee:arrivee,etatLieux:etatLieux,consommables:consommables,photosArrivee:vA,photos:vF})})
+        fetch("/api/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({arrivee:arrivee,etatLieux:etatLieux,consommables:consommables,photosArrivee:vA,photos:vF,photosAttendues:(logement&&logement.photosReference?logement.photosReference.length:0)})})
           .then(function(res){return res.json();})
           .then(function(data){setSending(false);if(data.success){localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(PHOTO_ANALYSES_KEY);setDone(true);}else setSendError("Erreur lors de l'envoi. Réessayez.");})
           .catch(function(){setSending(false);setSendError("Erreur réseau. Vérifiez votre connexion.");});
