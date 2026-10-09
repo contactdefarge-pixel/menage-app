@@ -1,3 +1,4 @@
+import { aApporter } from "../lib/consommables.js";
 import { traiterUrgences, PROP_URGENCE, relancerMission } from "../lib/urgent.js";
 import { vuePlanning, vueCourses, coursesFaites, vuePressing, pressingCreer, pressingStatut, pressingSupprimer, vueLogements, vueReleve, definirPrime } from "../lib/admin-vues.js";
 import { getMissionDetails, getPrestataire, emailConfirmation, notifierAnnulation, sendEmail } from "../lib/mail.js";
@@ -147,6 +148,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({ properties: { "État": { status: { name: "Acceptée" } }, "Prestataire": { relation: [{ id: prestataireId }] } } }) });
       if (!up.ok) return res.status(500).json({ error: "Notion : " + (await up.text()).slice(0, 300) });
       const [mis, pres] = await Promise.all([getMissionDetails(T, missionId), getPrestataire(T, prestataireId)]);
+      if (mis.stockARecup) mis.aApporter = (await aApporter(T, mis.logementNom)).items;
       const mail = await sendEmail({ to: pres.email, ...emailConfirmation(mis, pres) });
       return res.status(200).json({ success: true, emailEnvoye: mail.ok, emailErreur: mail.ok ? undefined : mail.error });
     }

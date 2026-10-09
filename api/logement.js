@@ -1,3 +1,4 @@
+import { aApporter } from "../lib/consommables.js";
 const DEFAULT_LOGEMENTS_DB = "365d50aba52f801fb5fdf740a0aa78c1";
 
 function slugify(value) {
@@ -133,6 +134,7 @@ function lingeProp(prop) {
   return richText(prop);
 }
 
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -189,6 +191,9 @@ export default async function handler(req, res) {
       const r = await lingeRelation(pl, NOTION_TOKEN, ctx);
       logement.linge = r.linge;
     }
+
+    // consommables signalés au dernier ménage, à prendre au stock izinest
+    if (logement.consommablesARecuperer) logement.aApporter = await aApporter(NOTION_TOKEN, logement.nom);
 
     return res.status(200).json({ success: true, logement });
   } catch (e) {

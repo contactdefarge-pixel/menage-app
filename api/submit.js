@@ -1,5 +1,6 @@
 import { sendEmail, APP_URL } from "../lib/mail.js";
 import { ADMIN_EMAIL } from "../lib/urgent.js";
+import { marquerTraites } from "../lib/consommables.js";
 export const config = {
   api: { bodyParser: { sizeLimit: "50mb" } },
 };
@@ -21,7 +22,10 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body;
-    const { arrivee, etatLieux, consommables, photosArrivee, photos, photosAttendues } = body;
+    const { arrivee, etatLieux, consommables, photosArrivee, photos, photosAttendues, aApporter } = body;
+    // consommables à apporter (stock izinest) : ce qui n'a pas été apporté est reporté sur ce rapport
+    const nonApportes = (aApporter?.items || []).filter(a => !(consommables?.apportes || []).includes(a));
+    const aPrevoir = [consommables?.consommablesAPrevoir || "", nonApportes.join(", ")].filter(x => x.trim()).join(", ");
 
     // ── Calcul durée ──────────────────────────────────────────────────────────
     function calcDuree(debut, fin) {
@@ -42,7 +46,7 @@ export default async function handler(req, res) {
     }
 
     const duree = calcDuree(arrivee.heureDebut, consommables.heureFin);
-    const formule = calcFormule(etatLieux.observations, consommables.consommablesAPrevoir, consommables.remarques);
+    const formule = calcFormule(etatLieux.observations, aPrevoir, consommables.remarques);
 
     // Les photos sont déjà uploadées directement vers Notion depuis le navigateur
     // On reçoit juste les uploadIds
@@ -91,7 +95,7 @@ export default async function handler(req, res) {
         rich_text: [{ text: { content: etatLieux.observations || "" } }],
       },
       "Consommables à prévoir": {
-        rich_text: [{ text: { content: consommables.consommablesAPrevoir || "" } }],
+        rich_text: [{ text: { content: aPrevoir } }],
       },
       "Remarques sur le logement": {
         rich_text: [{ text: { content: consommables.remarques || "" } }],
@@ -131,6 +135,9 @@ export default async function handler(req, res) {
     }
 
     const page = await notionRes.json();
+
+    // rapports précédents : leurs consommables sont soit apportés, soit reportés ici -> traités
+    try { if (aApporter?.rapportIds?.length) await marquerTraites(NOTION_TOKEN, aApporter.rapportIds); } catch (e) { console.error("conso:", e.message); }
 
     // ── Alerte admin : problème signalé ou photos manquantes ──────────────────
     try { await alerteRapport({ page, arrivee, etatLieux, consommables, photos, photosArrivee, photosAttendues }); }

@@ -1,5 +1,6 @@
 import { getMissionDetails, buildIcs } from "../lib/mail.js";
 import { niveauNum, visibleDepuis, lireDispo, estDisponible } from "../lib/attribution.js";
+import { aApporter, stockARecuperer } from "../lib/consommables.js";
 
 export const config = { maxDuration: 30 };
 
@@ -63,6 +64,7 @@ async function getLogementInfo(token, logementId) {
       dureeEstimee: plainText(props["Durée estimée"]),
       niveauRequis: niveauNum(props["Niveau requis"]?.select?.name, 3),
       attribution: /direct/i.test(props["Attribution"]?.select?.name || "") ? "direct" : "postuler",
+      stockARecup: stockARecuperer(props),
     };
   } catch (e) { return vide; }
 }
@@ -196,6 +198,13 @@ export default async function handler(req, res) {
       .map(m => ({ ...m, candidature: m.candidats.includes(prestataireId) }));
 
     const mesMissions = aTraiter.filter(m => m.prestataire === prestataireId).map(enrichir);
+    // missions à venir dans un logement sans stock : consommables à prendre au stock izinest
+    const auj = now.toISOString().slice(0, 10);
+    const parLog = {};
+    await Promise.all(mesMissions.filter(m => m.stockARecup && m.date >= auj && m.logementNom).map(async m => {
+      parLog[m.logementNom] ||= aApporter(NOTION_TOKEN, m.logementNom);
+      m.aApporter = (await parLog[m.logementNom]).items;
+    }));
 
     return res.status(200).json({ success: true, niveau, disponibles, mesMissions });
   } catch (e) {

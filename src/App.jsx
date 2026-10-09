@@ -171,7 +171,7 @@ function normalizeLogement(raw) {
     adresse:raw.adresse||"", wifi:rt(raw.wifi), voyageurs:raw.voyageurs||"",
     chambres:raw.chambres||"", lits:rt(raw.lits), linge:rt(raw.linge), acces:rt(raw.acces),
     boiteCle:raw.boiteCle||"", poubelles:rt(raw.poubelles),
-    consommables:rt(raw.consommables), consommablesALaisser:rt(raw.consommablesALaisser), consommablesARecuperer:!!raw.consommablesARecuperer,
+    consommables:rt(raw.consommables), consommablesALaisser:rt(raw.consommablesALaisser), consommablesARecuperer:!!raw.consommablesARecuperer, aApporter:raw.aApporter||{items:[],rapports:[]},
     photosReference:raw.photosReference||[], pointsAttention:rt(raw.pointsAttention),
     proprietaire:raw.proprietaire||"", forfaitMenage:raw.forfaitMenage||"",
   };
@@ -779,7 +779,8 @@ function totalLinge(lignes){
   return n;
 }
 
-function PanneauLinge({lignes,onClose,titre,icone}){
+function PanneauLinge({lignes,onClose,titre,icone,avant,avantTitre}){
+  avant=avant||[];
   var [coches,setCoches]=useState({});
   var nb=Object.keys(coches).filter(function(k){return coches[k];}).length;
   var [vu,setVu]=useState(false);
@@ -794,10 +795,25 @@ function PanneauLinge({lignes,onClose,titre,icone}){
           <div style={{width:36,height:36,borderRadius:10,background:DS.color.primary,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{icone||<IconLinge size={19}/>}</div>
           <div style={{flex:1}}>
             <div style={{fontFamily:DS.font.heading,fontSize:18,fontWeight:700,color:DS.color.primaryDark}}>{titre||"Linge à récupérer"}</div>
-            <div style={{fontFamily:DS.font.body,fontSize:12,color:DS.color.textMuted}}>{nb} / {lignes.length} récupéré{nb>1?"s":""}</div>
+            <div style={{fontFamily:DS.font.body,fontSize:12,color:DS.color.textMuted}}>{nb} / {lignes.length+avant.length} récupéré{nb>1?"s":""}</div>
           </div>
         </div>
-        <div style={{height:4,borderRadius:2,background:DS.color.primarySoft,margin:"12px 0 14px",overflow:"hidden"}}><div style={{height:"100%",width:(nb/lignes.length*100)+"%",background:DS.color.primary,transition:"width .2s"}}/></div>
+        <div style={{height:4,borderRadius:2,background:DS.color.primarySoft,margin:"12px 0 14px",overflow:"hidden"}}><div style={{height:"100%",width:(nb/Math.max(1,lignes.length+avant.length)*100)+"%",background:DS.color.primary,transition:"width .2s"}}/></div>
+        {avant.length>0&&(
+          <div style={{marginBottom:14}}>
+            <div style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#b45309",margin:"0 2px 8px"}}>{avantTitre||"À prendre au stock izinest"}</div>
+            {avant.map(function(l,i){
+              var k="a"+i, on=!!coches[k];
+              return (
+                <div key={k} onClick={function(){var c=Object.assign({},coches);c[k]=!on;setCoches(c);}} style={{display:"flex",alignItems:"center",gap:12,padding:"12px",borderRadius:12,marginBottom:6,cursor:"pointer",background:on?"#fef3c7":"#fffbeb",border:"1.5px solid "+(on?"#f59e0b":"#fde68a")}}>
+                  <span style={{width:22,height:22,borderRadius:7,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:on?"#f59e0b":"#fff",border:"1.5px solid "+(on?"#f59e0b":"#fcd34d"),color:"#fff"}}>{on?<Check size={14} strokeWidth={3}/>:null}</span>
+                  <span style={{fontFamily:DS.font.body,fontSize:15,color:"#78350f",textDecoration:on?"line-through":"none",opacity:on?.7:1}}>{l}</span>
+                </div>
+              );
+            })}
+            {lignes.length>0&&<div style={{fontFamily:DS.font.heading,fontSize:11,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:DS.color.primary,margin:"14px 2px 8px"}}>Liste habituelle</div>}
+          </div>
+        )}
         {lignes.map(function(l,i){
           var on=!!coches[i];
           return (
@@ -849,7 +865,8 @@ function GrilleInfos({logement}){
   var rich=function(v){ return Array.isArray(v)?<RichText value={v}/>:<FormattedText>{v}</FormattedText>; };
   var petit={fontSize:12,lineHeight:1.45,color:"#2c4b4e"};
   var consoRecup=logement.consommablesARecuperer?lignesConso(logement.consommablesALaisser):[];
-  var spanBas=(poub&&(conso||consoRecup.length))?1:2;
+  var consoStock=logement.consommablesARecuperer?((logement.aApporter&&logement.aApporter.items)||[]):[];
+  var spanBas=(poub&&(conso||consoRecup.length||consoStock.length))?1:2;
   return (
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
         {adresse&&(
@@ -903,18 +920,19 @@ function GrilleInfos({logement}){
         {poub&&(
           <Tuile span={spanBas} bg="#fff" fg={T} icon={<IconTrash/>} titre="Poubelles" border={BORD}><div style={petit}>{rich(logement.poubelles)}</div></Tuile>
         )}
-        {(conso||consoRecup.length>0)&&(
+        {(conso||consoRecup.length>0||consoStock.length>0)&&(
           <Tuile span={spanBas} bg="#fff" fg={T} icon={<IconBox/>} titre="Consommables" border={BORD}>
             <div style={petit}>{rich(logement.consommables)}</div>
-            {consoRecup.length>0&&(
+            {consoStock.length>0&&<div style={{marginTop:8,fontSize:12,fontWeight:600,color:"#b45309",lineHeight:1.35}}>🛒 {consoStock.length} article{consoStock.length>1?"s":""} signalé{consoStock.length>1?"s":""} au dernier ménage</div>}
+            {(consoRecup.length>0||consoStock.length>0)&&(
               <button onClick={function(){setPanneauConso(true);}} style={{marginTop:10,display:"inline-flex",alignItems:"center",gap:6,height:32,padding:"0 12px",whiteSpace:"nowrap",borderRadius:DS.radius.pill,border:"none",background:DS.color.primary,color:"#fff",fontFamily:DS.font.heading,fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                <Package size={14} strokeWidth={2.2}/>À récupérer · {totalLinge(consoRecup)}
+                <Package size={14} strokeWidth={2.2}/>À récupérer · {totalLinge(consoRecup)+consoStock.length}
               </button>
             )}
           </Tuile>
         )}
         {panneauLinge&&<PanneauLinge lignes={lignes} onClose={function(){setPanneauLinge(false);}}/>}
-        {panneauConso&&<PanneauLinge lignes={consoRecup} titre="Consommables à récupérer" icone={<Package size={19} strokeWidth={2}/>} onClose={function(){setPanneauConso(false);}}/>}
+        {panneauConso&&<PanneauLinge lignes={consoRecup} avant={consoStock} avantTitre="Signalé au dernier ménage · stock izinest" titre="Consommables à récupérer" icone={<Package size={19} strokeWidth={2}/>} onClose={function(){setPanneauConso(false);}}/>}
       </div>
   );
 }
@@ -1036,6 +1054,22 @@ function Step5Consommables({data,setData,logement,onNext,onPrev,changes,acknowle
         </div>
         {selected.length>0?<div style={{marginTop:10,fontFamily:DS.font.body,fontSize:13,color:DS.color.primary,fontWeight:600}}>{selected.length} article(s) sélectionné(s)</div>:null}
       </div>
+      {logement&&logement.consommablesARecuperer&&logement.aApporter&&logement.aApporter.items.length>0&&(function(){
+        var it=logement.aApporter.items, ap=data.apportes||[];
+        function maj(n){ setData(Object.assign({},data,{apportes:n})); }
+        return (
+          <div style={{marginBottom:20,padding:14,borderRadius:DS.radius.md,background:"#fffbeb",border:"1.5px solid #fde68a"}}>
+            <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:13,color:"#92400e",marginBottom:4}}>🛒 Avez-vous apporté ces articles ?</div>
+            <div style={{fontFamily:DS.font.body,fontSize:12,color:"#b45309",marginBottom:10}}>Signalés au dernier ménage. Ce qui n'est pas coché restera à prévoir pour le prochain passage.</div>
+            {it.map(function(a){ var on=ap.indexOf(a)!==-1; return (
+              <div key={a} onClick={function(){maj(on?ap.filter(function(x){return x!==a;}):ap.concat([a]));}} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 10px",borderRadius:DS.radius.sm,marginBottom:6,cursor:"pointer",background:on?"#fef3c7":"#fff",border:"1.5px solid "+(on?"#f59e0b":"#fde68a")}}>
+                <span style={{width:20,height:20,borderRadius:6,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:on?"#f59e0b":"#fff",border:"1.5px solid "+(on?"#f59e0b":"#fcd34d"),color:"#fff"}}>{on?<Check size={13} strokeWidth={3}/>:null}</span>
+                <span style={{fontFamily:DS.font.body,fontSize:14,color:"#78350f"}}>{a}</span>
+              </div>
+            ); })}
+          </div>
+        );
+      })()}
 
       <Field label="Consommables à prévoir" required><Textarea value={data.consommablesAPrevoir||""} onChange={function(v){setData(Object.assign({},data,{consommablesAPrevoir:v}));}} placeholder="Notez les consommables manquants à réapprovisionner." rows={3}/></Field>
       <Field label="Remarques sur le logement" required><Textarea value={data.remarques||""} onChange={function(v){setData(Object.assign({},data,{remarques:v}));}} placeholder="Interventions à prévoir, anomalies constatées…" rows={3}/></Field>
@@ -1584,6 +1618,11 @@ function MissionCard({mission, onAccepter, onRefuser, mode}){
         </div>
         <span style={{background:statusColor+"22",color:statusColor,fontFamily:DS.font.heading,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:DS.radius.pill,textTransform:"uppercase",letterSpacing:"0.05em"}}>{mission.etat}</span>
       </div>
+      {mode==="mesmissions" && !isPast && mission.aApporter && mission.aApporter.length>0 && (
+        <div style={{marginTop:6,padding:"10px 12px",borderRadius:DS.radius.sm,background:"#fffbeb",border:"1px solid #fde68a",color:"#78350f",fontSize:13,fontFamily:DS.font.body,lineHeight:1.45}}>
+          <strong>🛒 À prendre au stock izinest :</strong> {mission.aApporter.join(", ")}
+        </div>
+      )}
       {mode==="mesmissions" && mission.slug && !isPast && (
         <a href={"/"+mission.slug} style={{display:"block",marginTop:10,padding:"10px",borderRadius:DS.radius.sm,background:DS.color.primaryBg,color:DS.color.primaryDark,fontWeight:700,fontSize:13,fontFamily:DS.font.heading,textDecoration:"none",textAlign:"center",border:"1px solid "+DS.color.primaryBorder}}>
           Ouvrir le formulaire →
@@ -2015,6 +2054,7 @@ function AdminCourses({pwd}){
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:15,color:DS.color.primaryDark}}>{n}</div>
                   <div style={{fontSize:12,color:DS.color.textMuted}}>{liste.length} rapport{liste.length>1?"s":""} · dernier le {formatDateFr(liste[0].date)}</div>
+                  {data.prochains&&data.prochains[n]&&<div style={{fontSize:12,fontWeight:700,color:"#b45309",marginTop:2}}>Prochain ménage : {formatDateFr(data.prochains[n])}</div>}
                 </div>
               </div>
               <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
@@ -2365,7 +2405,7 @@ export default function App(){
       if(startIndex>=allPhotos.length){
         var vA=resultsArrivee.filter(function(r){return r!==null;});
         var vF=resultsFin.filter(function(r){return r!==null;});
-        fetch("/api/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({arrivee:arrivee,etatLieux:etatLieux,consommables:consommables,photosArrivee:vA,photos:vF,photosAttendues:(logement&&logement.photosReference?logement.photosReference.length:0)})})
+        fetch("/api/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({arrivee:arrivee,etatLieux:etatLieux,consommables:consommables,photosArrivee:vA,photos:vF,photosAttendues:(logement&&logement.photosReference?logement.photosReference.length:0),aApporter:(logement&&logement.consommablesARecuperer&&logement.aApporter)?{items:logement.aApporter.items,rapportIds:(logement.aApporter.rapports||[]).map(function(r){return r.id;})}:null})})
           .then(function(res){return res.json();})
           .then(function(data){setSending(false);if(data.success){localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(PHOTO_ANALYSES_KEY);setDone(true);}else setSendError("Erreur lors de l'envoi. Réessayez.");})
           .catch(function(){setSending(false);setSendError("Erreur réseau. Vérifiez votre connexion.");});
