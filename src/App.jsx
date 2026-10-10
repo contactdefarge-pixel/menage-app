@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import exifr from "exifr";
-import { CircleCheck, MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut, CalendarX2, Coffee, Sparkles, CalendarClock, Clock, SwitchCamera, Camera as CameraIcon } from "lucide-react";
+import { CircleCheck, MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut, CalendarX2, Coffee, Sparkles, CalendarClock, Clock, SwitchCamera, Camera as CameraIcon, TriangleAlert } from "lucide-react";
 
 /* ─── DESIGN SYSTEM ─────────────────────────────────────────────────── */
 var DS = {
@@ -176,7 +176,7 @@ function normalizeLogement(raw) {
     adresse:raw.adresse||"", wifi:rt(raw.wifi), voyageurs:raw.voyageurs||"",
     chambres:raw.chambres||"", lits:rt(raw.lits), linge:rt(raw.linge), acces:rt(raw.acces),
     boiteCle:raw.boiteCle||"", poubelles:rt(raw.poubelles),
-    consommables:rt(raw.consommables), consommablesALaisser:rt(raw.consommablesALaisser), consommablesARecuperer:!!raw.consommablesARecuperer, aApporter:raw.aApporter||{items:[],rapports:[]}, prochaineResa:raw.prochaineResa||null,
+    consommables:rt(raw.consommables), consommablesALaisser:rt(raw.consommablesALaisser), consommablesARecuperer:!!raw.consommablesARecuperer, aApporter:raw.aApporter||{items:[],rapports:[]}, prochaineResa:raw.prochaineResa||null, consigne:raw.consigne||null,
     photosReference:raw.photosReference||[], pointsAttention:rt(raw.pointsAttention),
     proprietaire:raw.proprietaire||"", forfaitMenage:raw.forfaitMenage||"",
   };
@@ -817,6 +817,18 @@ function Tuile({span,bg,fg,icon,titre,children,border}){
     </div>
   );
 }
+/* ── Consigne izinest de la mission (colonne Notion « Remarques ») : tout en haut de la page 1 ── */
+function TuileConsigne({consigne}){
+  if(!consigne||!consigne.texte) return null;
+  var auj=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Paris"});
+  var j=consigne.date?Math.round((Date.parse(consigne.date+"T12:00:00Z")-Date.parse(auj+"T12:00:00Z"))/86400000):0;
+  var titre=j===0?"Consigne pour ce ménage":j===1?"Consigne pour le ménage de demain":"Consigne pour le ménage d'hier";
+  return (
+    <Tuile span={2} bg={DS.color.primaryDark} fg="#fff" icon={<TriangleAlert size={18} strokeWidth={2.2} color="#fbbf24"/>} titre={titre}>
+      <div style={{fontSize:15,lineHeight:1.5,fontWeight:500,whiteSpace:"pre-line"}}>{consigne.texte}</div>
+    </Tuile>
+  );
+}
 /* ── Prochaine réservation (Beds24) : tuile en tête de la page 1 ── */
 function TuileResa({resa}){
   if(!resa||!resa.arrivee) return null;
@@ -968,6 +980,7 @@ function GrilleInfos({logement}){
   var spanBas=(poub&&(conso||consoRecup.length||consoStock.length))?1:2;
   return (
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <TuileConsigne consigne={logement.consigne}/>
         <TuileResa resa={logement.prochaineResa}/>
         {adresse&&(
           <Tuile span={2} bg="#fff" fg={T} icon={<IconPin/>} titre="Adresse" border={BORD}>
@@ -1706,6 +1719,12 @@ function MissionCardRiche({mission, total, currentIdx, onAccepter, onRefuser, on
           )}
         </div>
       </div>
+      {mission.remarque&&(
+        <div style={{display:"flex",gap:8,alignItems:"flex-start",padding:"10px 12px",borderRadius:12,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(251,191,36,0.55)",fontFamily:DS.font.body,fontSize:13,lineHeight:1.45,color:"#fff"}}>
+          <TriangleAlert size={16} strokeWidth={2.2} color="#fbbf24" style={{flexShrink:0,marginTop:1}}/>
+          <span style={{whiteSpace:"pre-line"}}>{mission.remarque}</span>
+        </div>
+      )}
       {(mission.dureeEstimee||mission.forfaitMenage)&&(
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:14,borderTop:"1px solid rgba(255,255,255,0.18)"}}>
           {mission.dureeEstimee
@@ -1918,6 +1937,12 @@ function MissionCard({mission, onAccepter, onRefuser, mode}){
         </div>
         <span style={{background:statusColor+"22",color:statusColor,fontFamily:DS.font.heading,fontSize:11,fontWeight:700,padding:"3px 10px",borderRadius:DS.radius.pill,textTransform:"uppercase",letterSpacing:"0.05em"}}>{mission.etat}</span>
       </div>
+      {!isPast && mission.remarque && (
+        <div style={{marginTop:6,display:"flex",gap:8,alignItems:"flex-start",padding:"10px 12px",borderRadius:DS.radius.sm,background:DS.color.primaryDark,color:"#fff",fontSize:13,fontFamily:DS.font.body,lineHeight:1.45}}>
+          <TriangleAlert size={15} strokeWidth={2.2} color="#fbbf24" style={{flexShrink:0,marginTop:2}}/>
+          <span style={{whiteSpace:"pre-line"}}>{mission.remarque}</span>
+        </div>
+      )}
       {mode==="mesmissions" && !isPast && mission.aApporter && mission.aApporter.length>0 && (
         <div style={{marginTop:6,padding:"10px 12px",borderRadius:DS.radius.sm,background:"#fffbeb",border:"1px solid #fde68a",color:"#78350f",fontSize:13,fontFamily:DS.font.body,lineHeight:1.45}}>
           <strong>🛒 À prendre au stock izinest :</strong> {mission.aApporter.join(", ")}

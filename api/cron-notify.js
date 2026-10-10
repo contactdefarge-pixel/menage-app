@@ -7,6 +7,7 @@
 import { sendEmail, APP_URL, dateCourte } from "../lib/mail.js";
 import { niveauNum, visibleDepuis, estUrgente, lireDispo, estDisponible } from "../lib/attribution.js";
 import { mailAutorise, traiterUrgences, traiterNonPourvues, diagPrestataires } from "../lib/urgent.js";
+import { traiterRemarques, lireRemarque } from "../lib/remarques.js";
 
 const MISSIONS_DB     = "3d7d50ab-a52f-8063-8153-cf398b2ee7a5";
 const PRESTATAIRES_DB = "3d7d50ab-a52f-8012-a15d-e9d59a968f8f";
@@ -53,7 +54,7 @@ function emailMissions(presta, missions) {
     <tr>
       <td style="padding:12px 14px;border-bottom:1px solid #e2ecee;font-family:sans-serif;font-size:14px;color:#085157;">
         <strong>${esc(m.titre)}</strong><br>
-        <span style="color:#5b8f93;font-size:13px;">${esc(dateCourte(m.date))}${m.forfait ? " · " + esc(m.forfait) : ""}</span>
+        <span style="color:#5b8f93;font-size:13px;">${esc(dateCourte(m.date))}${m.forfait ? " · " + esc(m.forfait) : ""}</span>${m.remarque ? `<br><span style="display:inline-block;margin-top:6px;padding:6px 10px;background:#085157;color:#fff;border-radius:8px;font-size:13px;">⚠️ ${esc(m.remarque)}</span>` : ""}
       </td>
     </tr>`).join("");
   return `
@@ -81,9 +82,11 @@ export default async function handler(req, res) {
     try {
       const u = await traiterUrgences(process.env.NOTION_TOKEN, { dry: !!req.query.dry });
       const np = await traiterNonPourvues(process.env.NOTION_TOKEN, { dry: !!req.query.dry }).catch(e => ({ erreur: e.message }));
+      const rq = await traiterRemarques(process.env.NOTION_TOKEN, { dry: !!req.query.dry }).catch(e => ({ erreur: e.message }));
       return res.status(200).json({ success: true, urgentes: (u.missions || []).length, missions: u.missions || [], envoyes: u.envoyes || 0,
         erreur: u.erreur || ((u.erreurs || [])[0] || "").replace(/^[^:]*:\s*/, "") || undefined,
         nonPourvues: np.alertes || np.erreur,
+        remarques: rq.envoyes ?? rq.aEnvoyer ?? rq.erreur,
         diagnostic: req.query.diag ? await diagPrestataires(process.env.NOTION_TOKEN) : undefined });
     } catch (e) { return res.status(500).json({ error: e.message }); }
   }
@@ -109,6 +112,7 @@ export default async function handler(req, res) {
       return {
         id: p.id,
         titre: plainText(pr["Nom"]),
+        remarque: lireRemarque(pr),
         date: pr["Date"]?.date?.start || "",
         prestataire: (pr["Prestataire"]?.relation || [])[0]?.id || null,
         logement: (pr["Logement"]?.relation || [])[0]?.id || null,

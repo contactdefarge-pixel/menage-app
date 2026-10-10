@@ -1,4 +1,5 @@
 import { prochaineReservation } from "../lib/beds24.js";
+import { consigneDuJour } from "../lib/remarques.js";
 import { aApporter } from "../lib/consommables.js";
 const DEFAULT_LOGEMENTS_DB = "365d50aba52f801fb5fdf740a0aa78c1";
 
@@ -198,10 +199,12 @@ export default async function handler(req, res) {
     }
 
     // consommables signalés au dernier ménage, à prendre au stock izinest
-    const [apporter, resa] = await Promise.all([
+    const [apporter, resa, consigne] = await Promise.all([
       logement.consommablesARecuperer ? aApporter(NOTION_TOKEN, logement.nom).catch(() => null) : null,
       prochaineReservation(logement.nom).catch(() => null),
+      consigneDuJour(NOTION_TOKEN, logement.id).catch(() => null),
     ]);
+    logement.consigne = consigne;
     if (apporter) logement.aApporter = apporter;
     logement.prochaineResa = resa;
 

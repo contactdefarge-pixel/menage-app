@@ -90,6 +90,7 @@ function mapMission(page) {
     candidats:   (props["Candidats"]?.relation   || []).map(r => r.id),
     refus:       (props["Refus"]?.multi_select   || []).map(r => r.name),
     prime:       props["Prime"]?.number || 0,
+    remarque:    (props["Remarques"]?.rich_text || []).map(t => t.plain_text).join("").trim(),
     cree:        page.created_time,
   };
 }
