@@ -477,7 +477,7 @@ function AppHeader({nom,step,total}){
         <div style={{fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)"}}>izinest · rapport de ménage</div>
         <div style={{fontSize:12,color:DS.color.primaryBorder}}>Étape {step+1} / {total}</div>
       </div>
-      <div style={{fontSize:24,fontWeight:700,color:"#fff",lineHeight:1.1}}>{nom||"Chargement…"}</div>
+      <div style={{fontSize:24,fontWeight:700,color:"#fff",lineHeight:1.1}}>{nom||<Os sombre w={200} h={24} style={{marginTop:2}}/>}</div>
       <div style={{display:"flex",gap:4,marginTop:12}}>
         {Array.from({length:total}).map(function(_,i){return <div key={i} style={{flex:1,height:4,borderRadius:2,background:i<=step?DS.color.primaryBorder:"rgba(255,255,255,0.2)"}}/>;})}
       </div>
@@ -665,8 +665,66 @@ function KeepAwakeWarning({title,children,wakeLockStatus}){
   );
 }
 
+/* ── Chargement aux couleurs izinest : squelettes animés + barre de mise à jour ── */
+var IZ_ANIM_CSS="@keyframes izShimmer{0%{background-position:-320px 0}100%{background-position:320px 0}}@keyframes izBarre{0%{transform:translateX(-100%)}100%{transform:translateX(320%)}}";
+function Os({w,h,r,sombre,style}){
+  var fond=sombre?"linear-gradient(90deg,rgba(255,255,255,.12) 0px,rgba(255,255,255,.26) 120px,rgba(255,255,255,.12) 240px)":"linear-gradient(90deg,#e3f3f2 0px,#f3fbfa 120px,#e3f3f2 240px)";
+  return <div style={Object.assign({width:w||"100%",height:h||14,borderRadius:r==null?8:r,background:fond,backgroundSize:"640px 100%",animation:"izShimmer 1.3s linear infinite"},style)}/>;
+}
+function BarreMaj({actif}){
+  if(!actif) return null;
+  return (
+    <div style={{position:"relative",height:3,overflow:"hidden",background:DS.color.primarySoft}}>
+      <style>{IZ_ANIM_CSS}</style>
+      <div style={{position:"absolute",top:0,bottom:0,width:"35%",background:DS.color.primary,borderRadius:2,animation:"izBarre 1s ease-in-out infinite"}}/>
+    </div>
+  );
+}
+function SqueletteMissions(){
+  return (
+    <div aria-label="Chargement des missions" style={{position:"relative",paddingTop:10}}>
+      <style>{IZ_ANIM_CSS}</style>
+      <div style={{position:"absolute",left:18,right:18,top:0,height:40,borderRadius:DS.radius.xl,background:DS.color.primarySoft}}/>
+      <div style={{position:"relative",borderRadius:DS.radius.xl,overflow:"hidden",background:"#fff",border:"1px solid "+DS.color.border,boxShadow:"0 6px 20px rgba(8,81,87,0.08)"}}>
+        <div style={{height:190,background:"linear-gradient(180deg,"+DS.color.primarySoft+" 0%,"+DS.color.primaryDark+" 100%)",position:"relative"}}>
+          <div style={{position:"absolute",left:16,bottom:16,display:"flex",gap:10,alignItems:"flex-end"}}>
+            <Os sombre w={54} h={60} r={12}/>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}><Os sombre w={150} h={18}/><Os sombre w={100} h={12}/></div>
+          </div>
+        </div>
+        <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
+          <Os w="70%" h={14}/><Os w="45%" h={12}/>
+          <div style={{display:"flex",gap:10,marginTop:6}}><Os h={48} r={12} style={{flex:2}}/><Os h={48} r={12} style={{flex:1}}/></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+function SqueletteGrille(){
+  var t=function(span,h,fonce){ return <div style={{gridColumn:"span "+span,borderRadius:DS.radius.xl,padding:14,height:h,boxSizing:"border-box",background:fonce?DS.color.primarySoft:"#fff",border:"1.5px solid "+DS.color.primarySoft,display:"flex",flexDirection:"column",gap:10}}><Os w={90} h={10}/><Os w="60%" h={18}/>{h>100?<Os w="40%" h={12}/>:null}</div>; };
+  return (
+    <div aria-label="Chargement du logement" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <style>{IZ_ANIM_CSS}</style>
+      {t(2,96)}{t(2,118,true)}{t(1,124,true)}{t(1,124)}{t(2,84)}
+    </div>
+  );
+}
+function SqueletteListe({lignes}){
+  return (
+    <div aria-label="Chargement" style={{display:"flex",flexDirection:"column",gap:10}}>
+      <style>{IZ_ANIM_CSS}</style>
+      {Array.from({length:lignes||4}).map(function(_,i){ return (
+        <div key={i} style={{background:"#fff",border:"1px solid "+DS.color.border,borderRadius:DS.radius.lg,padding:16,display:"flex",gap:12,alignItems:"center"}}>
+          <Os w={44} h={44} r={12}/>
+          <div style={{flex:1,display:"flex",flexDirection:"column",gap:8}}><Os w={(60+((i*17)%30))+"%"} h={14}/><Os w="35%" h={11}/></div>
+        </div>
+      ); })}
+    </div>
+  );
+}
 function LogementLoading({error}){
   return (
+    !error?null:
     <div style={{background:DS.color.primaryBg,border:"1px solid "+DS.color.primaryBorder,borderRadius:DS.radius.md,padding:16,marginBottom:18}}>
       <div style={{fontFamily:DS.font.heading,fontSize:14,fontWeight:700,color:DS.color.primaryDark,marginBottom:4}}>
         {error?"Logement chargé en mode secours":"Chargement du logement…"}
@@ -984,8 +1042,8 @@ function Step1Infos({logement,loading,error,onNext,onModeVisite,changes,acknowle
   return (
     <div>
       <ChangeBanner changes={changes||[]} stepIndex={0} onAcknowledge={onAcknowledge} acknowledged={acknowledged}/>
-      {loading||error?<LogementLoading error={error}/>:null}
-      <GrilleInfos logement={logement}/>
+      {error?<LogementLoading error={error}/>:null}
+      {loading&&!logement.nom?<SqueletteGrille/>:<GrilleInfos logement={logement}/>}
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:18}}>
         <Btn fullWidth onClick={onNext} disabled={bloque}>Commencer le rapport</Btn>
         <button onClick={onModeVisite} style={{width:"100%",padding:"13px",borderRadius:DS.radius.md,border:"1.5px solid "+DS.color.primaryBorder,background:DS.color.surface,color:DS.color.primaryDark,fontWeight:600,fontSize:14,fontFamily:DS.font.heading,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><Eye size={16} strokeWidth={2}/>Mode visite</button>
@@ -1496,7 +1554,7 @@ function ModeVisite({logement,onQuitter}){
           <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"rgba(255,255,255,0.55)"}}><Eye size={13} strokeWidth={2}/>Mode visite · lecture seule</div>
           <button onClick={onQuitter} style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.15)",border:"none",borderRadius:DS.radius.pill,color:"#fff",fontWeight:600,fontSize:12,padding:"5px 12px",cursor:"pointer",fontFamily:DS.font.heading}}><LogOut size={13} strokeWidth={2}/>Quitter</button>
         </div>
-        <div style={{fontSize:24,fontWeight:700,lineHeight:1.1}}>{logement.nom||"Chargement…"}</div>
+        <div style={{fontSize:24,fontWeight:700,lineHeight:1.1}}>{logement.nom||<Os sombre w={200} h={24} style={{marginTop:2}}/>}</div>
       </div>
       <div style={{display:"flex",gap:6,marginBottom:16,overflowX:"auto",paddingBottom:4}}>
         {VISITE_STEPS.map(function(s,i){
@@ -1915,22 +1973,30 @@ function LoginPrestataire({onLogin}){
 
 function AgendaPrestataire({prestataire, onLogout}){
   var [tab, setTab] = useState("disponibles");
-  var [disponibles, setDisponibles] = useState([]);
-  var [mesMissions, setMesMissions] = useState([]);
-  var [loading, setLoading] = useState(true);
+  var CLE_CACHE="iz_missions_"+prestataire.id;
+  var enCache=null; try{ enCache=JSON.parse(localStorage.getItem(CLE_CACHE)||"null"); }catch(e){}
+  var [disponibles, setDisponibles] = useState(enCache?enCache.disponibles||[]:[]);
+  var [mesMissions, setMesMissions] = useState(enCache?enCache.mesMissions||[]:[]);
+  var [loading, setLoading] = useState(!enCache);
+  var [maj, setMaj] = useState(!!enCache);
   var [toast, setToast] = useState("");
 
   function showToast(msg){ setToast(msg); setTimeout(function(){setToast("");},3000); }
 
   function loadMissions(){
-    setLoading(true);
+    // affiche tout de suite les dernières missions connues, puis rafraîchit en arrière-plan
+    var cache=null; try{ cache=localStorage.getItem(CLE_CACHE); }catch(e){}
+    if(cache) setMaj(true); else setLoading(true);
     fetch("/api/missions?prestataireId="+encodeURIComponent(prestataire.id)+"&prestataireNom="+encodeURIComponent(prestataire.nom))
       .then(function(r){return r.json();})
       .then(function(data){
+        if(!data||!data.success) return;
         setDisponibles(data.disponibles||[]);
         setMesMissions(data.mesMissions||[]);
+        try{ localStorage.setItem(CLE_CACHE,JSON.stringify({disponibles:data.disponibles||[],mesMissions:data.mesMissions||[],at:Date.now()})); }catch(e){}
       })
-      .finally(function(){setLoading(false);});
+      .catch(function(){})
+      .finally(function(){setLoading(false);setMaj(false);});
   }
 
   useEffect(loadMissions,[]);
@@ -1992,8 +2058,9 @@ function AgendaPrestataire({prestataire, onLogout}){
         })}
       </div>
 
+      <BarreMaj actif={maj}/>
       <div style={{maxWidth:480,margin:"0 auto",padding:"20px 20px 60px"}}>
-        {loading?<div style={{textAlign:"center",padding:32,color:DS.color.textMuted}}>Chargement…</div>:null}
+        {loading?<SqueletteMissions/>:null}
 
         {!loading&&tab==="disponibles"&&(
           (disponibles.length===0||VIDE_FORCE)
@@ -2196,7 +2263,7 @@ function apiAdmin(pwd, query, body){
 var carteAdmin={background:"#fff",border:"1px solid "+DS.color.border,borderRadius:DS.radius.lg,padding:16,boxShadow:"0 1px 2px rgba(8,81,87,0.05)"};
 var btnAdmin={height:36,padding:"0 14px",borderRadius:DS.radius.sm,border:"none",background:DS.color.primary,color:"#fff",fontWeight:700,fontSize:13,fontFamily:DS.font.heading,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6};
 var btnAdminVide={height:36,padding:"0 14px",borderRadius:DS.radius.sm,border:"1.5px solid "+DS.color.primaryBorder,background:"#fff",color:DS.color.primaryDark,fontWeight:600,fontSize:13,fontFamily:DS.font.heading,cursor:"pointer",display:"inline-flex",alignItems:"center",justifyContent:"center",gap:6};
-function Chargement({erreur}){ return <div style={{textAlign:"center",padding:40,color:erreur?"#b91c1c":DS.color.textMuted,fontFamily:DS.font.body}}>{erreur||"Chargement…"}</div>; }
+function Chargement({erreur}){ return erreur?<div style={{textAlign:"center",padding:40,color:"#b91c1c",fontFamily:DS.font.body}}>{erreur}</div>:<SqueletteListe lignes={4}/>; }
 function useLargeur(){ var [w,setW]=useState(window.innerWidth); useEffect(function(){ function f(){setW(window.innerWidth);} window.addEventListener("resize",f); return function(){window.removeEventListener("resize",f);}; },[]); return w; }
 var PALETTE_PRESTA=["#00bab3","#7c5cff","#f59e0b","#e5487a","#2f80ed","#16a34a","#c2410c","#0e7490"];
 function couleurPresta(nom){ return PALETTE_PRESTA[hashStr(nom)%PALETTE_PRESTA.length]; }
@@ -2554,7 +2621,7 @@ function PageAccueil(){
         <div style={{fontSize:13,color:"rgba(255,255,255,0.5)",marginTop:4}}>Sélectionnez un logement pour commencer</div>
       </div>
       <div style={{maxWidth:560,margin:"0 auto",padding:"24px 20px 60px"}}>
-        {loading?<div style={{padding:32,textAlign:"center",color:DS.color.textMuted,fontFamily:DS.font.body}}>Chargement…</div>:null}
+        {loading?<SqueletteListe lignes={4}/>:null}
         {logements.map(function(l){
           return (
             <a key={l.slug} href={"/"+l.slug} style={{textDecoration:"none"}}>
@@ -2616,9 +2683,12 @@ export default function App(){
     if(!slug||PAGES_SPECIALES.indexOf(slug)!==-1) return;
     var cancelled=false;
     setLogementLoading(true); setLogementError("");
+    // affichage immédiat de la dernière version connue du logement, remplacée dès que Notion répond
+    var cleLogement="iz_logement_"+slug;
+    try{ var c=JSON.parse(localStorage.getItem(cleLogement)||"null"); if(c){ var nlc=normalizeLogement(c); setLogement(nlc); setArrivee(function(prev){ if(prev.bien&&prev.bien!==INIT_ARRIVEE.bien)return prev; return Object.assign({},prev,{bien:nlc.nom||""}); }); } }catch(e){}
     fetch("/api/logement?slug="+encodeURIComponent(slug))
       .then(function(res){return res.json().then(function(data){if(!res.ok)throw new Error(data.error||"Logement introuvable");return data;});})
-      .then(function(data){if(cancelled||!data.logement)return;var nl=normalizeLogement(data.logement);setLogement(nl);setArrivee(function(prev){if(prev.bien&&prev.bien!==INIT_ARRIVEE.bien)return prev;return Object.assign({},prev,{bien:nl.nom||""});});var slug=slugify(nl.slug||nl.nom);var detected=detectChanges(slug,nl);setChanges(detected);saveHashes(slug,buildHashes(nl),nl);})
+      .then(function(data){if(cancelled||!data.logement)return;try{localStorage.setItem(cleLogement,JSON.stringify(data.logement));}catch(e){}var nl=normalizeLogement(data.logement);setLogement(nl);setArrivee(function(prev){if(prev.bien&&prev.bien!==INIT_ARRIVEE.bien)return prev;return Object.assign({},prev,{bien:nl.nom||""});});var slug=slugify(nl.slug||nl.nom);var detected=detectChanges(slug,nl);setChanges(detected);saveHashes(slug,buildHashes(nl),nl);})
       .catch(function(e){if(!cancelled)setLogementError(e.message||"Impossible de charger le logement.");})
       .finally(function(){if(!cancelled)setLogementLoading(false);});
     return function(){cancelled=true;};

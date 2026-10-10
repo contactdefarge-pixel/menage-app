@@ -10,3 +10,5 @@ jobs:
     timeout-minutes: 2
     steps:
       - run: curl -fsS --max-time 60 "https://agents.izinest.fr/api/cron-notify?urgent=1"
+      - name: Garder la liste des missions prête (évite le démarrage à froid)
+        run: curl -sS --max-time 30 "https://agents.izinest.fr/api/missions" > /dev/null || true
