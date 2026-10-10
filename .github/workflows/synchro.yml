@@ -8,7 +8,7 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 6
     steps:
       - name: Appel de la synchro Beds24
         env:
