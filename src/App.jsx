@@ -779,7 +779,6 @@ function TuileResa({resa}){
         {dans&&<span style={{fontSize:13,fontWeight:600,opacity:.75}}>{dans}</span>}
         {resa.heureArrivee&&<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:13,fontWeight:700,padding:"2px 9px",borderRadius:DS.radius.pill,background:urgent?"#fed7aa":DS.color.primarySoft}}><Clock size={13} strokeWidth={2.2}/>{resa.heureArrivee}</span>}
       </div>
-      {urgent&&<div style={{fontSize:12,fontWeight:700,marginTop:4}}>Les voyageurs arrivent aujourd'hui : le logement doit être prêt.</div>}
       <div style={{display:"flex",flexWrap:"wrap",gap:"4px 14px",marginTop:8,fontSize:13,color:urgent?"#7c2d12":"#2c4b4e"}}>
         {pers&&<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Users size={14} strokeWidth={2}/>{pers}</span>}
         {nuits>0&&<span>{nuits} nuit{nuits>1?"s":""} · départ le {depart}</span>}
@@ -1214,7 +1213,7 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
   var [idx,setIdx]=useState(premier===-1?0:premier);
   var [erreur,setErreur]=useState("");
   var [pret,setPret]=useState(false);
-  var [superpose,setSuperpose]=useState(false);
+  var [diag,setDiag]=useState(""); var [voirDiag,setVoirDiag]=useState(false);
   var [grand,setGrand]=useState(false);
   var [portrait,setPortrait]=useState(false);
   var [flash,setFlash]=useState(false);
@@ -1226,15 +1225,18 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
   function arreter(){ if(streamRef.current) streamRef.current.getTracks().forEach(function(t){t.stop();}); streamRef.current=null; }
   function detecterObjectifs(st){
     var track=st.getVideoTracks()[0];
-    var caps=track&&track.getCapabilities?track.getCapabilities():{};
-    if(caps&&caps.zoom&&caps.zoom.min<1){ setObjectifs({mode:"zoom",min:Math.max(caps.zoom.min,0.5)}); return; }
-    if(!navigator.mediaDevices.enumerateDevices) return;
+    var caps={}; try{ caps=track&&track.getCapabilities?track.getCapabilities():{}; }catch(e){}
     var courantId=track&&track.getSettings?track.getSettings().deviceId:"";
+    var infoZoom=caps&&caps.zoom?("zoom "+caps.zoom.min+"–"+caps.zoom.max):"pas de zoom";
+    if(caps&&caps.zoom&&caps.zoom.min<1){ setObjectifs({mode:"zoom",min:Math.max(caps.zoom.min,0.5)}); setDiag(infoZoom); return; }
+    if(!navigator.mediaDevices.enumerateDevices){ setDiag(infoZoom+" · pas de liste"); return; }
     navigator.mediaDevices.enumerateDevices().then(function(devs){
-      var arriere=devs.filter(function(d){ return d.kind==="videoinput"&&!/front|avant|user|facetime/i.test(d.label||""); });
-      var ultra=arriere.find(function(d){ return /ultra|grand.?angle|wide/i.test(d.label||"")&&!/dual|double|triple|tele/i.test(d.label||""); });
+      var cams=devs.filter(function(d){ return d.kind==="videoinput"; });
+      setDiag(infoZoom+" · "+cams.length+" caméra(s) : "+cams.map(function(d){return (d.label||"?")+(d.deviceId===courantId?" [actuelle]":"");}).join(" | "));
+      var arriere=cams.filter(function(d){ return !/front|avant|user|facetime/i.test(d.label||""); });
+      var ultra=arriere.find(function(d){ return /ultra|grand.?angle|wide/i.test(d.label||"")&&!/dual|double|triple|t[ée]l[ée]/i.test(d.label||""); });
       if(ultra&&ultra.deviceId!==courantId){ setObjectifs({mode:"devices",ultra:ultra.deviceId,normal:courantId}); return; }
-      if(arriere.length>=2&&arriere.every(function(d){return d.label;})) setObjectifs({mode:"cycle",liste:arriere.map(function(d){return d.deviceId;}),courant:Math.max(0,arriere.findIndex(function(d){return d.deviceId===courantId;}))});
+      if(arriere.length>=2) setObjectifs({mode:"cycle",liste:arriere.map(function(d){return d.deviceId;}),courant:Math.max(0,arriere.findIndex(function(d){return d.deviceId===courantId;}))});
     }).catch(function(){});
   }
   useEffect(function(){
@@ -1296,14 +1298,14 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
   return (
     <div style={{position:"fixed",inset:0,zIndex:2000,background:"#000",color:"#fff",fontFamily:DS.font.body,overflow:"hidden"}}>
       <video ref={videoRef} playsInline muted autoPlay style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover"}}/>
-      {ref&&superpose&&<img src={ref.moyen||ref.url} alt="" style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",opacity:.38,pointerEvents:"none"}}/>}
       {flash&&<div style={{position:"absolute",inset:0,background:"#fff",opacity:.7}}/>}
       {/* en-tête */}
       <div style={{position:"absolute",top:0,left:0,right:0,padding:"calc(env(safe-area-inset-top) + 12px) 14px 30px",background:"linear-gradient(180deg, rgba(0,0,0,.65), rgba(0,0,0,0))",display:"flex",alignItems:"flex-start",gap:10}}>
         <button onClick={function(){onClose(false);}} style={rond} aria-label="Fermer">✕</button>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontFamily:DS.font.heading,fontWeight:700,fontSize:16}}>{ref?libellePiece(ref.nom):"Photos"}</div>
-          <div style={{fontSize:12,opacity:.85}}>Photo {idx+1} / {references.length} · {nbFaites} faite{nbFaites>1?"s":""}</div>
+          <div onClick={function(){setVoirDiag(!voirDiag);}} style={{fontSize:12,opacity:.85}}>Photo {idx+1} / {references.length} · {nbFaites} faite{nbFaites>1?"s":""}</div>
+          {voirDiag&&<div style={{fontSize:10,opacity:.8,marginTop:4,lineHeight:1.3}}>{diag||"détection en cours…"}</div>}
           <div style={{height:4,borderRadius:2,background:"rgba(255,255,255,.25)",marginTop:6,overflow:"hidden"}}><div style={{height:"100%",width:(nbFaites/Math.max(1,references.length)*100)+"%",background:DS.color.primary}}/></div>
         </div>
       </div>
@@ -1333,24 +1335,21 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
             </div>
           ); })}
         </div>
-        {objectifs&&objectifs.mode!=="cycle"&&(
-          <div style={{display:"flex",justifyContent:"center",marginBottom:12}}>
-            <div style={{display:"flex",gap:4,padding:4,borderRadius:22,background:noir}}>
-              {[["0.5",objectifs.mode==="zoom"&&objectifs.min>0.5?String(Math.round(objectifs.min*10)/10).replace(".",",")+"×":"0,5×"],["1","1×"]].map(function(o){ var on=objectif===o[0]; return (
-                <button key={o[0]} onClick={function(){choisirObjectif(o[0]);}} aria-label={o[0]==="0.5"?"Grand angle":"Objectif classique"} style={{minWidth:44,height:36,borderRadius:18,border:"none",background:on?"rgba(255,255,255,.95)":"transparent",color:on?"#0f2e31":"#fff",fontFamily:DS.font.heading,fontWeight:700,fontSize:13,cursor:"pointer"}}>{o[1]}</button>
-              ); })}
-            </div>
-          </div>
-        )}
-        {objectifs&&objectifs.mode==="cycle"&&(
-          <div style={{display:"flex",justifyContent:"center",marginBottom:12}}>
-            <button onClick={objectifSuivant} style={Object.assign({},rond,{width:"auto",padding:"0 14px",gap:6})}><SwitchCamera size={16} strokeWidth={2}/>Objectif {objectifs.courant+1}/{objectifs.liste.length}</button>
-          </div>
-        )}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <button onClick={function(){setSuperpose(!superpose);}} style={Object.assign({},rond,{width:"auto",padding:"0 14px",background:superpose?DS.color.primary:noir})}>Superposer</button>
+          <div style={{width:96,display:"flex",justifyContent:"flex-start"}}>
+            {objectifs&&objectifs.mode!=="cycle"&&(
+              <div style={{display:"flex",gap:2,padding:3,borderRadius:22,background:noir}}>
+                {[["0.5",objectifs.mode==="zoom"&&objectifs.min>0.5?String(Math.round(objectifs.min*10)/10).replace(".",",")+"×":"0,5×"],["1","1×"]].map(function(o){ var on=objectif===o[0]; return (
+                  <button key={o[0]} onClick={function(){choisirObjectif(o[0]);}} aria-label={o[0]==="0.5"?"Grand angle":"Objectif classique"} style={{minWidth:42,height:38,borderRadius:19,border:"none",background:on?"rgba(255,255,255,.95)":"transparent",color:on?"#0f2e31":"#fff",fontFamily:DS.font.heading,fontWeight:700,fontSize:13,cursor:"pointer"}}>{o[1]}</button>
+                ); })}
+              </div>
+            )}
+            {objectifs&&objectifs.mode==="cycle"&&(
+              <button onClick={objectifSuivant} aria-label="Changer d'objectif" style={Object.assign({},rond,{width:"auto",padding:"0 12px",gap:6})}><SwitchCamera size={16} strokeWidth={2}/>{objectifs.courant+1}/{objectifs.liste.length}</button>
+            )}
+          </div>
           <button onClick={declencher} disabled={!pret} aria-label="Prendre la photo" style={{width:76,height:76,borderRadius:38,border:"5px solid #fff",background:"rgba(255,255,255,.9)",cursor:"pointer",boxShadow:"0 0 0 3px rgba(0,0,0,.25)",transform:flash?"scale(.9)":"none",transition:"transform .1s"}}/>
-          <button onClick={function(){ var n=suivante(idx); if(n===-1) n=(idx+1)%references.length; setIdx(n); }} style={Object.assign({},rond,{width:"auto",padding:"0 14px"})}>Passer</button>
+          <div style={{width:96,display:"flex",justifyContent:"flex-end"}}><button onClick={function(){ var n=suivante(idx); if(n===-1) n=(idx+1)%references.length; setIdx(n); }} style={Object.assign({},rond,{width:"auto",padding:"0 14px"})}>Passer</button></div>
         </div>
       </div>
     </div>
