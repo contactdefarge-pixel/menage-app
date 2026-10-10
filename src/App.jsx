@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import exifr from "exifr";
-import { CircleCheck, MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut, CalendarX2, Coffee, Sparkles, CalendarClock, Clock, SwitchCamera } from "lucide-react";
+import { CircleCheck, MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut, CalendarX2, Coffee, Sparkles, CalendarClock, Clock, SwitchCamera, Camera as CameraIcon } from "lucide-react";
 
 /* ─── DESIGN SYSTEM ─────────────────────────────────────────────────── */
 var DS = {
@@ -1272,27 +1272,43 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
   function suivante(depuis){ for(var k=1;k<=references.length;k++){ var j=(depuis+k)%references.length; if(!faites[references[j].nom]&&j!==depuis) return j; } return -1; }
   // précharge des images de référence (versions légères)
   useEffect(function(){ references.forEach(function(r){ var a=new Image(); a.src=r.moyen||r.url; var b=new Image(); b.src=r.mini||r.url; }); },[]);
+  // range une photo (déclencheur ou appareil photo du téléphone) sur la référence en cours, puis passe à la suivante
+  function ajouterPhoto(blob){
+    var refNom=ref?ref.nom:"";
+    var n=suivante(idx);
+    faites[refNom]=true;
+    if(n===-1) setTimeout(function(){onClose(true);},250); else setIdx(n);
+    var nom=(refNom?refNom.replace(/\.[^.]+$/,""):"photo")+"-"+Date.now()+".jpg";
+    var brut=blob instanceof File&&blob.type==="image/jpeg"?blob:new File([blob],nom,{type:blob.type||"image/jpeg"});
+    var id=Math.random().toString(36).slice(2);
+    var item={id:id,file:brut,preview:URL.createObjectURL(brut),name:nom,ref:refNom,traitement:true};
+    // une seule photo par référence : la nouvelle remplace l'ancienne
+    setPhotos(function(prev){ return prev.filter(function(p){return !(refNom&&p.ref===refNom);}).concat([item]); });
+    traiterEnFond(brut,function(stamped){
+      setPhotos(function(prev){ return prev.map(function(p){ return p.id===id?Object.assign({},p,{file:stamped,preview:URL.createObjectURL(stamped),traitement:false}):p; }); });
+    });
+  }
   function declencher(){
     var v=videoRef.current; if(!v||!v.videoWidth) return;
     setFlash(true); setTimeout(function(){setFlash(false);},120);
     var c=document.createElement("canvas"); c.width=v.videoWidth; c.height=v.videoHeight;
     c.getContext("2d").drawImage(v,0,0,c.width,c.height);
-    var refNom=ref?ref.nom:"";
-    var n=suivante(idx);
-    faites[refNom]=true;
-    if(n===-1) setTimeout(function(){onClose(true);},250); else setIdx(n);
-    c.toBlob(function(blob){
-      var nom=(refNom?refNom.replace(/\.[^.]+$/,""):"photo")+"-"+Date.now()+".jpg";
-      var brut=new File([blob],nom,{type:"image/jpeg"});
-      var id=Math.random().toString(36).slice(2);
-      var item={id:id,file:brut,preview:URL.createObjectURL(brut),name:nom,ref:refNom,traitement:true};
-      // une seule photo par référence : la nouvelle remplace l'ancienne
-      setPhotos(function(prev){ return prev.filter(function(p){return !(refNom&&p.ref===refNom);}).concat([item]); });
-      traiterEnFond(brut,function(stamped){
-        setPhotos(function(prev){ return prev.map(function(p){ return p.id===id?Object.assign({},p,{file:stamped,preview:URL.createObjectURL(stamped),traitement:false}):p; }); });
-      });
-    },"image/jpeg",0.9);
+    c.toBlob(function(blob){ ajouterPhoto(blob); },"image/jpeg",0.9);
   }
+  // appareil photo natif (accès au 0,5× quand le navigateur ne l'expose pas)
+  var natifRef=useRef(null), natifOuvert=useRef(false);
+  var monteRef=useRef(true); useEffect(function(){ monteRef.current=true; return function(){ monteRef.current=false; }; },[]);
+  function relancerFlux(){
+    if(streamRef.current) return;
+    navigator.mediaDevices.getUserMedia({audio:false,video:Object.assign({facingMode:{ideal:"environment"}},resolution)})
+      .then(function(st){ if(!monteRef.current){ st.getTracks().forEach(function(t){t.stop();}); return; } brancher(st); setObjectif("1"); setPret(true); }).catch(function(){});
+  }
+  function ouvrirNatif(){ natifOuvert.current=true; arreter(); setPret(false); if(natifRef.current){ natifRef.current.value=""; natifRef.current.click(); } }
+  useEffect(function(){
+    function retour(){ if(document.visibilityState==="visible"&&natifOuvert.current){ setTimeout(function(){ natifOuvert.current=false; relancerFlux(); },400); } }
+    document.addEventListener("visibilitychange",retour); window.addEventListener("focus",retour);
+    return function(){ document.removeEventListener("visibilitychange",retour); window.removeEventListener("focus",retour); };
+  },[]);
   var noir="rgba(0,0,0,0.55)";
   var rond={width:44,height:44,borderRadius:22,border:"none",background:noir,color:"#fff",fontFamily:DS.font.heading,fontWeight:700,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"};
   return (
@@ -1344,6 +1360,10 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
                 ); })}
               </div>
             )}
+            {!objectifs&&(
+              <button onClick={ouvrirNatif} aria-label="Appareil photo du téléphone" style={Object.assign({},rond,{width:"auto",padding:"0 12px",gap:6,fontSize:12})}><CameraIcon size={16} strokeWidth={2}/>0,5×</button>
+            )}
+            <input ref={natifRef} type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={function(e){ var f=e.target.files&&e.target.files[0]; natifOuvert.current=false; if(f) ajouterPhoto(f); relancerFlux(); }}/>
             {objectifs&&objectifs.mode==="cycle"&&(
               <button onClick={objectifSuivant} aria-label="Changer d'objectif" style={Object.assign({},rond,{width:"auto",padding:"0 12px",gap:6})}><SwitchCamera size={16} strokeWidth={2}/>{objectifs.courant+1}/{objectifs.liste.length}</button>
             )}
