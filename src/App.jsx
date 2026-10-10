@@ -78,7 +78,7 @@ var WATCHED_FIELDS = [
   { key:"lits",                label:"Types de lits",             step:0 },
   { key:"wifi",                label:"WiFi",                      step:0 },
   { key:"acces",               label:"Acces logement",            step:0 },
-  { key:"boiteCle",            label:"Boite a cle",               step:0 },
+  { key:"boiteCle",            label:"Codes d'accès",               step:0 },
   { key:"poubelles",           label:"Poubelles",                 step:0 },
   { key:"forfaitMenage",       label:"Forfait menage",            step:0 },
   { key:"pointsAttention",     label:"Points d attention",        step:2 },
@@ -875,9 +875,16 @@ function CodeBox({label,value}){
   return (
     <button onClick={copy} style={{flex:1,minWidth:0,textAlign:"left",background:"rgba(255,255,255,0.2)",border:"none",borderRadius:DS.radius.md,padding:"8px 10px",color:"#fff",cursor:"pointer"}}>
       <div style={{fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",fontFamily:DS.font.body}}>{copied?"Copié !":label}</div>
-      <div style={{fontFamily:DS.font.heading,fontSize:24,fontWeight:700,letterSpacing:"0.12em",overflowWrap:"anywhere"}}>{value}</div>
+      <div style={{fontFamily:DS.font.heading,fontSize:value.length>10?18:22,fontWeight:700,letterSpacing:"0.1em",overflowWrap:"anywhere",lineHeight:1.2,marginTop:2}}>{value}</div>
     </button>
   );
+}
+/* « Code immeuble : 1265A » -> {label, code} ; une ligne sans « : » -> libellé « Code » */
+function lireCodes(txt){
+  return String(txt||"").split(/\n+/).map(function(l){ return l.trim(); }).filter(Boolean).map(function(l){
+    var m=l.match(/^(.*?)\s*[:：]\s*(.+)$/);
+    return m&&m[1]?{label:majuscule(m[1]),code:m[2].trim()}:{label:"Code",code:l};
+  });
 }
 function GrilleInfos({logement}){
   var voyageurs=logement.voyageurs?logement.voyageurs+" max":"";
@@ -916,7 +923,7 @@ function GrilleInfos({logement}){
         )}
         {(accesTxt||cle)&&(
           <Tuile span={2} bg={DS.color.primary} fg="#fff" icon={<IconKey/>} titre="Accès">
-            {cle?<div style={{display:"flex",gap:10,marginBottom:accesTxt?10:0}}><CodeBox label="Boîte à clé" value={cle}/></div>:null}
+            {cle?(function(){ var codes=lireCodes(cle); return <div style={{display:"grid",gridTemplateColumns:codes.length>1?"1fr 1fr":"1fr",gap:8,marginBottom:accesTxt?10:0}}>{codes.map(function(c,i){ return <div key={i} style={{display:"flex",minWidth:0,gridColumn:(codes.length%2===1&&i===codes.length-1&&codes.length>1)?"span 2":"auto"}}><CodeBox label={c.label} value={c.code}/></div>; })}</div>; })():null}
             {accesTxt?<div style={{fontSize:13,lineHeight:1.45}}>{rich(logement.acces)}</div>:null}
           </Tuile>
         )}
@@ -1463,12 +1470,6 @@ function ModeVisite({logement,onQuitter}){
   var groupes=grouperPhotos(logement&&logement.photosReference);
   var voyageursVisite=logement.voyageurs?logement.voyageurs+" max":"";
   var accesRtVisite=Array.isArray(logement.acces)?logement.acces:[];
-  var accesVisiteWithCle=logement.boiteCle
-    ? accesRtVisite.concat([
-        {text:"\n",bold:false,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
-        {text:"Code boîte à clé : "+logement.boiteCle,bold:true,italic:false,underline:false,strikethrough:false,code:false,color:null,href:null},
-      ])
-    : accesRtVisite;
   return (
     <div style={wrap}>
       <div style={{background:DS.color.primaryDark,margin:"-24px -20px 16px",padding:"20px 20px 16px",fontFamily:DS.font.heading,color:"#fff"}}>

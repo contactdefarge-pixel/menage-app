@@ -64,7 +64,7 @@ function mapPage(page) {
     lits:                 richText(props["Types de lits"]),
     linge:                lingeProp(props["Linge"] || props[Object.keys(props).find(k => k.trim().toLowerCase() === "linge")]),
     acces:                richText(props["Accès logement"]),
-    boiteCle:             plainText(props["Boite à clé"]),
+    boiteCle:             plainText(props["Codes d'accès"] || props["Codes d’accès"] || props["Boite à clé"]),
     poubelles:            richText(props["Poubelles"]),
     consommables:         richText(props["Consommables"]),
     consommablesALaisser: richText(props["Consommables à laisser"]),
