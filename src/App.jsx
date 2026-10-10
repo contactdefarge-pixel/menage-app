@@ -1610,6 +1610,8 @@ function ModeVisite({logement,onQuitter}){
 /* ─── PAGE ACCUEIL ───────────────────────────────────────────────────── */
 /* ─── ESPACE PRESTATAIRE ─────────────────────────────────────────────── */
 var PRESTA_KEY = "prestataire_session";
+/* lien unique de mission : /<logement>?mission=<id> (sans ce paramètre, accès par logement comme avant) */
+var MISSION_ID = (function(){ try{ return new URLSearchParams(window.location.search).get("mission")||""; }catch(e){ return ""; } })();
 
 function getSession(){ try{ return JSON.parse(localStorage.getItem(PRESTA_KEY)||"null"); }catch(e){ return null; } }
 function saveSession(p){ try{ localStorage.setItem(PRESTA_KEY, JSON.stringify(p)); }catch(e){} }
@@ -1949,7 +1951,7 @@ function MissionCard({mission, onAccepter, onRefuser, mode}){
         </div>
       )}
       {mode==="mesmissions" && mission.slug && !isPast && (
-        <a href={"/"+mission.slug} style={{display:"block",marginTop:10,padding:"10px",borderRadius:DS.radius.sm,background:DS.color.primaryBg,color:DS.color.primaryDark,fontWeight:700,fontSize:13,fontFamily:DS.font.heading,textDecoration:"none",textAlign:"center",border:"1px solid "+DS.color.primaryBorder}}>
+        <a href={"/"+mission.slug+"?mission="+encodeURIComponent(mission.id)} style={{display:"block",marginTop:10,padding:"10px",borderRadius:DS.radius.sm,background:DS.color.primaryBg,color:DS.color.primaryDark,fontWeight:700,fontSize:13,fontFamily:DS.font.heading,textDecoration:"none",textAlign:"center",border:"1px solid "+DS.color.primaryBorder}}>
           Ouvrir le formulaire →
         </a>
       )}
@@ -2711,7 +2713,7 @@ export default function App(){
     // affichage immédiat de la dernière version connue du logement, remplacée dès que Notion répond
     var cleLogement="iz_logement_"+slug;
     try{ var c=JSON.parse(localStorage.getItem(cleLogement)||"null"); if(c){ var nlc=normalizeLogement(c); setLogement(nlc); setArrivee(function(prev){ if(prev.bien&&prev.bien!==INIT_ARRIVEE.bien)return prev; return Object.assign({},prev,{bien:nlc.nom||""}); }); } }catch(e){}
-    fetch("/api/logement?slug="+encodeURIComponent(slug))
+    fetch("/api/logement?slug="+encodeURIComponent(slug)+(MISSION_ID?"&mission="+encodeURIComponent(MISSION_ID):""))
       .then(function(res){return res.json().then(function(data){if(!res.ok)throw new Error(data.error||"Logement introuvable");return data;});})
       .then(function(data){if(cancelled||!data.logement)return;try{localStorage.setItem(cleLogement,JSON.stringify(data.logement));}catch(e){}var nl=normalizeLogement(data.logement);setLogement(nl);setArrivee(function(prev){if(prev.bien&&prev.bien!==INIT_ARRIVEE.bien)return prev;return Object.assign({},prev,{bien:nl.nom||""});});var slug=slugify(nl.slug||nl.nom);var detected=detectChanges(slug,nl);setChanges(detected);saveHashes(slug,buildHashes(nl),nl);})
       .catch(function(e){if(!cancelled)setLogementError(e.message||"Impossible de charger le logement.");})
@@ -2765,7 +2767,7 @@ export default function App(){
       if(startIndex>=allPhotos.length){
         var vA=resultsArrivee.filter(function(r){return r!==null;});
         var vF=resultsFin.filter(function(r){return r!==null;});
-        fetch("/api/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({arrivee:arrivee,etatLieux:etatLieux,consommables:consommables,photosArrivee:vA,photos:vF,photosAttendues:(logement&&logement.photosReference?logement.photosReference.length:0),aApporter:(logement&&logement.consommablesARecuperer&&logement.aApporter)?{items:logement.aApporter.items,rapportIds:(logement.aApporter.rapports||[]).map(function(r){return r.id;})}:null})})
+        fetch("/api/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({missionId:MISSION_ID||null,arrivee:arrivee,etatLieux:etatLieux,consommables:consommables,photosArrivee:vA,photos:vF,photosAttendues:(logement&&logement.photosReference?logement.photosReference.length:0),aApporter:(logement&&logement.consommablesARecuperer&&logement.aApporter)?{items:logement.aApporter.items,rapportIds:(logement.aApporter.rapports||[]).map(function(r){return r.id;})}:null})})
           .then(function(res){return res.json();})
           .then(function(data){setSending(false);if(data.success){localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(PHOTO_ANALYSES_KEY);idbPhotosVider();photosSauvees.current={};setDone(true);}else setSendError("Erreur lors de l'envoi. Réessayez.");})
           .catch(function(){setSending(false);setSendError("Erreur réseau. Vérifiez votre connexion.");});

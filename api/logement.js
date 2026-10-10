@@ -1,5 +1,5 @@
 import { prochaineReservation } from "../lib/beds24.js";
-import { consigneDuJour } from "../lib/remarques.js";
+import { consigneDuJour, consigneMission } from "../lib/remarques.js";
 import { aApporter } from "../lib/consommables.js";
 const DEFAULT_LOGEMENTS_DB = "365d50aba52f801fb5fdf740a0aa78c1";
 
@@ -202,7 +202,9 @@ export default async function handler(req, res) {
     const [apporter, resa, consigne] = await Promise.all([
       logement.consommablesARecuperer ? aApporter(NOTION_TOKEN, logement.nom).catch(() => null) : null,
       prochaineReservation(logement.nom).catch(() => null),
-      consigneDuJour(NOTION_TOKEN, logement.id).catch(() => null),
+      (req.query.mission
+        ? consigneMission(NOTION_TOKEN, String(req.query.mission), logement.id).then(c => c.valide ? c.consigne : consigneDuJour(NOTION_TOKEN, logement.id))
+        : consigneDuJour(NOTION_TOKEN, logement.id)).catch(() => null),
     ]);
     logement.consigne = consigne;
     if (apporter) logement.aApporter = apporter;

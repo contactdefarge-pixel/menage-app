@@ -1,6 +1,7 @@
 import { sendEmail, APP_URL } from "../lib/mail.js";
 import { ADMIN_EMAIL } from "../lib/urgent.js";
 import { marquerTraites, articles } from "../lib/consommables.js";
+import { lierRapportMission } from "../lib/remarques.js";
 export const config = {
   api: { bodyParser: { sizeLimit: "50mb" } },
 };
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
 
   try {
     const body = req.body;
-    const { arrivee, etatLieux, consommables, photosArrivee, photos, photosAttendues, aApporter } = body;
+    const { arrivee, etatLieux, consommables, photosArrivee, photos, photosAttendues, aApporter, missionId } = body;
     // consommables à apporter (stock izinest) : ce qui n'a pas été apporté est reporté sur ce rapport
     const nonApportes = (aApporter?.items || []).filter(a => !(consommables?.apportes || []).includes(a));
     // format homogène : un article par élément, majuscule en début, sans doublon
@@ -136,6 +137,8 @@ export default async function handler(req, res) {
     }
 
     const page = await notionRes.json();
+    // lien unique de mission : le rapport est rattaché à sa mission
+    if (missionId) await lierRapportMission(NOTION_TOKEN, NOTION_DB, page.id, String(missionId));
 
     // rapports précédents : leurs consommables sont soit apportés, soit reportés ici -> traités
     try { if (aApporter?.rapportIds?.length) await marquerTraites(NOTION_TOKEN, aApporter.rapportIds); } catch (e) { console.error("conso:", e.message); }
