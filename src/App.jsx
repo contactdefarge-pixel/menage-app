@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import exifr from "exifr";
-import { CircleCheck, MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut, CalendarX2, Coffee, Sparkles } from "lucide-react";
+import { CircleCheck, MapPin, Wifi, Users, Trash2, Package, KeyRound, Receipt, Euro, Copy as CopyIcon, Navigation, BellRing, Check, Eye, LogOut, CalendarX2, Coffee, Sparkles, CalendarClock, Clock, SwitchCamera } from "lucide-react";
 
 /* ─── DESIGN SYSTEM ─────────────────────────────────────────────────── */
 var DS = {
@@ -176,7 +176,7 @@ function normalizeLogement(raw) {
     adresse:raw.adresse||"", wifi:rt(raw.wifi), voyageurs:raw.voyageurs||"",
     chambres:raw.chambres||"", lits:rt(raw.lits), linge:rt(raw.linge), acces:rt(raw.acces),
     boiteCle:raw.boiteCle||"", poubelles:rt(raw.poubelles),
-    consommables:rt(raw.consommables), consommablesALaisser:rt(raw.consommablesALaisser), consommablesARecuperer:!!raw.consommablesARecuperer, aApporter:raw.aApporter||{items:[],rapports:[]},
+    consommables:rt(raw.consommables), consommablesALaisser:rt(raw.consommablesALaisser), consommablesARecuperer:!!raw.consommablesARecuperer, aApporter:raw.aApporter||{items:[],rapports:[]}, prochaineResa:raw.prochaineResa||null,
     photosReference:raw.photosReference||[], pointsAttention:rt(raw.pointsAttention),
     proprietaire:raw.proprietaire||"", forfaitMenage:raw.forfaitMenage||"",
   };
@@ -759,6 +759,35 @@ function Tuile({span,bg,fg,icon,titre,children,border}){
     </div>
   );
 }
+/* ── Prochaine réservation (Beds24) : tuile en tête de la page 1 ── */
+function TuileResa({resa}){
+  if(!resa||!resa.arrivee) return null;
+  var auj=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Paris"});
+  var j=Math.round((Date.parse(resa.arrivee+"T12:00:00Z")-Date.parse(auj+"T12:00:00Z"))/86400000);
+  var quand=j<=0?"Aujourd'hui":j===1?"Demain":majuscule(new Date(resa.arrivee+"T12:00:00Z").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",timeZone:"UTC"}));
+  var dans=j<=1?"":"dans "+j+" jours";
+  var nuits=resa.depart?Math.round((Date.parse(resa.depart)-Date.parse(resa.arrivee))/86400000):0;
+  var depart=resa.depart?new Date(resa.depart+"T12:00:00Z").toLocaleDateString("fr-FR",{day:"numeric",month:"short",timeZone:"UTC"}):"";
+  var pers=[resa.adultes?resa.adultes+" adulte"+(resa.adultes>1?"s":""):"",resa.enfants?resa.enfants+" enfant"+(resa.enfants>1?"s":""):""].filter(Boolean).join(" · ");
+  var client=[resa.prenom,resa.nom?resa.nom.charAt(0).toUpperCase()+".":""].filter(Boolean).join(" ");
+  var urgent=j<=0;
+  var T=DS.color.primaryDark;
+  return (
+    <Tuile span={2} bg={urgent?"#fff4ec":"#fff"} fg={urgent?"#9a3412":T} icon={<CalendarClock size={18} strokeWidth={2}/>} titre="Prochaine réservation" border={"1.5px solid "+(urgent?"#fdba74":DS.color.primaryBorder)}>
+      <div style={{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontFamily:DS.font.heading,fontSize:22,fontWeight:700,lineHeight:1.15}}>{quand}</span>
+        {dans&&<span style={{fontSize:13,fontWeight:600,opacity:.75}}>{dans}</span>}
+        {resa.heureArrivee&&<span style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:13,fontWeight:700,padding:"2px 9px",borderRadius:DS.radius.pill,background:urgent?"#fed7aa":DS.color.primarySoft}}><Clock size={13} strokeWidth={2.2}/>{resa.heureArrivee}</span>}
+      </div>
+      {urgent&&<div style={{fontSize:12,fontWeight:700,marginTop:4}}>Les voyageurs arrivent aujourd'hui : le logement doit être prêt.</div>}
+      <div style={{display:"flex",flexWrap:"wrap",gap:"4px 14px",marginTop:8,fontSize:13,color:urgent?"#7c2d12":"#2c4b4e"}}>
+        {pers&&<span style={{display:"inline-flex",alignItems:"center",gap:5}}><Users size={14} strokeWidth={2}/>{pers}</span>}
+        {nuits>0&&<span>{nuits} nuit{nuits>1?"s":""} · départ le {depart}</span>}
+        {client&&<span style={{opacity:.8}}>{client}</span>}
+      </div>
+    </Tuile>
+  );
+}
 /* ── Linge à récupérer : bouton dans la tuile Voyageurs -> panneau du bas avec cases à cocher ── */
 function majuscule(t){ t=String(t||"").trim(); return t?t.charAt(0).toUpperCase()+t.slice(1):t; }
 function lignesConso(v){
@@ -875,6 +904,7 @@ function GrilleInfos({logement}){
   var spanBas=(poub&&(conso||consoRecup.length||consoStock.length))?1:2;
   return (
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <TuileResa resa={logement.prochaineResa}/>
         {adresse&&(
           <Tuile span={2} bg="#fff" fg={T} icon={<IconPin/>} titre="Adresse" border={BORD}>
             <div style={{fontSize:15,fontWeight:600,color:"#0f2e31",marginBottom:10}}>{adresse}</div>
@@ -1181,14 +1211,53 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
   var [grand,setGrand]=useState(false);
   var [portrait,setPortrait]=useState(false);
   var [flash,setFlash]=useState(false);
+  // objectifs : {mode:"zoom",min} (zoom < 1 = ultra grand angle) ou {mode:"devices",ultra,normal} ou {mode:"cycle",liste}
+  var [objectifs,setObjectifs]=useState(null);
+  var [objectif,setObjectif]=useState("1"); // "0.5" | "1" | index dans la liste (mode cycle)
+  var resolution={width:{ideal:1920},height:{ideal:1440}};
+  function brancher(st){ streamRef.current=st; if(videoRef.current){videoRef.current.srcObject=st; videoRef.current.play().catch(function(){});} }
+  function arreter(){ if(streamRef.current) streamRef.current.getTracks().forEach(function(t){t.stop();}); streamRef.current=null; }
+  function detecterObjectifs(st){
+    var track=st.getVideoTracks()[0];
+    var caps=track&&track.getCapabilities?track.getCapabilities():{};
+    if(caps&&caps.zoom&&caps.zoom.min<1){ setObjectifs({mode:"zoom",min:Math.max(caps.zoom.min,0.5)}); return; }
+    if(!navigator.mediaDevices.enumerateDevices) return;
+    var courantId=track&&track.getSettings?track.getSettings().deviceId:"";
+    navigator.mediaDevices.enumerateDevices().then(function(devs){
+      var arriere=devs.filter(function(d){ return d.kind==="videoinput"&&!/front|avant|user|facetime/i.test(d.label||""); });
+      var ultra=arriere.find(function(d){ return /ultra|grand.?angle|wide/i.test(d.label||"")&&!/dual|double|triple|tele/i.test(d.label||""); });
+      if(ultra&&ultra.deviceId!==courantId){ setObjectifs({mode:"devices",ultra:ultra.deviceId,normal:courantId}); return; }
+      if(arriere.length>=2&&arriere.every(function(d){return d.label;})) setObjectifs({mode:"cycle",liste:arriere.map(function(d){return d.deviceId;}),courant:Math.max(0,arriere.findIndex(function(d){return d.deviceId===courantId;}))});
+    }).catch(function(){});
+  }
   useEffect(function(){
     var annule=false;
     if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ setErreur("Caméra indisponible sur cet appareil. Utilisez l'import depuis la galerie."); return; }
-    navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1440}}})
-      .then(function(st){ if(annule){st.getTracks().forEach(function(t){t.stop();});return;} streamRef.current=st; if(videoRef.current){videoRef.current.srcObject=st; videoRef.current.play().catch(function(){});} setPret(true); })
+    navigator.mediaDevices.getUserMedia({audio:false,video:Object.assign({facingMode:{ideal:"environment"}},resolution)})
+      .then(function(st){ if(annule){st.getTracks().forEach(function(t){t.stop();});return;} brancher(st); setPret(true); detecterObjectifs(st); })
       .catch(function(){ setErreur("Accès à la caméra refusé. Autorisez la caméra pour ce site dans les réglages, ou utilisez l'import depuis la galerie."); });
-    return function(){ annule=true; if(streamRef.current) streamRef.current.getTracks().forEach(function(t){t.stop();}); };
+    return function(){ annule=true; arreter(); };
   },[]);
+  function changerDevice(id,val){
+    setPret(false); arreter();
+    navigator.mediaDevices.getUserMedia({audio:false,video:Object.assign({deviceId:{exact:id}},resolution)})
+      .then(function(st){ brancher(st); setObjectif(val); setPret(true); })
+      .catch(function(){ navigator.mediaDevices.getUserMedia({audio:false,video:Object.assign({facingMode:{ideal:"environment"}},resolution)}).then(function(st){ brancher(st); setObjectif("1"); setPret(true); }); });
+  }
+  function choisirObjectif(val){
+    if(!objectifs||val===objectif) return;
+    if(objectifs.mode==="zoom"){
+      var track=streamRef.current&&streamRef.current.getVideoTracks()[0]; if(!track) return;
+      track.applyConstraints({advanced:[{zoom:val==="0.5"?objectifs.min:1}]}).then(function(){setObjectif(val);}).catch(function(){});
+    } else if(objectifs.mode==="devices"){
+      changerDevice(val==="0.5"?objectifs.ultra:objectifs.normal,val);
+    }
+  }
+  function objectifSuivant(){
+    var n=(objectifs.courant+1)%objectifs.liste.length;
+    setObjectifs(Object.assign({},objectifs,{courant:n}));
+    changerDevice(objectifs.liste[n],String(n));
+  }
   var ref=references[idx]||null;
   var nbFaites=references.filter(function(r){return faites[r.nom];}).length;
   function suivante(depuis){ for(var k=1;k<=references.length;k++){ var j=(depuis+k)%references.length; if(!faites[references[j].nom]&&j!==depuis) return j; } return -1; }
@@ -1257,6 +1326,20 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
             </div>
           ); })}
         </div>
+        {objectifs&&objectifs.mode!=="cycle"&&(
+          <div style={{display:"flex",justifyContent:"center",marginBottom:12}}>
+            <div style={{display:"flex",gap:4,padding:4,borderRadius:22,background:noir}}>
+              {[["0.5",objectifs.mode==="zoom"&&objectifs.min>0.5?String(Math.round(objectifs.min*10)/10).replace(".",",")+"×":"0,5×"],["1","1×"]].map(function(o){ var on=objectif===o[0]; return (
+                <button key={o[0]} onClick={function(){choisirObjectif(o[0]);}} aria-label={o[0]==="0.5"?"Grand angle":"Objectif classique"} style={{minWidth:44,height:36,borderRadius:18,border:"none",background:on?"rgba(255,255,255,.95)":"transparent",color:on?"#0f2e31":"#fff",fontFamily:DS.font.heading,fontWeight:700,fontSize:13,cursor:"pointer"}}>{o[1]}</button>
+              ); })}
+            </div>
+          </div>
+        )}
+        {objectifs&&objectifs.mode==="cycle"&&(
+          <div style={{display:"flex",justifyContent:"center",marginBottom:12}}>
+            <button onClick={objectifSuivant} style={Object.assign({},rond,{width:"auto",padding:"0 14px",gap:6})}><SwitchCamera size={16} strokeWidth={2}/>Objectif {objectifs.courant+1}/{objectifs.liste.length}</button>
+          </div>
+        )}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <button onClick={function(){setSuperpose(!superpose);}} style={Object.assign({},rond,{width:"auto",padding:"0 14px",background:superpose?DS.color.primary:noir})}>Superposer</button>
           <button onClick={declencher} disabled={!pret} aria-label="Prendre la photo" style={{width:76,height:76,borderRadius:38,border:"5px solid #fff",background:"rgba(255,255,255,.9)",cursor:"pointer",boxShadow:"0 0 0 3px rgba(0,0,0,.25)",transform:flash?"scale(.9)":"none",transition:"transform .1s"}}/>

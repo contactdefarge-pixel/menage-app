@@ -1,3 +1,4 @@
+import { getBeds24Token, beds24Get, getRoomMap } from "../lib/beds24.js";
 import { notifierAnnulation } from "../lib/mail.js";
 import { estUrgente } from "../lib/attribution.js";
 import { traiterUrgences } from "../lib/urgent.js";
@@ -31,37 +32,7 @@ async function notion(path, method, body) {
   return data;
 }
 
-/* ── Beds24 ── */
-async function getBeds24Token() {
-  const refreshToken = (process.env.BEDS24_REFRESH_TOKEN || "").trim();
-  const r = await fetch("https://beds24.com/api/v2/authentication/token", {
-    method: "GET",
-    headers: { "refreshToken": refreshToken },
-  });
-  const data = await r.json();
-  if (!data.token) throw new Error("Beds24 auth failed: " + JSON.stringify(data));
-  return data.token;
-}
-
-async function beds24Get(token, path) {
-  const r = await fetch(`https://beds24.com/api/v2/${path}`, { headers: { token } });
-  const data = await r.json();
-  if (data.success === false) throw new Error(`Beds24 ${path} failed: ` + JSON.stringify(data));
-  return data;
-}
-
-/* roomId -> { roomName, propertyName } */
-async function getRoomMap(token) {
-  const data = await beds24Get(token, "properties?includeAllRooms=true");
-  const map = {};
-  for (const p of data.data || []) {
-    for (const room of p.roomTypes || []) {
-      map[room.id] = { roomName: room.name || "", propertyName: p.name || "" };
-    }
-  }
-  return map;
-}
-
+/* ── Beds24 (helpers dans lib/beds24.js) ── */
 async function getBeds24Bookings(token, from, to) {
   const roomMap = await getRoomMap(token);
   const all = [];
