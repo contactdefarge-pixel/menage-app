@@ -10,8 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - env:
+      - name: Appel de la synchro Beds24
+        env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           if [ -z "$CRON_SECRET" ]; then echo "::warning::Secret CRON_SECRET manquant"; exit 0; fi
-          curl -fsS --max-time 90 --retry 2 --retry-delay 20 --retry-all-errors -H "Authorization: Bearer $CRON_SECRET" "https://agents.izinest.fr/api/sync-missions" > /dev/null
+          for essai in 1 2 3; do
+            code=$(curl -sS --max-time 90 -o reponse.txt -w "%{http_code}" -H "Authorization: Bearer $CRON_SECRET" "https://agents.izinest.fr/api/sync-missions" || echo 000)
+            if [ "$code" = "200" ]; then exit 0; fi
+            echo "Essai $essai : HTTP $code"
+            sleep 20
+          done
+          echo "::error title=Synchro en échec (HTTP $code)::$(head -c 600 reponse.txt 2>/dev/null | tr '\n' ' ')"
+          exit 1
