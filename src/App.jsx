@@ -1352,7 +1352,7 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
           ); })}
         </div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{width:96,display:"flex",justifyContent:"flex-start"}}>
+          <div style={{width:124,display:"flex",justifyContent:"flex-start"}}>
             {objectifs&&objectifs.mode!=="cycle"&&(
               <div style={{display:"flex",gap:2,padding:3,borderRadius:22,background:noir}}>
                 {[["0.5",objectifs.mode==="zoom"&&objectifs.min>0.5?String(Math.round(objectifs.min*10)/10).replace(".",",")+"×":"0,5×"],["1","1×"]].map(function(o){ var on=objectif===o[0]; return (
@@ -1361,7 +1361,7 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
               </div>
             )}
             {!objectifs&&(
-              <button onClick={ouvrirNatif} aria-label="Appareil photo du téléphone" style={Object.assign({},rond,{width:"auto",padding:"0 12px",gap:6,fontSize:12})}><CameraIcon size={16} strokeWidth={2}/>0,5×</button>
+              <button onClick={ouvrirNatif} aria-label="Appareil photo du téléphone" style={Object.assign({},rond,{width:"auto",padding:"0 12px",gap:6,fontSize:12,whiteSpace:"nowrap"})}><CameraIcon size={16} strokeWidth={2}/>Grand angle</button>
             )}
             <input ref={natifRef} type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={function(e){ var f=e.target.files&&e.target.files[0]; natifOuvert.current=false; if(f) ajouterPhoto(f); relancerFlux(); }}/>
             {objectifs&&objectifs.mode==="cycle"&&(
@@ -1369,7 +1369,7 @@ function CameraGuidee({references,photos,setPhotos,onClose}){
             )}
           </div>
           <button onClick={declencher} disabled={!pret} aria-label="Prendre la photo" style={{width:76,height:76,borderRadius:38,border:"5px solid #fff",background:"rgba(255,255,255,.9)",cursor:"pointer",boxShadow:"0 0 0 3px rgba(0,0,0,.25)",transform:flash?"scale(.9)":"none",transition:"transform .1s"}}/>
-          <div style={{width:96,display:"flex",justifyContent:"flex-end"}}><button onClick={function(){ var n=suivante(idx); if(n===-1) n=(idx+1)%references.length; setIdx(n); }} style={Object.assign({},rond,{width:"auto",padding:"0 14px"})}>Passer</button></div>
+          <div style={{width:124,display:"flex",justifyContent:"flex-end"}}><button onClick={function(){ var n=suivante(idx); if(n===-1) n=(idx+1)%references.length; setIdx(n); }} style={Object.assign({},rond,{width:"auto",padding:"0 14px"})}>Passer</button></div>
         </div>
       </div>
     </div>
